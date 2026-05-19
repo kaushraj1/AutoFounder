@@ -1,0 +1,16 @@
+{
+  "name": "@autofounder-ai/mobile-app",
+  "private": true,
+  "version": "0.0.0",
+  "devDependencies": {
+    "@eslint/js": "^9.19.0",
+    "eslint": "^9.19.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.22.0"
+  },
+  "scripts": {
+    "dev": "node -e \"console.log('mobile-app: Expo scaffold in Phase P13 — placeholder dev');\"",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  }
+}

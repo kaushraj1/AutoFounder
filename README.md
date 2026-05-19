@@ -1,14 +1,14 @@
-# Auto-Founder AI — Product Requirements Document
+# AutoFounder AI — Product Requirements Document
 
 > **Version**: 1.0 | **Status**: Draft / For Review | **Date**: May 2026  
-> **Prepared by**: Euron Auto-Founder AI Product Team, Bengaluru, Karnataka, India  
+> **Prepared by**: Euron AutoFounder AI Product Team, Bengaluru, Karnataka, India  
 > **Contact**: product@euron.one | **Confidential**
 
 ---
 
-## What is Auto-Founder AI?
+## What is AutoFounder AI?
 
-Auto-Founder AI is an autonomous, multi-agent SaaS platform that transforms a single text idea into a fully validated, production-ready, and marketed software business — in approximately 7 days, versus the traditional 4–7 months.
+AutoFounder AI is an autonomous, multi-agent SaaS platform that transforms a single text idea into a fully validated, production-ready, and marketed software business — in approximately 7 days, versus the traditional 4–7 months.
 
 It acts as an AI co-founder: handling market research, full-stack code generation, cloud deployment, and go-to-market execution with minimal human intervention.
 
@@ -32,7 +32,7 @@ It acts as an AI co-founder: handling market research, full-stack code generatio
 | **Solopreneur** | Sudhanshu | Speed, low overhead, one-click deployment |
 | **Non-Technical Founder** | Santosh | Natural language interface, no technical complexity |
 | **AI Researcher** | Asit | Model benchmarking, trace logs, LLMOps metrics |
-| **Rapid-Prototyping Agency** | Auto-Founder AI Team | Multi-tenancy, white-labeling, code ejection |
+| **Rapid-Prototyping Agency** | AutoFounder AI Team | Multi-tenancy, white-labeling, code ejection |
 
 ---
 
@@ -53,9 +53,9 @@ Each pillar is powered by a specialized AI agent and follows the same 5-stage lo
 
 ---
 
-## Combined ROI: Traditional vs Auto-Founder AI
+## Combined ROI: Traditional vs AutoFounder AI
 
-| Stage | Traditional | Auto-Founder AI | Improvement |
+| Stage | Traditional | AutoFounder AI | Improvement |
 |-------|-------------|----------------|-------------|
 | Idea → Validated | 3 weeks | 30 minutes | 99% faster |
 | Validated → Built MVP | 3–6 months | 7 days | 95% faster |
@@ -158,9 +158,9 @@ Each pillar is powered by a specialized AI agent and follows the same 5-stage lo
 
 | Field | Detail |
 |-------|--------|
-| Full PRD | `Auto-Founder_AI_PRD_v1_0.pdf` |
+| Full PRD | `AutoFounder_AI_PRD_v1_0.pdf` |
 | Version | 1.0 |
 | Status | Draft / For Review |
 | Date | May 2026 |
-| Owner | Euron Auto-Founder AI Product Team |
+| Owner | Euron AutoFounder AI Product Team |
 | Contact | product@euron.one |
