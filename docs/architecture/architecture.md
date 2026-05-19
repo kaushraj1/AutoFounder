@@ -278,7 +278,7 @@ flowchart LR
     classDef cache  fill:#2d2000,stroke:#e3b341,color:#f0c57a
     classDef object fill:#1a2f23,stroke:#3fb950,color:#7ee787
     classDef vector fill:#2d1b2e,stroke:#bc8cff,color:#ffa8e0
-    classDef graph  fill:#162032,stroke:#58a6ff,color:#79c0ff
+    classDef graphdb fill:#162032,stroke:#58a6ff,color:#79c0ff
 
     AGENTS["All Agents\npackages/agents"]:::agent
 
@@ -303,8 +303,8 @@ flowchart LR
 
     subgraph GRAPH_DB["Graph DB — Neo4j / Neptune"]
         direction TB
-        GN1["Nodes\nTenant · Idea · Competitor\nMarket · Persona\nFeature · Technology"]:::graph
-        GN2["Relationships\nHAS_RUN · TARGETS · OPERATES_IN\nCOMPETES_WITH score\nADDRESSES_PAIN_OF · USES_TECH"]:::graph
+        GN1["Nodes\nTenant · Idea · Competitor\nMarket · Persona\nFeature · Technology"]:::graphdb
+        GN2["Relationships\nHAS_RUN · TARGETS · OPERATES_IN\nCOMPETES_WITH score\nADDRESSES_PAIN_OF · USES_TECH"]:::graphdb
     end
 
     subgraph CACHE_LAYER["Cache — Redis ElastiCache"]
