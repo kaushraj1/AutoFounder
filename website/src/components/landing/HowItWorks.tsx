@@ -1,80 +1,86 @@
-import { ArrowRight, FileText, Layers, Rocket } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { Lightbulb, Cpu, Globe } from 'lucide-react'
 
-interface Step {
-  number: string
-  icon: LucideIcon
-  title: string
-  description: string
-}
-
-const steps: Step[] = [
+const steps = [
   {
-    number: '01',
-    icon: FileText,
-    title: 'Submit Your Idea',
+    step: '01',
+    icon: Lightbulb,
+    title: 'Describe Your Idea',
     description:
-      'Type your startup idea in plain English. Attach a PDF, voice note, or URL for extra context. AutoFounder AI understands text, images, audio, and documents.',
+      'Type your startup idea in plain English — or upload a PDF, voice note, or URL. AutoFounder AI ingests it, clarifies ambiguities, and kicks off the autonomous pipeline.',
+    detail: 'Strategy Agent validates your market in < 30 min with full Lean Canvas + viability score.',
   },
   {
-    number: '02',
-    icon: Layers,
-    title: 'AI Builds in Parallel',
+    step: '02',
+    icon: Cpu,
+    title: 'Agents Build Everything',
     description:
-      'Specialized agents handle validation, architecture, code, testing, deployment, and marketing simultaneously. You review and approve at 4 key checkpoints.',
+      'Seven specialized AI agents handle architecture, code generation, testing, and self-healing in parallel — with human-approval gates at every critical milestone so you stay in control.',
+    detail: 'Frontend + Backend + DB + Auth + Stripe + CI/CD — all production-grade, zero linting errors.',
   },
   {
-    number: '03',
-    icon: Rocket,
-    title: 'Launch & Keep Improving',
+    step: '03',
+    icon: Globe,
+    title: 'Launch to the World',
     description:
-      'Your MVP goes live with a full marketing kit. The LLMOps agent continuously learns from user feedback, optimises your product, and tracks costs — week after week.',
+      'Your product is deployed to AWS ECS Fargate with a live URL, custom domain, SSL certificate, and a full GTM package: landing page, SEO content, social posts, and email drip sequences.',
+    detail: 'Code → Live in < 10 min. Marketing assets delivered in < 2 hours. You approve before anything goes public.',
   },
 ]
 
-export function HowItWorks() {
+export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="bg-slate-900 py-24">
-      <div className="mx-auto max-w-7xl px-6">
+    <section id="how-it-works" className="py-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-16 text-center">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-violet-400">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
             How it works
-          </p>
-          <h2 className="mb-4 text-3xl font-bold text-white sm:text-4xl">
-            Three steps to your live startup
           </h2>
-          <p className="mx-auto max-w-xl text-slate-400">
-            AutoFounder AI compresses 4–7 months of startup work into a single, guided
-            workflow — at a fraction of the cost.
+          <p className="text-slate-400 text-lg max-w-xl mx-auto">
+            Three steps stand between your idea and a live, marketed software business.
           </p>
         </div>
 
         {/* Steps */}
-        <div className="grid gap-8 md:grid-cols-3">
-          {steps.map((step, idx) => {
-            const Icon = step.icon
-            return (
-              <div key={step.number} className="relative">
-                {/* Connector arrow between cards (desktop only) */}
-                {idx < steps.length - 1 && (
-                  <ArrowRight className="absolute -right-4 top-12 z-10 hidden h-8 w-8 text-slate-700 md:block" />
-                )}
-
-                <div className="h-full rounded-2xl border border-slate-800 bg-slate-950 p-8">
-                  {/* Step number + icon row */}
-                  <div className="mb-6 flex items-center gap-4">
-                    <span className="text-5xl font-black text-slate-800/80">{step.number}</span>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600/15 ring-1 ring-violet-500/30">
-                      <Icon className="h-5 w-5 text-violet-400" />
-                    </div>
+        <div className="relative">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+            {steps.map(({ step, icon: Icon, title, description, detail }, i) => (
+              <div key={step} className="flex flex-col items-center text-center gap-5 relative">
+                {/* Step circle */}
+                <div className="relative flex-shrink-0">
+                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-600/20 to-blue-600/20 border border-blue-500/30 flex flex-col items-center justify-center gap-1 shadow-lg">
+                    <Icon size={28} className="text-blue-400" />
+                    <span className="text-[10px] font-bold text-blue-500 tracking-widest">{step}</span>
                   </div>
-                  <h3 className="mb-3 text-xl font-bold text-white">{step.title}</h3>
-                  <p className="leading-relaxed text-slate-400">{step.description}</p>
+                  {/* Connector arrow for mobile */}
+                  {i < steps.length - 1 && (
+                    <div className="lg:hidden flex justify-center mt-6">
+                      <div className="w-px h-8 bg-gradient-to-b from-blue-500/50 to-transparent" />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
+                  <p className="text-slate-400 text-sm leading-relaxed mb-4">{description}</p>
+                  <div className="inline-block px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 leading-snug">
+                    {detail}
+                  </div>
                 </div>
               </div>
-            )
-          })}
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom CTA */}
+        <div className="mt-16 text-center">
+          {/* TODO: Link to actual waitlist / sign-up page */}
+          <a
+            href="#waitlist"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-base transition-all duration-200 shadow-lg shadow-blue-900/50 hover:scale-[1.02]"
+          >
+            Start Building Your Startup →
+          </a>
         </div>
       </div>
     </section>

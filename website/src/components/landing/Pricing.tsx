@@ -1,139 +1,155 @@
-import { Check } from 'lucide-react'
+import { Check, Zap } from 'lucide-react'
 
-// TODO: Confirm final pricing with the finance team before launch.
-// Source: CLAUDE.md §44 / MEMORY.md product identity
-const plans = [
+// Pricing tiers sourced from CLAUDE.md §44
+// TODO: Confirm final pricing and feature limits with business team before launch
+const tiers = [
   {
-    name: 'Solopreneur',
-    // TODO: Add USD equivalent once international pricing is confirmed
+    name: 'AI Researcher',
+    subtitle: 'Solopreneur',
     price: '₹10,000',
     period: '/month',
-    description: 'Perfect for solo founders validating their first idea.',
+    description: 'Perfect for solo founders and researchers validating a single idea.',
+    highlight: false,
     badge: null,
     features: [
-      '1 active build at a time',
-      'Sandbox deployment (no custom domain)',
-      'Strategy + Architecture + Code agents',
-      '30-day build history',
+      '1 active build (Sandbox only)',
+      'Market validation & Lean Canvas',
+      'Architecture design & ERD',
+      'Full-stack code generation',
+      'Automated testing (≥80% coverage)',
+      'Founder approval gates',
       'Community support',
+      // TODO: Confirm exact feature limits
     ],
-    cta: 'Start Free Trial',
-    // TODO: Link to Stripe checkout once payment is wired up
-    ctaHref: '#waitlist',
-    popular: false,
+    cta: 'Start for ₹10,000/mo',
+    ctaStyle: 'border border-white/15 hover:border-blue-500/50 text-white hover:bg-blue-500/10',
   },
   {
-    name: 'Startup',
+    name: 'Startup Founder',
+    subtitle: 'Product Manager',
     price: '₹50,000',
     period: '/month',
-    description: 'For teams moving fast and shipping real products.',
+    description: 'For serious founders who need multiple builds and live AWS deployments.',
+    highlight: true,
     badge: 'Most Popular',
     features: [
-      '5 builds per month',
-      '1-click cloud deploy (custom domain + SSL)',
-      'All 7 AI agents',
-      'Priority build queue',
-      'GitHub repo + CI/CD pipeline',
-      'Unlimited build history',
-      'Priority email support',
+      '5 active builds / month',
+      'Everything in AI Researcher',
+      '1-click AWS ECS Fargate deploy',
+      'Custom domain + SSL automation',
+      'Full GTM launch package',
+      'Email drip sequences',
+      'Priority support + Slack channel',
+      // TODO: Confirm exact feature limits
     ],
-    cta: 'Get Early Access',
-    ctaHref: '#waitlist',
-    popular: true,
+    cta: 'Start for ₹50,000/mo',
+    ctaStyle: 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/50',
   },
   {
     name: 'Enterprise',
+    subtitle: 'Agency',
     price: 'Custom',
     period: '',
-    description: 'For agencies and studios shipping at scale.',
+    description: 'For agencies and enterprises shipping at scale with dedicated infrastructure.',
+    highlight: false,
     badge: null,
     features: [
       'Unlimited builds',
-      'Dedicated cloud infrastructure',
+      'Everything in Startup Founder',
+      'Dedicated VPC + private infra',
       'On-premises LLM option',
-      'White-labeling',
-      'GDPR + SOC 2 compliance pack',
-      'Custom SLA',
-      'Dedicated account manager',
+      'White-labeling & custom domain',
+      'GDPR / SOC 2 / ISO 27001 ready',
+      'Dedicated success manager + SLA',
+      // TODO: Confirm enterprise SLA tiers
     ],
     cta: 'Contact Sales',
-    ctaHref: 'mailto:product@euron.one',
-    popular: false,
+    ctaStyle: 'border border-white/15 hover:border-blue-500/50 text-white hover:bg-blue-500/10',
   },
 ]
 
-export function Pricing() {
+export default function Pricing() {
   return (
-    <section id="pricing" className="bg-slate-900 py-24">
-      <div className="mx-auto max-w-7xl px-6">
+    <section id="pricing" className="py-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-16 text-center">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-violet-400">
-            Pricing
-          </p>
-          <h2 className="mb-4 text-3xl font-bold text-white sm:text-4xl">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
             Simple, transparent pricing
           </h2>
-          {/* TODO: Confirm whether there's a free trial before launch */}
-          <p className="mx-auto max-w-xl text-slate-400">
-            Start free. Upgrade when you're ready to ship your first product.
+          <p className="text-slate-400 text-lg max-w-xl mx-auto">
+            All plans include a human-approval gate at every critical milestone — you're always in
+            control.
           </p>
+          {/* TODO: Add annual discount toggle when billing is wired up */}
         </div>
 
-        {/* Plan cards */}
-        <div className="grid gap-8 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative flex flex-col rounded-2xl p-8 ${
-                plan.popular
-                  ? 'border-2 border-violet-500 bg-slate-950 shadow-2xl shadow-violet-500/10'
-                  : 'border border-slate-800 bg-slate-950'
-              }`}
-            >
-              {/* Popular badge */}
-              {plan.badge && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                  <span className="rounded-full bg-violet-600 px-3 py-1 text-xs font-semibold text-white">
-                    {plan.badge}
-                  </span>
-                </div>
-              )}
-
-              {/* Plan header */}
-              <div className="mb-6">
-                <h3 className="mb-1 text-lg font-bold text-white">{plan.name}</h3>
-                <p className="mb-5 text-sm text-slate-400">{plan.description}</p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-black text-white">{plan.price}</span>
-                  {plan.period && <span className="text-slate-400">{plan.period}</span>}
-                </div>
-              </div>
-
-              {/* CTA */}
-              <a
-                href={plan.ctaHref}
-                className={`mb-8 block rounded-xl px-6 py-3.5 text-center text-sm font-semibold transition-all ${
-                  plan.popular
-                    ? 'bg-violet-600 text-white hover:bg-violet-500 hover:shadow-lg hover:shadow-violet-500/25'
-                    : 'border border-slate-700 bg-slate-900 text-white hover:border-slate-600'
+        {/* Pricing cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+          {tiers.map(
+            ({ name, subtitle, price, period, description, highlight, badge, features, cta, ctaStyle }) => (
+              <div
+                key={name}
+                className={`relative rounded-2xl p-8 flex flex-col gap-6 ${
+                  highlight
+                    ? 'bg-gradient-to-b from-blue-600/20 to-blue-600/5 border border-blue-500/40 glow-blue'
+                    : 'glass-card'
                 }`}
               >
-                {plan.cta}
-              </a>
+                {/* Popular badge */}
+                {badge && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="flex items-center gap-1.5 px-4 py-1 rounded-full bg-blue-600 text-white text-xs font-bold shadow-lg">
+                      <Zap size={11} />
+                      {badge}
+                    </span>
+                  </div>
+                )}
 
-              {/* Feature list */}
-              <ul className="mt-auto space-y-3.5">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3">
-                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-violet-400" />
-                    <span className="text-sm text-slate-400">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+                {/* Tier header */}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-1">
+                    {subtitle}
+                  </p>
+                  <h3 className="text-xl font-bold text-white mb-3">{name}</h3>
+                  <div className="flex items-end gap-1 mb-3">
+                    <span className="text-4xl font-extrabold text-white">{price}</span>
+                    {period && <span className="text-slate-400 text-sm mb-1">{period}</span>}
+                  </div>
+                  <p className="text-slate-400 text-sm leading-relaxed">{description}</p>
+                </div>
+
+                {/* Features */}
+                <ul className="flex flex-col gap-3 flex-1">
+                  {features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-3">
+                      <Check
+                        size={16}
+                        className={`mt-0.5 flex-shrink-0 ${highlight ? 'text-blue-400' : 'text-emerald-400'}`}
+                      />
+                      <span className="text-slate-300 text-sm">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA */}
+                {/* TODO: Wire up to billing / Stripe checkout */}
+                <a
+                  href="#waitlist"
+                  className={`block text-center px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${ctaStyle}`}
+                >
+                  {cta}
+                </a>
+              </div>
+            )
+          )}
         </div>
+
+        {/* Footnote */}
+        <p className="text-center text-slate-500 text-sm mt-10">
+          All plans include a 7-day free trial. No credit card required to join the waitlist.{' '}
+          {/* TODO: Confirm trial terms with business team */}
+        </p>
       </div>
     </section>
   )

@@ -1,100 +1,120 @@
-import { CheckCircle, Code2, Cpu, Globe, LineChart, Megaphone } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import {
+  Brain,
+  Code2,
+  Rocket,
+  Megaphone,
+  ShieldCheck,
+  BarChart3,
+} from 'lucide-react'
 
-interface Feature {
-  icon: LucideIcon
-  color: string
-  bg: string
-  title: string
-  description: string
-}
-
-const features: Feature[] = [
+const features = [
   {
-    icon: CheckCircle,
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-400/10',
-    title: '30-Minute Idea Validation',
+    icon: Brain,
+    color: 'blue',
+    title: 'Autonomous Market Validation',
     description:
-      'Market sizing (TAM/SAM/SOM), competitor discovery, 3–5 customer personas, Lean Canvas, and a 0–100 viability score — all in under 30 minutes.',
-  },
-  {
-    icon: Cpu,
-    color: 'text-violet-400',
-    bg: 'bg-violet-400/10',
-    title: 'Auto Architecture',
-    description:
-      'Full system design: entity-relationship diagrams, OpenAPI spec, tech stack selection, microservice boundaries, and a monthly cost forecast. You approve before we build.',
+      'The Strategy Agent scans competitors, sizes your market (TAM/SAM/SOM), generates ICPs, and produces a full Lean Canvas with viability score — in under 30 minutes.',
+    badge: 'Pillar 1',
   },
   {
     icon: Code2,
-    color: 'text-blue-400',
-    bg: 'bg-blue-400/10',
+    color: 'sky',
     title: 'Full-Stack Code Generation',
     description:
-      'Frontend + Backend + Database generated in parallel. Includes auth, Stripe payments, CI/CD pipeline, and test coverage ≥ 80%. Zero lint errors, guaranteed.',
+      'The Engineering Agent scaffolds your entire repo: Next.js 14 frontend, FastAPI/NestJS backend, PostgreSQL schema, auth (OAuth/JWT), Stripe integration, and Dockerfile — all TypeScript-strict and linting-clean.',
+    badge: 'Pillar 3',
   },
   {
-    icon: LineChart,
-    color: 'text-cyan-400',
-    bg: 'bg-cyan-400/10',
-    title: 'Self-Healing Tests',
+    icon: ShieldCheck,
+    color: 'emerald',
+    title: 'Autonomous Testing & Self-Healing',
     description:
-      'Automated security scanning (Trivy, Semgrep, OWASP ZAP) plus unit and integration tests. The AI patches failures automatically — up to 5 retries before escalating.',
+      'Generates unit, integration, and security tests. If tests fail, a self-healing loop attempts up to 5 auto-fix cycles — targeting ≥80% coverage and ≥90% auto-fix rate.',
+    badge: 'Pillar 4',
   },
   {
-    icon: Globe,
-    color: 'text-indigo-400',
-    bg: 'bg-indigo-400/10',
-    title: 'Deploy in 10 Minutes',
+    icon: Rocket,
+    color: 'cyan',
+    title: 'One-Click AWS Deployment',
     description:
-      'Containerized, cloud-provisioned, and live with DNS + SSL in under 10 minutes. Blue/green deploys with automatic rollback on failure included.',
+      'Containerizes your app, writes Terraform IaC, provisions ECS Fargate + RDS + Redis, configures SSL via ACM, and sets up CI/CD — from code to live in under 10 minutes.',
+    badge: 'Pillar 5',
   },
   {
     icon: Megaphone,
-    color: 'text-pink-400',
-    bg: 'bg-pink-400/10',
-    title: 'AI-Powered Launch Kit',
+    color: 'pink',
+    title: 'Full GTM Launch Package',
     description:
-      'Brand identity, landing page, 10 SEO blog posts, email drip sequences, and a social launch thread. Nothing goes live without your explicit sign-off.',
+      'Generates your brand identity, landing page, SEO blog posts, Product Hunt kit, email drip sequences, and launch threads for X/LinkedIn/Reddit — founder approves before anything goes live.',
+    badge: 'Pillar 6',
+  },
+  {
+    icon: BarChart3,
+    color: 'amber',
+    title: 'Continuous LLMOps & Growth',
+    description:
+      'After launch, the LLMOps Agent tracks user feedback, optimizes prompts with DSPy, detects model drift, runs A/B experiments, and delivers weekly improvement cycles.',
+    badge: 'Pillar 7',
   },
 ]
 
-export function Features() {
+const colorMap: Record<string, string> = {
+  blue: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
+  sky: 'bg-sky-500/10 border-sky-500/20 text-sky-400',
+  emerald: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+  cyan: 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400',
+  pink: 'bg-pink-500/10 border-pink-500/20 text-pink-400',
+  amber: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+}
+
+const badgeMap: Record<string, string> = {
+  blue: 'bg-blue-500/10 text-blue-400',
+  sky: 'bg-sky-500/10 text-sky-400',
+  emerald: 'bg-emerald-500/10 text-emerald-400',
+  cyan: 'bg-cyan-500/10 text-cyan-400',
+  pink: 'bg-pink-500/10 text-pink-400',
+  amber: 'bg-amber-500/10 text-amber-400',
+}
+
+export default function Features() {
   return (
-    <section id="features" className="bg-slate-950 py-24">
-      <div className="mx-auto max-w-7xl px-6">
+    <section id="features" className="py-24 section-gradient">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-16 text-center">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-violet-400">
-            Features
-          </p>
-          <h2 className="mb-4 text-3xl font-bold text-white sm:text-4xl">
-            Everything to go from idea to launch
+        <div className="text-center mb-16">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            Everything a founding team does —{' '}
+            <span className="gradient-text">done by AI.</span>
           </h2>
-          <p className="mx-auto max-w-2xl text-slate-400">
-            Seven specialized AI agents work in parallel across every stage. You stay in control
-            at four human-approval checkpoints — no engineering experience required.
+          <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+            Seven specialized AI agents cover every pillar of startup creation, collaborating
+            through a LangGraph orchestration engine with human-approval gates at every critical step.
           </p>
         </div>
 
         {/* Feature grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature) => {
-            const Icon = feature.icon
-            return (
-              <div
-                key={feature.title}
-                className="group rounded-2xl border border-slate-800 bg-slate-900 p-8 transition-all hover:border-violet-500/40 hover:shadow-lg hover:shadow-violet-500/5"
-              >
-                <div className={`mb-5 inline-flex rounded-xl p-3 ${feature.bg}`}>
-                  <Icon className={`h-6 w-6 ${feature.color}`} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {features.map(({ icon: Icon, color, title, description, badge }) => (
+            <div
+              key={title}
+              className="glass-card p-6 flex flex-col gap-4 hover:border-white/15 transition-colors duration-200 group"
+            >
+              <div className="flex items-start justify-between">
+                <div
+                  className={`w-11 h-11 rounded-xl border flex items-center justify-center flex-shrink-0 ${colorMap[color]}`}
+                >
+                  <Icon size={20} />
                 </div>
-                <h3 className="mb-3 text-lg font-semibold text-white">{feature.title}</h3>
-                <p className="leading-relaxed text-slate-400">{feature.description}</p>
+                <span
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-full ${badgeMap[color]}`}
+                >
+                  {badge}
+                </span>
               </div>
-            )
-          })}
+              <h3 className="text-base font-semibold text-white leading-snug">{title}</h3>
+              <p className="text-slate-400 text-sm leading-relaxed flex-1">{description}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

@@ -1,94 +1,83 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 
+// TODO: Review and update FAQ answers with product/legal team before launch
 const faqs = [
   {
-    question: 'What exactly does AutoFounder AI build?',
-    answer:
-      'AutoFounder AI produces a complete software startup: a validated business model (Lean Canvas, viability score, competitor analysis), a full-stack codebase (frontend + backend + database), a configured cloud deployment with DNS and SSL, and a marketing launch kit including a landing page, SEO blog posts, email sequences, and social posts. Everything is generated autonomously and reviewed by you at four key checkpoints.',
+    q: 'Who owns the code and IP that AutoFounder AI generates?',
+    a: 'You do — 100%. All generated code, architecture docs, marketing assets, and deployment artifacts are owned by you and your company. AutoFounder AI is a tool, not a co-founder with equity.',
   },
   {
-    question: 'How long does a full build actually take?',
-    answer:
-      'Idea validation completes in under 30 minutes. A complete, deployed MVP takes approximately 7 days. The marketing and launch kit is ready within 2 hours of deployment approval. Build times may vary by product complexity — enterprise-grade products with many integrations can take longer.',
+    q: 'Do I need technical knowledge to use AutoFounder AI?',
+    a: 'No. AutoFounder AI is designed for both technical and non-technical founders. You describe your idea in plain English, review milestone outputs (Lean Canvas, architecture diagrams, code previews), and click Approve or Request Changes. The agents handle all the technical work.',
   },
   {
-    question: 'Do I need to be technical to use it?',
-    answer:
-      'No. AutoFounder AI handles all engineering decisions autonomously. You review and approve at four human-in-the-loop checkpoints: idea validation, system architecture, infrastructure spend approval, and public launch. No coding, DevOps knowledge, or design skills are required.',
+    q: 'How does the human-approval gate work?',
+    a: 'At every critical milestone — market validation, architecture design, infrastructure spend, and public launch — the system pauses and waits for your explicit approval. Nothing is deployed or published without your sign-off. You can request changes, pivot the direction, or approve and continue at each gate.',
   },
   {
-    question: 'Is my idea secure and private?',
-    answer:
-      'Yes. Every build runs in a fully isolated tenant environment with schema-per-organization database isolation and row-level security. Your idea, source code, and business data are never shared across accounts. All infrastructure runs on encrypted storage and encrypted connections.',
+    q: 'What happens if the generated code has bugs?',
+    a: 'The Testing & Self-Healing agent (Pillar 4) runs automated tests and attempts up to 5 self-correction cycles before escalating to you. The target is ≥90% auto-fix rate and ≥80% test coverage. If issues can\'t be resolved automatically, you\'re notified with a detailed report so you or your team can step in.',
   },
   {
-    question: 'What happens after my MVP launches?',
-    answer:
-      'The LLMOps agent continuously monitors your product performance, optimises AI prompts based on real user feedback, tracks token and compute costs per build, and surfaces weekly improvement reports. Your product keeps getting smarter without any manual work from you.',
+    q: 'Which cloud provider does AutoFounder AI deploy to?',
+    a: 'By default, deployments target Amazon ECS on Fargate (multi-AZ) with RDS PostgreSQL, ElastiCache Redis, S3, and ACM-managed SSL. Enterprise plans include support for custom AWS accounts, dedicated VPCs, and — coming soon — multi-cloud options (GCP, Azure). The generated Terraform IaC is yours to inspect and modify.',
+  },
+  {
+    q: 'Is my idea and data kept private?',
+    a: 'Yes. All data is tenant-isolated at every layer: separate database schemas, namespace-per-tenant in the vector store, and S3 paths prefixed by your tenant ID. Data is encrypted at rest (AES-256 + KMS) and in transit (TLS 1.3). We are GDPR-compliant, including right-to-erasure on request.',
   },
 ]
 
-export function FAQ() {
-  const [openIdx, setOpenIdx] = useState<number | null>(null)
+function FAQItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false)
 
   return (
-    <section id="faq" className="bg-slate-950 py-24">
-      <div className="mx-auto max-w-3xl px-6">
+    <div className="border-b border-white/8 last:border-0">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between gap-4 py-5 text-left group"
+        aria-expanded={open}
+      >
+        <span className="text-base font-medium text-white group-hover:text-blue-300 transition-colors">
+          {q}
+        </span>
+        <ChevronDown
+          size={18}
+          className={`flex-shrink-0 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && (
+        <p className="pb-5 text-slate-400 text-sm leading-relaxed">{a}</p>
+      )}
+    </div>
+  )
+}
+
+export default function FAQ() {
+  return (
+    <section id="faq" className="py-24 section-gradient">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-16 text-center">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-violet-400">
-            FAQ
-          </p>
-          <h2 className="mb-4 text-3xl font-bold text-white sm:text-4xl">
-            Common questions
+        <div className="text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            Frequently asked questions
           </h2>
           <p className="text-slate-400">
-            Still have questions?{' '}
-            <a
-              href="mailto:product@euron.one"
-              className="text-violet-400 underline underline-offset-2 hover:text-violet-300"
-            >
-              Reach out to us
+            Have a question that isn't here?{' '}
+            {/* TODO: Replace with real support email / chat link */}
+            <a href="mailto:autofounderai.co@gmail.com" className="text-blue-400 hover:text-blue-300 underline underline-offset-4 transition-colors">
+              Email us
             </a>
             .
           </p>
         </div>
 
         {/* Accordion */}
-        <div className="space-y-3">
-          {faqs.map((faq, idx) => {
-            const isOpen = openIdx === idx
-            return (
-              <div
-                key={faq.question}
-                className={`rounded-2xl border transition-colors duration-200 ${
-                  isOpen
-                    ? 'border-violet-500/40 bg-slate-900'
-                    : 'border-slate-800 bg-slate-900 hover:border-slate-700'
-                }`}
-              >
-                <button
-                  className="flex w-full items-center justify-between gap-4 p-6 text-left"
-                  onClick={() => setOpenIdx(isOpen ? null : idx)}
-                  aria-expanded={isOpen}
-                >
-                  <span className="font-semibold text-white">{faq.question}</span>
-                  <ChevronDown
-                    className={`h-5 w-5 flex-shrink-0 text-slate-400 transition-transform duration-200 ${
-                      isOpen ? 'rotate-180 text-violet-400' : ''
-                    }`}
-                  />
-                </button>
-
-                {isOpen && (
-                  <div className="px-6 pb-6">
-                    <p className="leading-relaxed text-slate-400">{faq.answer}</p>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+        <div className="glass-card px-6">
+          {faqs.map((faq) => (
+            <FAQItem key={faq.q} q={faq.q} a={faq.a} />
+          ))}
         </div>
       </div>
     </section>

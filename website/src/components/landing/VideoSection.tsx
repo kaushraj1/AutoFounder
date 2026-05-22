@@ -1,56 +1,60 @@
 import { Play } from 'lucide-react'
 
-export function VideoSection() {
+export default function VideoSection() {
   return (
-    <section id="video" className="bg-slate-950 py-24">
-      <div className="mx-auto max-w-4xl px-6">
-        <div className="mb-10 text-center">
-          <h2 className="mb-4 text-3xl font-bold text-white sm:text-4xl">See it in action</h2>
-          <p className="text-slate-400">
-            Watch AutoFounder AI turn a raw idea into a deployed product in under 30 minutes
+    <section id="video" className="py-24 section-gradient">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            See AutoFounder AI in Action
+          </h2>
+          <p className="text-slate-400 text-lg max-w-xl mx-auto">
+            Watch how a single text idea becomes a fully deployed, marketed software business — in
+            under 7 days.
           </p>
         </div>
 
-        {/* Video embed container */}
-        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl shadow-black/50">
-          <div className="relative aspect-video">
-            {/*
-              TODO: Replace this placeholder with a real YouTube embed.
-              1. Upload your demo video to YouTube
-              2. Get the video ID (e.g. "dQw4w9WgXcQ")
-              3. Replace the div below with:
-                 <iframe
-                   className="absolute inset-0 h-full w-full"
-                   src="https://www.youtube-nocookie.com/embed/YOUR_VIDEO_ID?rel=0"
-                   title="AutoFounder AI Demo"
-                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                   allowFullScreen
-                 />
-            */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-gradient-to-b from-slate-800 to-slate-900">
-              {/* Decorative grid */}
-              <div
-                className="absolute inset-0 opacity-10"
-                style={{
-                  backgroundImage:
-                    'linear-gradient(rgba(124,58,237,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,0.3) 1px, transparent 1px)',
-                  backgroundSize: '40px 40px',
-                }}
-              />
-              <div className="relative flex h-20 w-20 items-center justify-center rounded-full border border-violet-500/40 bg-violet-600/20 ring-8 ring-violet-500/10">
-                <Play className="h-8 w-8 translate-x-0.5 text-violet-400" />
+        {/* Video embed placeholder */}
+        {/* TODO: Replace the placeholder below with the actual YouTube embed URL */}
+        <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl glow-purple bg-slate-900 aspect-video group cursor-pointer">
+          {/* Placeholder thumbnail background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 flex items-center justify-center">
+            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,#7c3aed_0%,transparent_70%)]" />
+
+            {/* Play button */}
+            <div className="relative flex flex-col items-center gap-4">
+              <div className="w-20 h-20 rounded-full bg-blue-600 hover:bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-900/60 group-hover:scale-110 transition-transform duration-200">
+                <Play size={32} className="text-white ml-1" fill="white" />
               </div>
-              {/* TODO: Update text once demo video is recorded */}
-              <p className="relative text-sm font-medium text-slate-400">Demo video coming soon</p>
-              <p className="relative text-xs text-slate-600">product@euron.one to request a walkthrough</p>
+              <span className="text-slate-400 text-sm font-medium">Demo video coming soon</span>
+            </div>
+
+            {/* TODO: Replace with real thumbnail image once available */}
+            <div className="absolute bottom-6 right-6">
+              <div className="glass-card px-3 py-1.5 text-xs text-blue-400 font-medium">
+                AutoFounder AI Demo
+              </div>
             </div>
           </div>
+
+          {/* Actual YouTube embed — swap in when ready */}
+          {/*
+          TODO: Uncomment and replace YOUTUBE_VIDEO_ID with the real ID:
+          <iframe
+            src="https://www.youtube.com/embed/YOUTUBE_VIDEO_ID?rel=0&modestbranding=1"
+            title="AutoFounder AI Demo"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full"
+          />
+          */}
         </div>
 
-        {/* Caption */}
-        <p className="mt-4 text-center text-sm text-slate-500">
-          {/* TODO: Update caption once real demo is recorded */}
-          Full walkthrough: idea submission → market validation → code generation → live deployment
+        <p className="text-center text-slate-500 text-sm mt-6">
+          {/* TODO: Update caption to match actual video content */}
+          The demo shows the full end-to-end flow: entering a startup idea, watching agents validate the
+          market, generate architecture, write and test code, deploy to AWS, and ship a launch campaign —
+          all autonomously.
         </p>
       </div>
     </section>
