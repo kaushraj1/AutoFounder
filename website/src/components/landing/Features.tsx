@@ -1,5 +1,6 @@
 import {
   Brain,
+  Layers,
   Code2,
   Rocket,
   Megaphone,
@@ -15,6 +16,14 @@ const features = [
     description:
       'The Strategy Agent scans competitors, sizes your market (TAM/SAM/SOM), generates ICPs, and produces a full Lean Canvas with viability score — in under 30 minutes.',
     badge: 'Pillar 1',
+  },
+  {
+    icon: Layers,
+    color: 'violet',
+    title: 'Architecture & Tech Stack Design',
+    description:
+      'The Architect Agent extracts requirements, designs your DB schema (ERD), generates an OpenAPI contract, selects the optimal tech stack, and produces a cost forecast — then waits for your approval before a line of code is written.',
+    badge: 'Pillar 2',
   },
   {
     icon: Code2,
@@ -60,6 +69,7 @@ const features = [
 
 const colorMap: Record<string, string> = {
   blue: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
+  violet: 'bg-violet-500/10 border-violet-500/20 text-violet-400',
   sky: 'bg-sky-500/10 border-sky-500/20 text-sky-400',
   emerald: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
   cyan: 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400',
@@ -69,6 +79,7 @@ const colorMap: Record<string, string> = {
 
 const badgeMap: Record<string, string> = {
   blue: 'bg-blue-500/10 text-blue-400',
+  violet: 'bg-violet-500/10 text-violet-400',
   sky: 'bg-sky-500/10 text-sky-400',
   emerald: 'bg-emerald-500/10 text-emerald-400',
   cyan: 'bg-cyan-500/10 text-cyan-400',
@@ -93,7 +104,7 @@ export default function Features() {
         </div>
 
         {/* Feature grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:[&>*:last-child]:col-start-2">
           {features.map(({ icon: Icon, color, title, description, badge }) => (
             <div
               key={title}
