@@ -1,0 +1,68 @@
+name: Deploy Frontend to Vercel
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend-web/**"
+      - ".github/workflows/deploy-frontend.yml"
+
+  # Allow manual trigger from GitHub Actions UI
+  workflow_dispatch:
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy:
+    name: Build & Deploy — Vercel Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # ── 1. Source ─────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Runtime ───────────────────────────────────────────────────────
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: "frontend-web/pnpm-lock.yaml"
+
+      # ── 3. Dependencies ───────────────────────────────────────────────────
+      - name: Install dependencies
+        working-directory: frontend-web
+        run: pnpm install --frozen-lockfile
+
+      # ── 4. Type-check ─────────────────────────────────────────────────────
+      - name: Type-check
+        working-directory: frontend-web
+        run: npx tsc --noEmit
+
+      # ── 5. Build ──────────────────────────────────────────────────────────
+      - name: Build
+        working-directory: frontend-web
+        run: pnpm build
+        # Outputs to frontend-web/dist/
+
+      # ── 6. Deploy ─────────────────────────────────────────────────────────
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel environment & project info
+        working-directory: frontend-web
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy prebuilt output to Vercel (production)
+        working-directory: frontend-web
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}

@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(awk *)"
+      "Bash(awk *)",
+      "Bash(python3 -c ' *)",
+      "Bash(grep -v '^[^a-zA-Z]*$')",
+      "Bash(pnpm add *)",
+      "Read(//opt/homebrew/bin/**)",
+      "Bash(npx pnpm *)",
+      "Bash(npm list *)",
+      "Bash(npx vite *)"
     ]
   }
 }
