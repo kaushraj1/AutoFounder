@@ -8,7 +8,27 @@
       "Read(//opt/homebrew/bin/**)",
       "Bash(npx pnpm *)",
       "Bash(npm list *)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "Bash(npm create *)",
+      "Bash(pnpm --filter . create vite website -- --template react-ts)",
+      "Bash(npx create-vite@latest /Users/asitpiri/Desktop/Auto-Founder-AI/CodeBase/website --template react-ts)",
+      "Read(//private/tmp/**)",
+      "Bash(npx --yes create-vite@latest autofounder-website --template react-ts)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' --headless=new --disable-gpu --screenshot=/tmp/landing-full.png --window-size=1440,5000 http://localhost:5173)",
+      "Bash(echo \"Full-page screenshot exit: $?\")",
+      "Bash(python3 -c \"import websocket; print\\('websocket-client ok'\\)\")",
+      "Bash(python3 -c \"import websockets; print\\('websockets ok'\\)\")",
+      "Bash(python3 -c \"import PIL; print\\('PIL ok'\\)\")",
+      "Bash('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' --headless=new --disable-gpu --print-to-pdf=/tmp/landing-page.pdf --print-to-pdf-no-header --no-pdf-header-footer http://localhost:5173)",
+      "Read(//tmp/**)",
+      "Bash(echo \"PDF exit: $? size: $\\(ls -lh /tmp/landing-page.pdf)",
+      "Bash(brew install *)",
+      "Bash(pdftoppm -r 100 -png /tmp/landing-page.pdf /tmp/lp-page)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(pkill -f \"remote-debugging-port=9224\")"
     ]
   }
 }

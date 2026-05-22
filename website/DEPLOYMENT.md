@@ -1,81 +1,103 @@
-# Deploying the AutoFounder AI Landing Page to Vercel
+# Deployment Guide — AutoFounder AI Landing Page
 
-This guide covers how to connect the `website/` folder to Vercel and set up
-automatic deployments via GitHub Actions on every push to `main`.
-
----
-
-## 1. Connect the repository to Vercel
-
-1. Go to [vercel.com](https://vercel.com) and sign in (or create a free account).
-2. Click **Add New → Project**.
-3. Import your GitHub repository (`Auto-Founder-AI/CodeBase` or equivalent).
-4. When prompted for the **Root Directory**, set it to `website`.
-5. Vercel will auto-detect the framework as **Vite**. Confirm the following settings:
-   - **Build Command:** `pnpm build`
-   - **Output Directory:** `dist`
-   - **Install Command:** `pnpm install`
-6. Click **Deploy**. Vercel will build and serve the site immediately.
+This document explains how to connect the `website/` folder to Vercel and wire up the GitHub Actions CI/CD pipeline.
 
 ---
 
-## 2. Obtain your Vercel credentials
+## 1. Connect the Repo to Vercel
 
-You need three values for the GitHub Actions workflow:
+### Option A — Vercel Dashboard (recommended for first-time setup)
 
-### `VERCEL_TOKEN`
-1. Go to [vercel.com/account/tokens](https://vercel.com/account/tokens).
-2. Click **Create Token**, give it a name (e.g. `github-actions`), and set the scope to your team/personal account.
-3. Copy the token — it is shown only once.
+1. Go to [vercel.com/new](https://vercel.com/new) and sign in.
+2. Click **"Import Git Repository"** and select this repo.
+3. Set the **Root Directory** to `website`.
+4. Vercel auto-detects Vite. The `vercel.json` in `website/` confirms the settings:
+   - Build command: `pnpm build`
+   - Output directory: `dist`
+   - Framework: Vite
+5. Click **Deploy**. Vercel runs the first build.
 
-### `VERCEL_ORG_ID`
-1. Go to your Vercel **Team Settings** (or Personal Account Settings if no team).
-2. The **Team ID** shown there is your `VERCEL_ORG_ID`.
-   - Alternatively run `vercel whoami` with the Vercel CLI after logging in.
+### Option B — Vercel CLI
 
-### `VERCEL_PROJECT_ID`
-1. Open the project you created in step 1 on the Vercel dashboard.
-2. Go to **Settings → General**.
-3. The **Project ID** is listed near the top of the page.
-
----
-
-## 3. Add secrets to GitHub
-
-1. In your GitHub repository, go to **Settings → Secrets and variables → Actions**.
-2. Click **New repository secret** for each of the following:
-
-| Secret name          | Value                          |
-|----------------------|--------------------------------|
-| `VERCEL_TOKEN`       | Token from step 2              |
-| `VERCEL_ORG_ID`      | Team/Account ID from step 2    |
-| `VERCEL_PROJECT_ID`  | Project ID from step 2         |
+```bash
+cd website
+npx vercel link      # follow the prompts to link to your Vercel project
+npx vercel deploy --prod
+```
 
 ---
 
-## 4. How automatic deployments work
+## 2. Obtain VERCEL_TOKEN, ORG_ID, and PROJECT_ID
 
-The workflow file at `.github/workflows/deploy-frontend.yml`:
+### VERCEL_TOKEN
 
-- Triggers on every push to `main` that changes any file inside `website/`.
-- Installs dependencies with `pnpm`, runs `pnpm build`, then calls the Vercel API to push the `dist/` output as a **production deployment**.
-- No manual action is required after the initial setup.
+1. Open [vercel.com/account/tokens](https://vercel.com/account/tokens).
+2. Click **"Create"**, give it a name (e.g. `github-actions-autofounder`), set expiry.
+3. Copy the token — it is shown **once only**.
+
+### VERCEL_ORG_ID
+
+After running `vercel link` inside `website/`, Vercel creates `.vercel/project.json`.  
+Open it and copy the `orgId` field:
+
+```json
+{ "orgId": "team_xxxxxxxxxxxx", "projectId": "prj_xxxxxxxxxxxx" }
+```
+
+Alternatively, find it in **Vercel Dashboard → Settings → General → Team ID**.
+
+### VERCEL_PROJECT_ID
+
+Same file (`.vercel/project.json`) — copy the `projectId` field.  
+Or: **Vercel Dashboard → your project → Settings → General → Project ID**.
+
+> The `.vercel/` directory is git-ignored. These IDs are not secrets on their own,  
+> but the token is — never commit it.
 
 ---
 
-## 5. Set environment variables in the Vercel dashboard
+## 3. Add Secrets to GitHub
 
-If the landing page ever needs runtime environment variables (e.g. a future API endpoint):
+1. Go to your GitHub repo → **Settings → Secrets and variables → Actions**.
+2. Click **"New repository secret"** for each of the three values:
 
-1. Open the project on [vercel.com](https://vercel.com).
-2. Go to **Settings → Environment Variables**.
-3. Add key-value pairs and choose which environments they apply to (Production / Preview / Development).
-4. Redeploy for changes to take effect.
+| Secret name | Value |
+|---|---|
+| `VERCEL_TOKEN` | The token from step 2 |
+| `VERCEL_ORG_ID` | `orgId` from `.vercel/project.json` |
+| `VERCEL_PROJECT_ID` | `projectId` from `.vercel/project.json` |
 
 ---
 
-## 6. Custom domain (optional)
+## 4. Set Environment Variables in the Vercel Dashboard
 
-1. In the Vercel project, go to **Settings → Domains**.
-2. Add your domain (e.g. `autofounder.ai`) and follow the DNS instructions.
-3. Vercel provisions an SSL certificate automatically via Let's Encrypt.
+For any runtime env vars your app needs (e.g. API URLs, public keys):
+
+1. Go to **Vercel Dashboard → your project → Settings → Environment Variables**.
+2. Add each variable, choose which environments it applies to (Production / Preview / Development).
+3. Redeploy for changes to take effect.
+
+Variables prefixed with `VITE_` are inlined at build time by Vite and exposed to the browser. Never put secrets in `VITE_` variables.
+
+---
+
+## 5. How the CI/CD Pipeline Works
+
+The workflow at `.github/workflows/deploy-frontend.yml` triggers on:
+- Every push to `main` that touches `website/**`
+- Manual run via **Actions → "Run workflow"**
+
+Pipeline steps:
+1. Checkout code
+2. Install Node 20 + `npm ci`
+3. Type-check (`tsc --noEmit`)
+4. Build (`npm run build` → `website/dist/`)
+5. Install Vercel CLI
+6. Pull Vercel project config
+7. Deploy prebuilt output to Vercel production
+
+---
+
+## 6. Preview Deployments
+
+Vercel automatically creates preview deployments for every pull request when the repo is connected via the Vercel Dashboard (Option A above). No extra workflow configuration is needed.
