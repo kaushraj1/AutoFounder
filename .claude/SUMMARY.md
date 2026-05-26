@@ -437,7 +437,6 @@ All merges via PR; `make quality` + tests + security scan must pass.
 
 | Location | Issue | Authoritative source |
 |----------|-------|---------------------|
-| `backend/src/codepilot/` | Module named `codepilot` — placeholder name, should be renamed | Phase 3 scaffold (AF-028) |
 | `scripts/dev-setup.sh` | Says "PostgreSQL + Redis" for docker compose — now Redis only | `docker-compose.yml` |
 | `Makefile` | `make stack` comment says "Start local databases (PostgreSQL + Redis)" — now Redis only | `docker-compose.yml` |
 | `.claude/specs/deployment.md` | Entire spec references GCP Cloud Run, not AWS ECS Fargate | `CLAUDE.md §17` |
