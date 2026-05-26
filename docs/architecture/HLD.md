@@ -836,5 +836,3 @@ graph LR
 | **Retry / self-heal** | Max 5 cycles in Pillar 4; then HITL escalation | Bounded autonomy — prevents infinite loops; degrades gracefully to human review |
 
 ---
-
-*Generated from `CLAUDE.md` v1.0 — 2026-05-19*

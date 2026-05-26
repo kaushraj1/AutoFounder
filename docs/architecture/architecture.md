@@ -368,5 +368,3 @@ flowchart LR
 | Gemini 3.5 Flash calls | LangSmith | HTTP | LLM I/O traces + eval scores |
 
 ---
-
-*Generated from CLAUDE.md v1.0 — 2026-05-19*

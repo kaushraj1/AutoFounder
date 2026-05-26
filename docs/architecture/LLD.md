@@ -2438,5 +2438,4 @@ Supabase Realtime is configured via the Supabase project dashboard and inherits 
 
 ---
 
-*Generated from CLAUDE.md v1.0 — 2026-05-19*  
 *Companion document: `docs/HLD.md`*

@@ -1,5 +1,5 @@
 [project]
-name = "autfounder-ai-backend"
+name = "autofounder-ai-backend"
 version = "0.0.0"
 description = "AutoFounder AI Enterprise API (FastAPI — scaffolded in later phases)"
 readme = "README.md"
@@ -39,4 +39,4 @@ select = ["E", "F", "I", "UP", "B"]
 ignore = []
 
 [tool.ruff.lint.isort]
-known-first-party = ["autfounder-ai"]
+known-first-party = ["aut0founder-ai"]
