@@ -75,7 +75,7 @@ Each pillar is powered by a specialized AI agent and follows the same 5-stage lo
 | Backend API | Python + FastAPI |
 | AI/ML Services | Python + FastAPI |
 | AI Orchestration | LangGraph |
-| LLMs | Gemini 3.5 Flash |
+| LLMs | Gemini 3.5 Flash + gemini-embedding-2 |
 | Database | Supabase (PostgreSQL, pgvector, Realtime, Full-Text Search) |
 | Message Queue | Confluent Kafka |
 | Object Storage | Supabase |
