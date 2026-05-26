@@ -102,7 +102,7 @@ Targets: **99% faster, 99% cheaper, production-grade output**.
 ┌──────────────────────────────────────────────────────────────────────────┐
 │ 10. OBSERVABILITY & MLOPS FOUNDATION                                      │
 │     Logging (ELK/OpenSearch) · Metrics (Prom/Grafana) · Tracing (OTel) · │
-│     Model Monitoring · CI/CD (GH Actions + ArgoCD) · Feature Store       │
+│     Model Monitoring · CI/CD (GitHub Actions) · Feature Store             │
 │     (Feast/Tecton) · Cost & FinOps · Env Management                      │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
@@ -153,10 +153,10 @@ ROI baseline (must remain truthful in generated marketing copy):
 
 | # | Layer | Responsibility | Primary Tech |
 |---|---|---|---|
-| 1 | Input | Ingest multi-modal idea inputs | NestJS API GW, presigned S3 uploads, Whisper (audio), Tesseract/Vision |
-| 2 | Orchestration | Schedule, route, coordinate agents | LangGraph + AutoGen fallback, EventBridge, SQS/SNS |
+| 1 | Input | Ingest multi-modal idea inputs | FastAPI API GW, Supabase Storage uploads, Whisper (audio), Tesseract/Vision |
+| 2 | Orchestration | Schedule, route, coordinate agents | LangGraph + AutoGen fallback, Confluent Kafka, EventBridge, SQS/SNS |
 | 3 | Agents | Specialized autonomous workers | LangGraph nodes, FastAPI workers |
-| 4 | Models | Generate, embed, classify, vision | Gemini 3.5 Flash (primary), Claude Sonnet, OpenAI Embeddings, Whisper, DALL-E 3/Midjourney |
+| 4 | Models | Generate, embed, classify, vision | Gemini 3.5 Flash + gemini-embedding-2 (primary), Claude Sonnet (fallback), Whisper, DALL-E 3/Midjourney |
 | 5 | Data & Knowledge | Persist all state and memory | Supabase (PostgreSQL + pgvector + Storage), Neo4j, S3, Redis |
 | 6 | Output & Experience | Deliver artifacts to founder | Next.js 14 Founder Portal, Monaco editor, WebSocket streams |
 | 7 | Service & Integration | Talk to 3rd parties | REST/GraphQL/gRPC, Zapier, n8n, Step Functions |
@@ -190,20 +190,32 @@ ROI baseline (must remain truthful in generated marketing copy):
 - **Self-Learning Loop** — feeds traces into LLMOps Agent.
 - **Goal Decomposition & Execution** — recursive breakdown until atomic.
 
-### 7.3 Agent contract (TypeScript)
+### 7.3 Agent contract (Python)
 
-```ts
-interface Agent<TInput, TOutput> {
-  id: string;                    // e.g. "strategist.v3"
-  tenantId: string;
-  capabilities: Capability[];
-  tools: ToolSpec[];
-  understand(input: TInput): Promise<Intent>;
-  plan(intent: Intent): Promise<Plan>;          // DAG of Steps
-  execute(plan: Plan): AsyncIterable<StepEvent>;
-  verify(output: TOutput): Promise<VerifyResult>;
-  learn(trace: ExecutionTrace): Promise<void>;  // emits to LLMOps
-}
+```python
+from abc import ABC, abstractmethod
+from typing import AsyncIterable
+
+class Agent(ABC):
+    id: str              # e.g. "strategist.v3"
+    tenant_id: str
+    capabilities: list[str]
+    tools: list[ToolSpec]
+
+    @abstractmethod
+    async def understand(self, input: AgentInput) -> Intent: ...
+
+    @abstractmethod
+    async def plan(self, intent: Intent) -> Plan: ...        # DAG of Steps
+
+    @abstractmethod
+    async def execute(self, plan: Plan) -> AsyncIterable[StepEvent]: ...
+
+    @abstractmethod
+    async def verify(self, output: AgentOutput) -> VerifyResult: ...
+
+    @abstractmethod
+    async def learn(self, trace: ExecutionTrace) -> None: ...  # emits to LLMOps
 ```
 
 ### 7.4 Pillar 1 — Strategy & Ideation (detail)
@@ -223,7 +235,7 @@ interface Agent<TInput, TOutput> {
 
 ### 7.6 Pillar 3 — Autonomous Code Generation
 
-- **Sub-workflows**: Repo Scaffolding, parallel Frontend (Next.js 14 + Tailwind + shadcn/ui) + Backend (FastAPI / NestJS) generation, Database layer (Prisma/SQLAlchemy migrations + seeds), Auth (OAuth/JWT/RBAC), Stripe integration, Admin Panel auto-gen, Code Style Enforcement (Prettier + ESLint + Black + Ruff).
+- **Sub-workflows**: Repo Scaffolding, parallel Frontend (Next.js 14 + Tailwind + shadcn/ui) + Backend (FastAPI) generation, Database layer (SQLAlchemy + Supabase migrations + seeds), Auth (OAuth/JWT/RBAC via Supabase Auth), Stripe integration, Admin Panel auto-gen, Code Style Enforcement (Prettier + ESLint + Black + Ruff).
 - **Output deliverables**: Source Code, CI/CD Pipeline, Documentation, Deployed Preview, PR with Checks.
 - **Targets**: zero linting errors, TypeScript strict, mypy clean.
 
@@ -275,7 +287,7 @@ interface Agent<TInput, TOutput> {
 
 - **Synchronous**: gRPC (Protocol Buffers) for low-latency request/response.
 - **Asynchronous**: AWS EventBridge + SQS/SNS for fan-out events (`run.started`, `agent.completed`, `gate.required`, `human.approved`).
-- **Streaming**: WebSocket (Go service) for live log + token streaming to the Founder Portal.
+- **Streaming**: Supabase Realtime for live log + token streaming to the Founder Portal.
 
 ### 8.4 Workflow & plan management
 
@@ -316,13 +328,13 @@ Memory is always **tenant-partitioned** (key prefix `tenant_id/`, row-level secu
 
 | Collection | Embedding model | Used by |
 |---|---|---|
-| `market_intelligence` | `text-embedding-3-large` | Strategy, Research |
-| `competitor_features` | `text-embedding-3-large` | Strategy, Marketing |
-| `code_patterns` | `voyage-code-2` / `text-embedding-3-large` | Engineering |
-| `architecture_decisions` | `text-embedding-3-large` | Engineering, LLMOps |
-| `brand_voice_examples` | `text-embedding-3-large` | Marketing |
-| `prompt_library` | `text-embedding-3-large` | LLMOps |
-| `user_preferences` | `text-embedding-3-large` | All |
+| `market_intelligence` | `gemini-embedding-2` | Strategy, Research |
+| `competitor_features` | `gemini-embedding-2` | Strategy, Marketing |
+| `code_patterns` | `gemini-embedding-2` | Engineering |
+| `architecture_decisions` | `gemini-embedding-2` | Engineering, LLMOps |
+| `brand_voice_examples` | `gemini-embedding-2` | Marketing |
+| `prompt_library` | `gemini-embedding-2` | LLMOps |
+| `user_preferences` | `gemini-embedding-2` | All |
 
 ### 10.2 RAG pipeline
 
@@ -342,7 +354,7 @@ Implementation: LlamaIndex / LangChain Retrievers; reranker via Cohere Rerank or
 sequenceDiagram
     participant U as User (Founder)
     participant FE as Next.js Portal
-    participant GW as NestJS API GW
+    participant GW as FastAPI API GW
     participant ORCH as LangGraph Orchestrator
     participant AG as Agent (Pillar N)
     participant LLM as Model Layer
@@ -402,10 +414,10 @@ sequenceDiagram
 
 | Service | Lang | Responsibility |
 |---|---|---|
-| `apps/api` | NestJS (Node 20) | API Gateway, auth, tenancy, rate-limits |
+| `apps/api` | FastAPI (Python 3.12) | API Gateway, auth, tenancy, rate-limits |
 | `apps/ai-services` | FastAPI (Python 3.12) | Agent workers, LLM clients, tools |
 | `apps/orchestrator` | Python + LangGraph | Plan execution engine |
-| `apps/realtime` | Go | WebSocket fan-out (agent log streaming) |
+| Supabase Realtime | Managed | WebSocket fan-out (agent log streaming, DB change events) |
 | `apps/admin` | Next.js | Super-admin dashboard |
 | `apps/web` | Next.js 14 | Founder Portal |
 
@@ -490,8 +502,8 @@ sequenceDiagram
 | Compute | **Amazon ECS on Fargate** (Next.js :3000, FastAPI :8000, Worker/Agent services) |
 | Relational + Vector | **Supabase** (PostgreSQL + pgvector + RLS; hosted, multi-AZ via Supabase platform) |
 | Cache | Amazon ElastiCache for Redis |
-| Object Storage | **Supabase Storage** (app artifacts, assets) + Amazon S3 (raw data lake, audit logs, RLHF datasets) |
-| App-tier Vector | **Supabase pgvector** (semantic memory, RAG) |
+| Object Storage | **Supabase Storage** (app artifacts, assets, generated files) + Amazon S3 (raw data lake, audit logs, RLHF datasets — 7-yr retention) |
+| Vector | **Supabase pgvector** (semantic memory, RAG) |
 | Container Registry | Amazon ECR (image scanning on) |
 | Secrets | AWS Secrets Manager + SSM Parameter Store |
 | IAM | AWS IAM (least-privilege, no `*:*`) |
@@ -504,7 +516,7 @@ sequenceDiagram
 | Logs | Amazon CloudWatch + CloudTrail |
 | Tracing | AWS X-Ray (+ OTel exporters) |
 | Networking | VPC, NAT Gateway, Bastion Host, VPC Endpoints (private connectivity) |
-| LLM (external) | OpenAI API (GPT-4o, etc.), Anthropic API (Claude Sonnet), AWS Bedrock |
+| LLM (external) | Google AI API (Gemini 3.5 Flash, gemini-embedding-2) |
 
 ---
 
@@ -566,10 +578,10 @@ CREATE TABLE gates (
 
 ## 20. Async Processing / Queues
 
-- **Event bus**: Amazon EventBridge (routing, schema registry).
+- **Primary message bus**: **Confluent Kafka** — all inter-agent events, pillar completions, and LLMOps telemetry.
+- **Event routing**: Amazon EventBridge (schema registry, cross-service routing).
 - **Work queues**: SQS (per-pillar queues, DLQs configured).
 - **Pub/sub**: SNS for fan-out (notifications, webhooks).
-- **Streaming**: Kafka (MSK) for high-throughput LLMOps telemetry (alt: Kinesis).
 - **Long-running orchestration**: AWS Step Functions (e.g., the weekly LLMOps optimization cycle).
 - **Retry/backoff**: exponential with jitter, capped at agent SLA; failed messages → DLQ → on-call alert.
 
@@ -577,12 +589,11 @@ CREATE TABLE gates (
 
 ## 21. Observability & Monitoring
 
-- **Logging**: ELK / OpenSearch + CloudWatch + Fluent Bit (structured JSON, `trace_id`, `tenant_id`, `run_id`, `agent_id`).
-- **Metrics**: Prometheus + Grafana + Amazon Managed Grafana; RED + USE method dashboards.
-- **Tracing**: OpenTelemetry → AWS X-Ray + LangSmith (LLM call spans).
-- **Model monitoring**: drift, quality, bias (TruLens + Evidently AI + LangSmith evals).
+- **Metrics**: Prometheus + Grafana (RED + USE method dashboards).
+- **Logging**: CloudWatch + Fluent Bit (structured JSON, `trace_id`, `tenant_id`, `run_id`, `agent_id`).
+- **Tracing**: OpenTelemetry → LangSmith (LLM call spans).
+- **Model monitoring**: LangSmith evals (quality, hallucination tracking).
 - **Errors**: Sentry (frontend + backend).
-- **APM**: Datadog (optional, for prod hot path).
 - **Cost & FinOps**: AWS Cost Explorer + custom per-tenant attribution dashboard.
 
 Mandatory tags on every emitted signal: `tenant_id`, `pillar`, `agent_id`, `model`, `run_id`, `env`.
@@ -636,14 +647,17 @@ Circuit breakers (Hystrix-style) on every external integration. All failures emi
 | UI response time (P95) | < 100 ms |
 | Sandbox spin-up | < 10 s |
 | Idea → Validated | < 30 min |
-| End-to-end MVP build | ≤ 7 days |
+| Code gen (Pillar 3) latency | < 15 min |
+| End-to-end (idea → live) | ≤ 7 days |
 | Deploy SLA | < 10 min |
 | Self-heal auto-fix rate | ≥ 90% |
 | First-run deploy success | ≥ 85% |
 | Test coverage on generated code | ≥ 80% |
 | Uptime | 99.9% |
 | Concurrent builds | 500 |
-| COGS per MVP | $200–$700 (≈ < ₹50,000) |
+| COGS per MVP | < ₹500 |
+| CSAT | > 4.5 / 5 |
+| Day-90 user retention | Primary KPI |
 
 ---
 
@@ -734,11 +748,11 @@ Use the **cheapest capable model** that meets the per-task quality SLO. The LLMO
 
 | Task class | Default model |
 |---|---|
-| Complex reasoning, architecture, self-healing, LLM-as-judge | Gemini 3.5 Flash / Claude Sonnet (latest) |
+| Complex reasoning, architecture, self-healing, LLM-as-judge | Gemini 3.5 Flash |
 | Standard code gen, marketing copy | Gemini 3.5 Flash |
-| Simple CRUD, formatting, classification, intent parsing | Gemini 3.5 Flash (fast tier) |
-| Embeddings | `text-embedding-3-large` (general), `voyage-code-2` (code) |
-| Vision (diagram extraction, screenshot QA) | GPT-4o-vision / Claude Sonnet vision |
+| Simple CRUD, formatting, classification, intent parsing | Gemini 3.5 Flash |
+| Embeddings | `gemini-embedding-2` |
+| Vision (diagram extraction, screenshot QA) | Gemini 3.5 Flash (vision) |
 | Speech / transcription | Whisper |
 | Image generation (brand, OG, hero) | DALL-E 3, Midjourney, Stable Diffusion |
 | Alignment / safety classifier | Llama Guard 3 |
@@ -795,11 +809,11 @@ Output Guardrail mandatory checks for the Marketing Agent: feature-claim cross-r
 
 | Pillar | Stack |
 |---|---|
-| Logging | ELK / OpenSearch + CloudWatch + Fluent Bit |
-| Metrics | Prometheus + Grafana |
-| Tracing | OpenTelemetry → X-Ray + LangSmith |
-| Model Monitoring | TruLens + Evidently AI + LangSmith evals |
-| CI/CD & Automation | GitHub Actions + AWS CodeDeploy (ECS blue/green) |
+| Metrics | **Prometheus + Grafana** (primary) |
+| Logging | CloudWatch + Fluent Bit |
+| Tracing | OpenTelemetry → LangSmith (LLM call spans) |
+| Model Monitoring | LangSmith evals |
+| CI/CD & Automation | **GitHub Actions** (primary) + AWS CodeDeploy (ECS blue/green for prod deploys) |
 | Feature Store | Feast / Tecton |
 | Cost & FinOps | AWS Cost Explorer + per-tenant attribution dashboard |
 | Environment Mgmt | dev / staging / prod (parity enforced) |
@@ -850,11 +864,11 @@ Delivery channels (Layer 7): Web App, Mobile, Email, Slack, MS Teams, public API
 autofounder-ai/
 ├── apps/
 │   ├── web/                  # Next.js 14 — Founder Portal
-│   ├── api/                  # NestJS — API Gateway
+│   ├── api/                  # FastAPI (Python) — API Gateway
 │   ├── orchestrator/         # Python — LangGraph engine
 │   ├── ai-services/          # FastAPI — agent workers
-│   ├── realtime/             # Go — WebSocket fan-out
-│   └── admin/                # Super-admin dashboard
+│   └── admin/                # Next.js — Super-admin dashboard
+│   # Realtime: handled by Supabase Realtime (no separate service)
 ├── packages/
 │   ├── agents/
 │   │   ├── strategy/
@@ -872,7 +886,7 @@ autofounder-ai/
 │   ├── guardrails/           # OPA policies, validators
 │   ├── prompts/              # Versioned prompt templates
 │   ├── tools/                # MCP-style tool definitions
-│   ├── db/                   # UDAL + Prisma schema + migrations
+│   ├── db/                   # UDAL + SQLAlchemy models + Supabase migrations
 │   ├── shared/               # Shared types, utils, constants
 │   └── eval/                 # Promptfoo + LangSmith golden sets
 ├── infra/
@@ -894,9 +908,9 @@ autofounder-ai/
 
 ### Code Quality
 
-- TS strict mode (`"strict": true`).
-- Python: type hints on all public functions; `mypy` must pass.
-- All new API routes: matching OpenAPI 3.1 entry.
+- **Frontend (TypeScript)**: strict mode (`"strict": true`); ESLint + Prettier.
+- **Backend (Python)**: type hints on all public functions; `mypy` must pass; `ruff` for lint + format.
+- All new API routes: matching OpenAPI 3.1 entry (FastAPI auto-generates `/openapi.json`).
 - Generated MVPs always include: Dockerfile, docker-compose.yml, GitHub Actions workflow, README, OpenAPI spec.
 
 ### Testing
@@ -912,17 +926,24 @@ autofounder-ai/
 
 ```bash
 # Install
-pnpm install
+pnpm install                                        # frontend deps
+uv sync                                             # Python deps (all backend services)
+
+# Local Supabase (postgres + pgvector + auth + storage + realtime)
+supabase start
 
 # Run services locally
-pnpm --filter web dev
-pnpm --filter api dev
+pnpm --filter web dev                               # Next.js Founder Portal
+cd apps/api && uvicorn main:app --reload --port 8000
 cd apps/orchestrator && python -m orchestrator.main
-cd apps/ai-services && uvicorn main:app --reload
+cd apps/ai-services && uvicorn main:app --reload --port 8001
+
+# Docker (ancillary services: Redis)
+docker compose up -d
 
 # Quality gates
-pnpm test
-pnpm lint
+pnpm test && pytest                                 # frontend + backend unit tests
+pnpm lint && ruff check . && mypy .
 trivy fs . && semgrep --config auto . && gitleaks detect
 
 # Infra
@@ -954,7 +975,7 @@ cd packages/eval && python run_evals.py --suite golden
 | SEO | Ahrefs, Semrush, SurferSEO | Marketing |
 | Hosting (gen apps) | AWS, Vercel, Netlify, Cloudflare | DevOps |
 | IaC | Terraform, Pulumi, AWS CDK | DevOps |
-| Deploy | AWS CodeDeploy, ArgoCD (legacy), Helm (legacy) | DevOps |
+| Deploy | GitHub Actions, AWS CodeDeploy (ECS blue/green), Docker | DevOps |
 | DNS / SSL | Route53, Cloudflare, Let's Encrypt, ACM | DevOps |
 | Secrets | AWS Secrets Manager, SSM | All |
 | Tracing | LangSmith, OpenTelemetry, X-Ray | LLMOps |
@@ -974,23 +995,43 @@ cd packages/eval && python run_evals.py --suite golden
 
 | Tier | Price | Builds | Notes |
 |---|---|---|---|
-| AI Deep Researcher / Solopreneur | ₹10,000/mo | 1 active | Sandbox only |
-| Startup Founder / Product Manager | ₹50,000/mo | 5/mo | 1-click AWS deploy |
+| AI Deep Researcher / Solopreneur | ₹10,000/mo | 1/month | Sandbox only |
+| Startup Founder / Product Manager | ₹50,000/mo | 5/month | 1-click AWS/Azure deploy |
 | Enterprise / Agency | Custom | Unlimited | Dedicated VPC, on-prem LLM, white-labeling |
+
+**Revenue target**: ₹50 Lakhs MRR within 12 months.
 
 ---
 
 ## 45. Phases / What's In Scope Now
 
-| Phase | Status | Scope |
-|---|---|---|
-| Phase 1 — Validation Engine | **Active** | Strategy + Research + Product Planner agents; Lean Canvas; viability scoring |
-| Phase 2 — MVP Builder | Upcoming | Engineering agents (Architect → Coder → Reviewer); sandbox |
-| Phase 3 — Launch & GTM | Planned | Marketing agent; social integrations; Launch Control Center |
-| Phase 4 — Enterprise Scale | Planned | LLMOps continuous-train pipeline; full AWS deploy automation; Finance & Ops/Risk agents |
-| Phase 5 — Global Expansion | Planned | Multi-region, localization, partner marketplace |
+| Phase | Status | Scope | Milestone |
+|---|---|---|---|
+| Phase 1 — Validation Engine | **Active** | Strategy + Research + Product Planner agents; Lean Canvas; viability scoring | 10 pilot clients |
+| Phase 2 — MVP Builder | Upcoming | Engineering agents (Architect → Coder → Reviewer); sandbox | 50 clients |
+| Phase 3 — Launch & GTM | Planned | Marketing agent; social integrations; Launch Control Center | 150 clients |
+| Phase 4 — Enterprise Scale | Planned | LLMOps CT pipelines; full AWS deploy automation; Finance & Ops/Risk agents | 300 clients |
+| Phase 5 — Global Expansion | Planned | Multi-region, localization, marketplace | 1,000 clients |
 
-**Out of scope (all phases)**: native mobile apps (Pillar 8 — Phase 2 scope, not yet designed), high-frequency trading, regulated medical software.
+### Phase 1 Sprint Plan
+
+| Sprint | Weeks | Theme | Deliverables |
+|---|---|---|---|
+| Sprint 1 | 1–2 | "The Researcher Release" | Core Agents + Trace Logs |
+| Sprint 2 | 3–4 | "The Founder Release" | One-click AWS + Managed UI |
+| Sprint 3 | 5–6 | "The Agency Release" | Multi-tenancy + White-labeling |
+
+**Out of scope (all phases)**: native mobile apps, hardware integrations, high-frequency trading, regulated medical software.
+
+---
+
+## 45b. Market Opportunity
+
+| Segment | 2026 Value | 2030 Projection | CAGR |
+|---|---|---|---|
+| AI Coding Assistants | $2.1B | $12.5B | 24.5% |
+| Low-Code / No-Code Platforms | $28B | $187B | 31.1% |
+| Automated Marketing AI | $3.5B | $18.2B | 19.8% |
 
 ---
 
@@ -1031,6 +1072,18 @@ The following architectural inconsistencies in the earlier `CLAUDE.md` are corre
 |---|---|---|
 | Compute platform | AWS EKS (Kubernetes), Helm, ArgoCD | **Amazon ECS on Fargate**, AWS CodeDeploy blue/green |
 | Vector store | Qdrant → MongoDB Atlas | **Supabase pgvector** (consolidates relational DB + vector search into one platform) |
+| Embedding model | `text-embedding-3-large` / `voyage-code-2` | **`gemini-embedding-2`** (aligns with Gemini primary LLM) |
+| Message queue | Kafka (MSK, secondary) | **Confluent Kafka** (primary bus for all inter-agent events) |
+| Object storage | S3 only | **Supabase Storage** (app tier) + S3 (data lake / audit, 7-yr retention) |
+| LLM primary | Claude Sonnet / GPT-4o | **Gemini 3.5 Flash** |
+| CI/CD | GitHub Actions + ArgoCD | **GitHub Actions** (primary); CodeDeploy retained for prod blue/green |
+| COGS per MVP | $200–$700 (≈ ₹50K) | **< ₹500** (per README KPI) |
+| Deployment infra (Pillar 5 README) | Noted as EKS in README pillar table | Kept as **ECS Fargate** — README pillar row is stale; §17 correction stands |
+| API Gateway service | NestJS (Node 20) | **FastAPI (Python 3.12)** — all backend now Python |
+| Realtime fan-out service | Go WebSocket service (`apps/realtime`) | **Supabase Realtime** (managed, no separate service) |
+| Agent contract language | TypeScript | **Python** |
+| ORM | Prisma | **SQLAlchemy + Supabase migrations** |
+| Observability primary | ELK + Datadog + TruLens + Evidently | **Prometheus + Grafana** (per README); LangSmith for LLM tracing |
 | Agent roster | 7 named agents (Strategist, Architect, Coder, Reviewer, DevOps, Marketer, LLMOps) | **7 specialized agents per blueprint** (Strategy & Ideation, Product Planner, Research, Engineering [composite], Marketing, Finance, Ops & Risk) + LLMOps as Layer-10 concern; sub-agents mapped explicitly |
 | Layers | Implicit | **Explicit 10-layer reference architecture** |
 | Memory | Redis + Qdrant | **6-tier memory model** (working, session, episodic, semantic, procedural, relational/graph, cold archive) |
