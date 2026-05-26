@@ -68,19 +68,20 @@ Each pillar is powered by a specialized AI agent and follows the same 5-stage lo
 
 ## Technology Stack
 
+
 | Layer | Primary Choice |
 |-------|---------------|
-| Frontend | Next.js 14 + React + Tailwind + shadcn/ui |
-| Backend API | Node.js + NestJS |
+| Frontend | Next.js 14 + React + Tailwind + TypeScript |
+| Backend API | Python + FastAPI |
 | AI/ML Services | Python + FastAPI |
-| AI Orchestration | LangGraph (primary), AutoGen |
-| LLMs | Claude Sonnet, GPT-4o, Gemini (via AWS Bedrock) |
-| Database | PostgreSQL 16 (schema-per-tenant), Redis, Qdrant, Elasticsearch |
-| Message Queue | Apache Kafka |
-| Object Storage | AWS S3 |
-| Container Orchestration | Kubernetes (AWS EKS) |
-| CI/CD | GitHub Actions → ArgoCD |
-| LLMOps | LangSmith, Prometheus, Grafana |
+| AI Orchestration | LangGraph |
+| LLMs | Gemini 3.5 Flash + gemini-embedding-2 |
+| Database | Supabase (PostgreSQL, pgvector, Realtime, Full-Text Search) |
+| Message Queue | Confluent Kafka |
+| Object Storage | Supabase |
+| Container Orchestration | Docker |
+| CI/CD | GitHub Actions |
+| LLMOps | Prometheus, Grafana |
 
 ---
 

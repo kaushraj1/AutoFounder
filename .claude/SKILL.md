@@ -1,6 +1,6 @@
 ---
 name: autofounder-ai-dev
-description: Development skill for AutoFounder AI — a multi-tenant agentic AI SaaS that turns a text idea into a deployed software business, built on FastAPI, React/Vite, Expo, VS Code Extension, PostgreSQL, Redis, and GCP Terraform.
+description: Development skill for AutoFounder AI — a multi-tenant agentic AI SaaS that turns a text idea into a deployed software business, built on FastAPI, Next.js 14, Expo, VS Code Extension, Supabase (PostgreSQL + pgvector + Storage + Realtime), Redis (ElastiCache), Confluent Kafka, Gemini 3.5 Flash, and AWS Terraform (ECS Fargate).
 ---
 
 # AutoFounder AI — Dev Skill
@@ -35,7 +35,7 @@ Activate this skill for any of the following:
 - **Vite config changes** — `vite.config.ts`, aliasing, env handling, bundle splits
 - **PostgreSQL migrations** — Alembic revision files in `backend/`
 - **Redis key design** — new cache keys, TTL policy, or pub/sub channels
-- **Terraform modules** — anything under `infra/` targeting GCP resources
+- **Terraform modules** — anything under `infra/` targeting AWS resources
 - **Expo screens or hooks** — `mobile-app/src/` screens, navigation, or native integrations
 - **VS Code extension** — commands, webviews, tree providers in `vscode-extension/src/`
 - **Guardrails pipeline** — any of the 6 stages, OPA policies, audit log writes
@@ -57,15 +57,15 @@ Every database query must go through the UDAL with a resolved `tenant_id`. Direc
 sessions, `psycopg`, or any DB driver outside `packages/db/` is **forbidden**. Every new route must
 extract `tenant_id` from the verified JWT before touching data.
 
-### 3 — GCP-First Infrastructure
-Default to managed GCP services (Cloud SQL, Memorystore, Cloud Storage, Pub/Sub, Artifact Registry).
-Do not introduce AWS or Azure SDK dependencies. Terraform modules go in `infra/modules/<service>/`.
-Every new GCP resource needs a corresponding IAM binding with least-privilege roles.
+### 3 — AWS-First Infrastructure
+Default to managed AWS services (ECS Fargate, ElastiCache, Supabase for DB/vector/storage, Confluent Kafka, ECR, Secrets Manager, S3).
+Do not introduce GCP or Azure SDK dependencies. Terraform modules go in `infra/modules/<service>/`.
+Every new AWS resource needs a corresponding IAM binding with least-privilege roles (no wildcard `*:*`).
 
 ### 4 — Observability Is Not Optional
 Every new FastAPI route must emit a structured log entry (including `tenant_id`, `run_id` where
 applicable) and increment at least one Prometheus counter or histogram. Every new LangGraph node must
-call `learn(trace)` to push execution traces to the LLMOps agent via EventBridge.
+call `learn(trace)` to push execution traces to the LLMOps agent via Confluent Kafka / EventBridge.
 
 ### 5 — Third-Party / Webhook Safety
 All outbound tool calls go through the Tool Registry with schema validation and rate-limit checks from
@@ -74,9 +74,9 @@ call to an external API from agent code. Inbound webhooks (Stripe, GitHub, socia
 signatures before processing.
 
 ### 6 — No Hard-Coded Values
-Secrets belong in GCP Secret Manager (accessed via the Secrets module). Config belongs in GCP SSM /
-environment variables injected at deploy time. `semgrep` will block any hard-coded API key, password,
-or connection string committed to the repo.
+Secrets belong in AWS Secrets Manager (accessed via the Secrets module). Config belongs in SSM Parameter
+Store / environment variables injected at deploy time. `semgrep` will block any hard-coded API key,
+password, or connection string committed to the repo.
 
 ---
 
@@ -117,16 +117,16 @@ or connection string committed to the repo.
 - [ ] `platform` schema changes (tenants, model_registry, etc.) in a separate migration from tenant-schema changes
 - [ ] `make stack` + `uv run alembic upgrade head` runs cleanly from a fresh Docker volume
 
-### New Terraform Module (GCP)
+### New Terraform Module (AWS)
 
 - [ ] Module directory: `infra/modules/<service>/` with `main.tf`, `variables.tf`, `outputs.tf`
-- [ ] All resource names include `${var.environment}` and `${var.project_id}` — no hard-coded names
-- [ ] IAM bindings follow least-privilege: use predefined roles, never `roles/editor` or `roles/owner`
+- [ ] All resource names include `${var.environment}` and `${var.aws_region}` — no hard-coded names
+- [ ] IAM policies follow least-privilege: use specific actions, never wildcard `*:*`
 - [ ] Sensitive outputs (connection strings, keys) marked `sensitive = true`
 - [ ] `terraform fmt` and `terraform validate` pass
 - [ ] `terraform plan` output reviewed and attached to PR description
-- [ ] New GCP APIs enabled in `infra/modules/project/main.tf` if needed (e.g. `sqladmin.googleapis.com`)
-- [ ] Module consumed in `infra/env/staging/main.tf` and `infra/env/production/main.tf` with separate variable files
+- [ ] Secrets stored in AWS Secrets Manager (not SSM for sensitive values); referenced by ARN in task definitions
+- [ ] Module consumed in `infra/env/staging/main.tf` and `infra/env/production/main.tf` with separate `.tfvars` files
 
 ---
 
@@ -138,9 +138,9 @@ The following require a human decision before any code is written:
 - Adding a new cloud provider (AWS, Azure) or moving off GCP
 - Replacing the LangGraph orchestration layer with a different framework
 - Modifying the 6-stage Guardrails pipeline in a way that removes or weakens any stage
-- Introducing a new primary LLM provider (beyond the current Claude Sonnet / GPT-4o / Gemini routing)
+- Introducing a new primary LLM provider (beyond the current Gemini 3.5 Flash routing via LiteLLM)
 - Schema changes to `platform.audit_log` — this table is compliance-critical
-- Any change to authentication flows (Auth0 config, JWT claims structure, MFA policy)
+- Any change to authentication flows (Supabase Auth config, JWT claims structure, MFA policy)
 - Generating or committing secrets, certificates, or service-account keys of any kind
 
 ---

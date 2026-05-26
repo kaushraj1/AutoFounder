@@ -2,7 +2,7 @@
 
 > **AutoFounder AI** is a multi-tenant agentic AI SaaS that converts a single text idea into a
 > fully validated, built, deployed, and marketed software business autonomously — cutting the
-> traditional 4–7 month, $20–60K founder journey down to ~7 days at $200–700.
+> traditional 4–7 month, $20–60K founder journey down to ~7 days at < ₹500 COGS per MVP.
 
 ---
 
@@ -46,11 +46,24 @@ HITL gates required at: Pillar 1 (validation), Pillar 2 (architecture), Pillar 5
 ### Infrastructure
 | Concern | Choice |
 |---------|--------|
-| Cloud | GCP + Terraform |
-| Databases | PostgreSQL 16 (primary), Redis 7 (cache + queues) |
-| Local dev | Docker Compose (Postgres + Redis) |
-| Auth | Auth0 — OAuth 2.0 + SAML 2.0, MFA enforced |
-| CI/CD | GitHub Actions → GCP Cloud Deploy |
+| Cloud | AWS + Terraform (ECS Fargate, multi-AZ VPC) |
+| Relational + Vector DB | Supabase (PostgreSQL + pgvector + Storage + Auth + Realtime) — hosted, schema-per-tenant |
+| Cache | Redis 7 — ElastiCache (production) / Docker Compose (local) |
+| Message bus | Confluent Kafka (primary inter-agent events + LLMOps telemetry) + EventBridge + SQS/SNS |
+| Object storage | Supabase Storage (app artifacts) + Amazon S3 (RLHF data lake, audit archive 7-yr) |
+| Local dev | Supabase CLI (`supabase start`) for DB/Auth/Storage/Realtime + Docker Compose for Redis |
+| Auth | Supabase Auth — OAuth 2.0, JWT (SUPABASE_JWT_SECRET), MFA enforced |
+| CI/CD | GitHub Actions → AWS CodeDeploy (ECS blue/green) |
+
+### LLMs & Embeddings
+| Concern | Choice |
+|---------|--------|
+| Primary LLM | Gemini 3.5 Flash (all task classes — reasoning, code gen, marketing, classification) |
+| Embeddings | gemini-embedding-2 — 768 dimensions — all 7 vector collections |
+| Image generation | DALL-E 3, Midjourney, Stable Diffusion |
+| Speech | Whisper |
+| Safety classifier | Llama Guard 3 |
+| Router | LiteLLM (cheapest-capable routing) |
 
 ---
 
@@ -68,7 +81,7 @@ autofounder-ai/
 │   └── src/
 ├── vscode-extension/      VS Code Extension (pnpm workspace)
 │   └── src/
-├── infra/                 Terraform modules (GCP) — not yet created
+├── infra/                 Terraform modules (AWS) — not yet created
 ├── docs/
 │   └── architecture/      HLD.md · LLD.md · architecture.md
 ├── scripts/
@@ -78,7 +91,7 @@ autofounder-ai/
 │   ├── MEMORY.md          ← this file
 │   ├── TASKS.md
 │   └── settings.local.json
-├── docker-compose.yml     PostgreSQL 16 + Redis 7 (local dev only)
+├── docker-compose.yml     Redis 7 only (Supabase CLI handles DB/Auth/Storage/Realtime locally)
 ├── Makefile               canonical task runner
 ├── turbo.json             Turborepo pipeline config
 ├── pnpm-workspace.yaml
@@ -94,8 +107,12 @@ autofounder-ai/
 # One-time setup
 make install          # pnpm install + uv sync --all-groups
 
-# Local databases (PostgreSQL 16 + Redis 7)
-make stack            # docker compose up -d
+# Local Supabase (PostgreSQL + pgvector + Auth + Storage + Realtime)
+supabase start        # start all Supabase services locally
+supabase stop         # stop Supabase services
+
+# Local Redis
+make stack            # docker compose up -d  (Redis only)
 make stack-down       # docker compose down
 
 # Run everything (Turborepo parallel)
@@ -150,13 +167,13 @@ main          production-ready, protected — no direct push
 
 ## Things Not Yet Decided
 
-- [ ] GCP services mapping — Cloud Run vs GKE vs Cloud Functions per workload
-- [ ] Vector store — managed option on GCP or hosted MongoDB Atlas / Pinecone
-- [ ] Graph DB — Neo4j AuraDB or hosted alternative
-- [ ] Primary LLM for agents — Gemini (GCP-native) vs Claude Sonnet vs GPT-4o
-- [ ] Feature flag service — LaunchDarkly vs GrowthBook vs home-grown
-- [ ] Multi-region strategy — single GCP region (asia-south1) for v1 or multi-region from day one
-- [ ] Tenant DB isolation strategy — schema-per-tenant vs RLS-only in PostgreSQL
+- [x] ~~GCP services mapping~~ **RESOLVED**: AWS (ECS Fargate, multi-AZ VPC, ElastiCache, S3, ECR, Secrets Manager)
+- [x] ~~Vector store~~ **RESOLVED**: Supabase pgvector — `vector(768)` HNSW index, schema-per-tenant; eliminates separate vector DB
+- [x] ~~Primary LLM for agents~~ **RESOLVED**: Gemini 3.5 Flash (all task classes) + gemini-embedding-2 (768-dim embeddings)
+- [x] ~~Tenant DB isolation strategy~~ **RESOLVED**: schema-per-tenant + RLS as defense-in-depth
+- [ ] Graph DB — Neo4j vs Amazon Neptune — pending benchmark on competitor ↔ market ↔ persona queries
+- [ ] Feature flag service — LaunchDarkly vs GrowthBook vs Statsig
+- [ ] Multi-region strategy — single AWS region (ap-south-1, Mumbai) for v1 or multi-region from day one
 - [ ] Mobile platforms for v1 — iOS + Android simultaneously or iOS-first
 
 ---
@@ -166,3 +183,4 @@ main          production-ready, protected — no direct push
 | Date | Version | Description |
 |------|---------|-------------|
 | 2026-05-20 | 1.0.0 | Initial MEMORY.md created — product identity, stack decisions, directory layout, commands, branch strategy |
+| 2026-05-26 | 1.1.0 | Tech stack alignment: AWS replaces GCP; Supabase (PostgreSQL + pgvector + Storage + Auth + Realtime) replaces RDS + MongoDB Atlas + Auth0; Gemini 3.5 Flash + gemini-embedding-2 replaces Claude/GPT-4o; Confluent Kafka added; COGS updated to < ₹500; resolved decisions moved out of open questions |

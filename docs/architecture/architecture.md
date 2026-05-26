@@ -35,8 +35,8 @@ flowchart TD
     %% ── Application Layer ────────────────────────────────────────────────────
     subgraph APP["Application Layer  —  ECS Fargate  (private subnets)"]
         WEB["apps/web\nNext.js 14 · Founder Portal\nValidation · Architecture · Code · Deploy · Launch · LLMOps"]:::app
-        API["apps/api\nNestJS API Gateway\nAuth · Tenancy · Rate-limits · OPA"]:::app
-        RT["apps/realtime\nGo WebSocket Service\nToken stream · Step events · Live logs"]:::app
+        API["apps/api\nFastAPI API Gateway\nAuth · Tenancy · Rate-limits · OPA"]:::app
+        RT["Supabase Realtime\nManaged WebSocket Service\nToken stream · Step events · Live logs"]:::app
     end
 
     %% ── Orchestration Layer ───────────────────────────────────────────────────
@@ -68,10 +68,8 @@ flowchart TD
 
     %% ── Model Layer ───────────────────────────────────────────────────────────
     subgraph MODELS["Model & Capability Layer  —  LiteLLM router"]
-        CLAUDE["Claude Sonnet\nComplex reasoning\nArchitecture · Self-healing\nLLM-as-judge"]:::model
-        GPT4O["GPT-4o\nCode generation\nMarketing copy\nStandard tasks"]:::model
-        MINI["GPT-4o-mini\nCRUD · Formatting\nClassification\nIntent parsing"]:::model
-        EMBED["Embeddings\ntext-embedding-3-large\nvoyage-code-2 for code"]:::model
+        GEMINI["Gemini 3.5 Flash\nAll task classes\nReasoning · Code gen\nMarketing copy · Classification"]:::model
+        EMBED["Embeddings\ngemini-embedding-2\n768 dimensions\nAll collections"]:::model
         GENAI["Image & Speech\nDALL-E 3 · Midjourney\nWhisper · GPT-4o-vision"]:::model
         LGUARD["Safety Classifier\nLlama Guard 3\nAlignment · Toxicity"]:::model
     end
@@ -79,8 +77,8 @@ flowchart TD
     %% ── Data Layer ────────────────────────────────────────────────────────────
     subgraph DATA["Data & Knowledge Layer  —  all access via UDAL"]
         UDAL["UDAL  packages/db\nudal.relational / vector / graph / object\nTenant-scoped · Lineage events · No raw DB access from agents"]:::data
-        PG[("PostgreSQL 16\nRDS Multi-AZ\nSchema-per-tenant + RLS\nruns · artifacts · gates · episodes")]:::data
-        VEC[("MongoDB Atlas\nVector Search\nNamespace per tenant\nmarket_intel · code_patterns · brand_voice")]:::data
+        PG[("Supabase\nPostgreSQL + pgvector + Storage\nSchema-per-tenant + RLS\nruns · artifacts · gates · episodes")]:::data
+        VEC[("Supabase pgvector\nvector(768) HNSW index\nSchema-per-tenant\nmarket_intel · code_patterns · brand_voice")]:::data
         GDB[("Neo4j / Neptune\nEntity graph\nCompetitor to Market\nto Persona relationships")]:::data
         REDIS[("Redis ElastiCache\nSession state 24h TTL\nPlan checkpoints\nPrompt + embedding cache")]:::data
         S3[("Amazon S3\nArtifacts · RLHF data lake\nPrompt templates\nAudit export")]:::data
@@ -88,6 +86,7 @@ flowchart TD
 
     %% ── Async & Workflow ──────────────────────────────────────────────────────
     subgraph ASYNC["Async & Workflow Layer"]
+        KAF["Confluent Kafka\nInter-agent events\nLLMOps telemetry\nHigh-throughput streams"]:::async
         EB["EventBridge\nRouting · Schema registry\nrun.started · pillar.completed\ngate.required · agent.failed"]:::async
         SQSQ["SQS\nPer-pillar queues\nDLQs configured\nExponential backoff + jitter"]:::async
         SNSN["SNS\nFan-out notifications\nWebhooks · Founder alerts"]:::async
@@ -98,7 +97,7 @@ flowchart TD
     subgraph OBS["Observability & MLOps Foundation  —  Layer 10"]
         LSMI["LangSmith\nLLM traces · Evals\nGroundedness audits\nPromptfoo regression"]:::obs
         OTEL["OpenTelemetry\nAWS X-Ray spans\nW3C traceparent end-to-end\nDist. tracing across all services"]:::obs
-        ELK["ELK + CloudWatch\nFluent Bit structured logs\ntrace_id · tenant_id\nrun_id · agent_id · model"]:::obs
+        ELK["CloudWatch\nFluent Bit structured logs\ntrace_id · tenant_id\nrun_id · agent_id · model"]:::obs
         PRMG["Prometheus + Grafana\nRED + USE dashboards\nPer-tenant cost attribution\nAmazon Managed Grafana"]:::obs
         FEATST["Feast / Tecton\nFeature store\nEngagement · COGS\nAccept-rate per tenant"]:::obs
     end
@@ -141,7 +140,7 @@ flowchart TD
     MKT & LMO --> G12
     G12 --> G34 --> G56
     G12 & G34 & G56 -.->|"immutable audit write"| AUDITL
-    G56 -->|"LiteLLM router"| CLAUDE & GPT4O & MINI & EMBED & GENAI & LGUARD
+    G56 -->|"LiteLLM router"| GEMINI & EMBED & GENAI & LGUARD
 
     %% Services → Data (via UDAL only)
     AISVR -->|"via UDAL only"| UDAL
@@ -149,7 +148,8 @@ flowchart TD
     UDAL --> PG & VEC & GDB & REDIS & S3
 
     %% Orchestration → Async
-    ORCH --> EB
+    ORCH --> KAF & EB
+    KAF --> AISVR
     EB --> SQSQ --> AISVR
     EB --> SNSN --> RT
     LMO --> STFN
@@ -158,7 +158,7 @@ flowchart TD
     AISVR & ORCH & API -->|"OTel spans"| OTEL
     AISVR & ORCH & API -->|"structured logs"| ELK
     AISVR & ORCH -->|"RED metrics"| PRMG
-    CLAUDE & GPT4O -->|"LLM call traces"| LSMI
+    GEMINI -->|"LLM call traces"| LSMI
     LMO --> FEATST
 
     %% Services → AWS Infra
@@ -291,14 +291,14 @@ flowchart LR
         ORCH_PG["orchestrator schema\ncheckpoints · runs  LangGraph state"]:::store
     end
 
-    subgraph VECTOR["Vector Store — MongoDB Atlas  namespace per tenant"]
+    subgraph VECTOR["Vector Store — Supabase pgvector  vector(768) HNSW  schema per tenant"]
         direction TB
-        MI["market_intelligence\ntext-embedding-3-large\nTAM · competitors · trends"]:::vector
-        CP["code_patterns\nvoyage-code-2\nCRUD · auth · payment patterns"]:::vector
-        AD["architecture_decisions\ntext-embedding-3-large\nERD · stack · scaling decisions"]:::vector
-        BV["brand_voice_examples\ntext-embedding-3-large\nTone · messaging · copy"]:::vector
-        PL["prompt_library\ntext-embedding-3-large\nVersioned prompt embeddings"]:::vector
-        UP["user_preferences\ntext-embedding-3-large\nFounder prefs · history"]:::vector
+        MI["market_intelligence\ngemini-embedding-2 (768-dim)\nTAM · competitors · trends"]:::vector
+        CP["code_patterns\ngemini-embedding-2 (768-dim)\nCRUD · auth · payment patterns"]:::vector
+        AD["architecture_decisions\ngemini-embedding-2 (768-dim)\nERD · stack · scaling decisions"]:::vector
+        BV["brand_voice_examples\ngemini-embedding-2 (768-dim)\nTone · messaging · copy"]:::vector
+        PL["prompt_library\ngemini-embedding-2 (768-dim)\nVersioned prompt embeddings"]:::vector
+        UP["user_preferences\ngemini-embedding-2 (768-dim)\nFounder prefs · history"]:::vector
     end
 
     subgraph GRAPH_DB["Graph DB — Neo4j / Neptune"]
@@ -317,7 +317,7 @@ flowchart LR
         COST["Cost accumulator\ncost:tenant_id:YYYY-MM\nsliding monthly"]:::cache
     end
 
-    subgraph OBJECT_LAYER["Object Store — Amazon S3  prefix s3://bucket/tenant_id/"]
+    subgraph OBJECT_LAYER["Object Store — Supabase Storage  prefix bucket/tenant_id/"]
         direction TB
         ART["Artifacts\nlean_canvas · erd · openapi\nlanding_page · brand_kit"]:::object
         RLHF["RLHF Data Lake\ncompressed traces\nfeedback datasets"]:::object
@@ -352,21 +352,19 @@ flowchart LR
 
 | Source | Target | Protocol | Purpose |
 |---|---|---|---|
-| Founder Portal | NestJS API | REST / GraphQL HTTPS | All API calls |
-| Founder Portal | Go Realtime | WebSocket WSS | Live token stream + step events |
-| NestJS API | LangGraph Orchestrator | gRPC `OrchestratorService` | Run creation, gate decisions, cancellation |
+| Founder Portal | FastAPI API | REST / GraphQL HTTPS | All API calls |
+| Founder Portal | Supabase Realtime | WebSocket WSS | Live token stream + step events |
+| FastAPI API | LangGraph Orchestrator | gRPC `OrchestratorService` | Run creation, gate decisions, cancellation |
 | LangGraph Orchestrator | FastAPI AI Services | gRPC stream `AgentWorkerService` | Dispatch steps, receive event stream |
 | FastAPI AI Services | All Agents | In-process Python | Agent execution |
 | All Agents | UDAL | In-process SDK call | All data reads and writes |
 | All Agents | Guardrails Pipeline | In-process Python | Every agent invocation wrapped |
-| Guardrails Stage 5–6 | LiteLLM Router | In-process | Route to cheapest-capable model |
+| Guardrails Stage 5–6 | LiteLLM Router | In-process | Route to Gemini 3.5 Flash |
+| LangGraph Orchestrator | Confluent Kafka | Kafka SDK | Inter-agent events + LLMOps telemetry |
 | LangGraph Orchestrator | EventBridge | AWS SDK | `run.*`, `pillar.*`, `gate.*` events |
 | EventBridge | SQS (per-pillar) | AWS routing rule | Task dispatch to AI Services |
-| EventBridge | SNS | AWS routing rule | Fan-out notifications → Realtime service |
 | LLMOps Agent | Step Functions | AWS SDK | Weekly prompt-opt + eval cycle |
 | All Services | OpenTelemetry | OTel SDK | Distributed traces → X-Ray |
-| LLM Calls | LangSmith | HTTP | LLM I/O traces + eval scores |
+| Gemini 3.5 Flash calls | LangSmith | HTTP | LLM I/O traces + eval scores |
 
 ---
-
-*Generated from CLAUDE.md v1.0 — 2026-05-19*

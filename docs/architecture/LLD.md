@@ -17,7 +17,7 @@
    - 2.5 Graph DB node/edge schema
    - 2.6 Redis key schema
 3. [API Contracts](#3-api-contracts)
-   - 3.1 REST API (NestJS)
+   - 3.1 REST API (FastAPI)
    - 3.2 gRPC proto definitions
    - 3.3 WebSocket message protocol
    - 3.4 Internal event schema (EventBridge)
@@ -40,10 +40,10 @@
    - 5.10 RAG pipeline
    - 5.11 Guardrails pipeline per agent call
 6. [Service-Level Component Breakdown](#6-service-level-component-breakdown)
-   - 6.1 `apps/api` — NestJS API Gateway
+   - 6.1 `apps/api` — FastAPI API Gateway
    - 6.2 `apps/orchestrator` — LangGraph Engine
    - 6.3 `apps/ai-services` — FastAPI Agent Workers
-   - 6.4 `apps/realtime` — Go WebSocket Service
+   - 6.4 Supabase Realtime — WebSocket Fan-out (Managed)
    - 6.5 `apps/web` — Next.js Founder Portal
    - 6.6 `packages/db` — UDAL
    - 6.7 `packages/agents` — Agent implementations
@@ -62,33 +62,23 @@
 ```
 autofounder-ai/
 ├── apps/
-│   ├── api/                         # NestJS API Gateway  (Node 20, TypeScript)
-│   │   ├── src/
-│   │   │   ├── main.ts              # Bootstrap, global pipes/guards
-│   │   │   ├── app.module.ts        # Root module
-│   │   │   ├── auth/                # JWT guards, Auth0 strategy, OPA adapter
-│   │   │   │   ├── auth.module.ts
-│   │   │   │   ├── jwt.strategy.ts
-│   │   │   │   ├── opa.guard.ts
-│   │   │   │   └── tenant.decorator.ts
-│   │   │   ├── ideas/               # POST /v1/ideas
-│   │   │   │   ├── ideas.controller.ts
-│   │   │   │   ├── ideas.service.ts
-│   │   │   │   └── dto/
-│   │   │   ├── runs/                # GET /v1/runs/:id, gates, artifacts
-│   │   │   │   ├── runs.controller.ts
-│   │   │   │   ├── runs.service.ts
-│   │   │   │   └── dto/
-│   │   │   ├── gates/               # POST /v1/runs/:id/gates/:gate_id
-│   │   │   │   ├── gates.controller.ts
-│   │   │   │   └── gates.service.ts
-│   │   │   ├── tenants/             # Tenant management
-│   │   │   ├── llmops/              # GET /v1/llmops/cost
-│   │   │   ├── feedback/            # POST /v1/feedback
-│   │   │   ├── grpc/                # gRPC client stubs (→ orchestrator)
-│   │   │   └── health/              # /health, /ready
-│   │   ├── openapi.yaml             # OpenAPI 3.1 spec (source of truth)
-│   │   └── test/
+│   ├── api/                         # FastAPI API Gateway  (Python 3.12)
+│   │   ├── main.py                  # FastAPI app, lifespan, middleware
+│   │   ├── routers/
+│   │   │   ├── ideas.py             # POST /v1/ideas
+│   │   │   ├── runs.py              # GET /v1/runs/:id, artifacts
+│   │   │   ├── gates.py             # POST /v1/runs/:id/gates/:gate_id
+│   │   │   ├── tenants.py           # Tenant management
+│   │   │   ├── llmops.py            # GET /v1/llmops/cost
+│   │   │   └── feedback.py          # POST /v1/feedback
+│   │   ├── auth/
+│   │   │   ├── jwt.py               # Supabase JWT validation
+│   │   │   ├── opa.py               # OPA policy guard
+│   │   │   └── tenant.py            # TenantContext dependency
+│   │   ├── schemas/                 # Pydantic request/response models
+│   │   ├── grpc_client.py           # gRPC stubs → orchestrator
+│   │   ├── openapi.yaml             # OpenAPI 3.1 spec (auto-generated + pinned)
+│   │   └── tests/
 │   │
 │   ├── orchestrator/                # LangGraph engine  (Python 3.12)
 │   │   ├── orchestrator/
@@ -120,7 +110,7 @@ autofounder-ai/
 │   │   ├── llm/
 │   │   │   ├── router.py            # LiteLLM model router
 │   │   │   ├── cache.py             # Semantic + prompt cache (Redis)
-│   │   │   └── clients.py           # Anthropic / OpenAI / Bedrock clients
+│   │   │   └── clients.py           # Google AI (Gemini) client
 │   │   ├── rag/
 │   │   │   ├── retriever.py         # Hybrid BM25 + ANN
 │   │   │   ├── reranker.py          # Cohere / BGE reranker
@@ -130,18 +120,13 @@ autofounder-ai/
 │   │   │   └── executor.py          # Code execution + output capture
 │   │   └── proto/
 │   │
-│   ├── realtime/                    # Go WebSocket fan-out service
-│   │   ├── cmd/server/main.go
-│   │   ├── internal/
-│   │   │   ├── hub/hub.go           # Connection hub (per run_id)
-│   │   │   ├── ws/handler.go        # WebSocket upgrade + read/write pumps
-│   │   │   ├── sqs/consumer.go      # SQS → hub fan-out
-│   │   │   └── auth/jwt.go          # JWT validation
-│   │   └── Dockerfile
+│   # Realtime: Supabase Realtime (managed service — no separate app service)
+│   # Frontend subscribes directly to Supabase Realtime channels per run_id.
+│   # Orchestrator publishes step events via Supabase client (postgres NOTIFY).
 │   │
 │   ├── web/                         # Next.js 14 Founder Portal
 │   │   ├── app/
-│   │   │   ├── (auth)/              # Auth0 login/callback routes
+│   │   │   ├── (auth)/              # Supabase Auth login/callback routes
 │   │   │   ├── dashboard/           # Run list + overview
 │   │   │   ├── runs/[id]/
 │   │   │   │   ├── validation/      # Pillar 1 — Validation Studio
@@ -243,20 +228,17 @@ autofounder-ai/
 │   │   │   └── shared/
 │   │   └── validator.py             # Variable completeness checker
 │   │
-│   ├── db/                          # UDAL + Prisma (TypeScript) + SQLAlchemy (Python)
-│   │   ├── src/
-│   │   │   ├── udal.ts              # UDAL TypeScript client
-│   │   │   ├── relational.ts        # Prisma wrapper + tenant router
-│   │   │   ├── vector.ts            # MongoDB Atlas Vector client
-│   │   │   ├── graph.ts             # Neo4j driver wrapper
-│   │   │   └── object.ts            # S3 client wrapper
+│   ├── db/                          # UDAL + SQLAlchemy (Python) + Supabase client
 │   │   ├── python/
-│   │   │   ├── udal.py              # UDAL Python client
-│   │   │   ├── relational.py        # SQLAlchemy + PgBouncer
-│   │   │   ├── vector.py            # PyMongo Atlas / Pinecone
-│   │   │   └── graph.py             # Neo4j async driver
-│   │   └── prisma/
-│   │       └── schema.prisma        # Prisma schema (platform tables)
+│   │   │   ├── udal.py              # UDAL Python client (primary)
+│   │   │   ├── relational.py        # SQLAlchemy async + Supabase PostgreSQL
+│   │   │   ├── vector.py            # Supabase pgvector (vecs client)
+│   │   │   ├── graph.py             # Neo4j async driver
+│   │   │   └── object.py            # Supabase Storage + S3 (data lake)
+│   │   ├── ts/
+│   │   │   └── udal.ts              # UDAL TypeScript client (frontend read-only)
+│   │   └── migrations/              # Supabase SQL migrations
+│   │       └── supabase/
 │   │
 │   ├── shared/                      # Cross-language shared types
 │   │   ├── types/
@@ -275,7 +257,7 @@ autofounder-ai/
     ├── terraform/
     │   ├── modules/
     │   │   ├── ecs/                 # Task defs, services, auto-scaling
-    │   │   ├── rds/                 # PostgreSQL Multi-AZ
+    │   │   # rds/ removed — database managed by Supabase
     │   │   ├── elasticache/         # Redis cluster
     │   │   ├── networking/          # VPC, subnets, NAT, SGs
     │   │   ├── alb/                 # ALB + listener rules
@@ -327,8 +309,8 @@ CREATE TABLE platform.tenant_api_keys (
 
 CREATE TABLE platform.model_registry (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  model_id      TEXT NOT NULL,          -- e.g. "claude-sonnet-4-6"
-  provider      TEXT NOT NULL,          -- "anthropic"|"openai"|"bedrock"
+  model_id      TEXT NOT NULL,          -- e.g. "gemini-1.5-flash-002"
+  provider      TEXT NOT NULL,          -- "google"|"openai"|"bedrock"
   version       TEXT NOT NULL,
   task_classes  TEXT[] NOT NULL,        -- ["complex_reasoning","self_healing",...]
   cost_per_1k_input_tokens   NUMERIC(12,6) NOT NULL,
@@ -911,66 +893,74 @@ class MarketingOutput(BaseModel):
 
 ### 2.5 Vector Store Document Schema
 
-All collections live in MongoDB Atlas (primary), namespaced per tenant.
+All collections live in Supabase pgvector, namespaced per tenant (schema-per-tenant + pgvector extension).
 
-```
-Collection: market_intelligence
-  namespace: "tenant_{tenant_id}.market_intelligence"
-  document:
-    _id:            string  (UUID)
-    run_id:         string
-    source:         string  (tool name: "tavily", "crunchbase", etc.)
-    source_url:     string
-    content:        string  (cleaned text)
-    embedding:      float[] (1536-dim, text-embedding-3-large)
-    metadata:
-      topic:        string  ("tam"|"competitor"|"trend"|"regulation")
-      created_at:   ISO datetime
-      expires_at:   ISO datetime | null
-  vector_index:     "embedding"  (cosine similarity, HNSW)
+```sql
+-- All vector tables live in the per-tenant schema "tenant_<uuid>"
+-- pgvector extension enabled: CREATE EXTENSION IF NOT EXISTS vector;
 
-Collection: code_patterns
-  namespace: "tenant_{tenant_id}.code_patterns"
-  document:
-    _id:            string
-    language:       string
-    framework:      string
-    pattern_type:   string  ("crud"|"auth"|"payment"|"webhook"|...)
-    code:           string
-    embedding:      float[] (1024-dim, voyage-code-2)
-    metadata:
-      quality_score: float  (0.0–1.0)
-      created_at:   ISO datetime
+-- market_intelligence
+CREATE TABLE market_intelligence (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id      UUID,
+  source      TEXT,                  -- "tavily" | "crunchbase" | etc.
+  source_url  TEXT,
+  content     TEXT NOT NULL,
+  embedding   vector(768),           -- gemini-embedding-2
+  topic       TEXT,                  -- "tam" | "competitor" | "trend" | "regulation"
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  expires_at  TIMESTAMPTZ
+);
+CREATE INDEX ON market_intelligence USING hnsw (embedding vector_cosine_ops);
 
-Collection: architecture_decisions
-  namespace: "tenant_{tenant_id}.architecture_decisions"
-  document:
-    _id:            string
-    run_id:         string
-    decision:       string  (free text)
-    rationale:      string
-    alternatives:   string[]
-    outcome:        string  ("chosen"|"rejected"|"deferred")
-    embedding:      float[] (1536-dim, text-embedding-3-large)
+-- code_patterns
+CREATE TABLE code_patterns (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  language      TEXT,
+  framework     TEXT,
+  pattern_type  TEXT,                -- "crud" | "auth" | "payment" | "webhook"
+  code          TEXT NOT NULL,
+  embedding     vector(768),         -- gemini-embedding-2
+  quality_score NUMERIC(3,2),
+  created_at    TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX ON code_patterns USING hnsw (embedding vector_cosine_ops);
 
-Collection: prompt_library
-  namespace: "tenant_{tenant_id}.prompt_library"  (shared + per-tenant)
-  document:
-    _id:            string
-    prompt_name:    string
-    version:        string
-    content:        string
-    embedding:      float[] (1536-dim)
-    eval_score:     float
+-- architecture_decisions
+CREATE TABLE architecture_decisions (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id       UUID,
+  decision     TEXT NOT NULL,
+  rationale    TEXT,
+  alternatives TEXT[],
+  outcome      TEXT,                 -- "chosen" | "rejected" | "deferred"
+  embedding    vector(768),         -- gemini-embedding-2
+  created_at   TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX ON architecture_decisions USING hnsw (embedding vector_cosine_ops);
 
-Collection: user_preferences
-  namespace: "tenant_{tenant_id}.user_preferences"
-  document:
-    _id:            string
-    user_id:        string
-    preference_key: string
-    preference_val: string
-    embedding:      float[]
+-- prompt_library
+CREATE TABLE prompt_library (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  prompt_name TEXT NOT NULL,
+  version     TEXT NOT NULL,
+  content     TEXT NOT NULL,
+  embedding   vector(768),          -- gemini-embedding-2
+  eval_score  NUMERIC(5,2),
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX ON prompt_library USING hnsw (embedding vector_cosine_ops);
+
+-- user_preferences
+CREATE TABLE user_preferences (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         TEXT NOT NULL,
+  preference_key  TEXT NOT NULL,
+  preference_val  TEXT,
+  embedding       vector(768),       -- gemini-embedding-2
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX ON user_preferences USING hnsw (embedding vector_cosine_ops);
 ```
 
 ### 2.6 Graph DB Schema (Neo4j)
@@ -1046,7 +1036,7 @@ TTL:  120
 
 ## 3. API Contracts
 
-### 3.1 REST API — NestJS (`apps/api`)
+### 3.1 REST API — FastAPI (`apps/api`)
 
 #### `POST /v1/ideas`
 ```
@@ -1294,7 +1284,7 @@ message StepEventProto {
     "run_id": "<uuid>",
     "pillar": "1",
     "agent_id": "strategy.v1",
-    "model": "claude-sonnet-4-6",
+    "model": "gemini-1.5-flash-002",
     "env": "production",
     "payload": { /* event-specific data */ },
     "emitted_at": "2026-05-19T10:00:00Z"
@@ -1565,7 +1555,7 @@ class PromptRegistry:
 ### 5.1 Idea Submission and Run Creation
 
 ```
-Founder              Next.js Portal          NestJS API GW          LangGraph Orch         PostgreSQL (platform)
+Founder              Next.js Portal          FastAPI API GW         LangGraph Orch         PostgreSQL (platform)
   |                       |                        |                       |                        |
   |-- POST /v1/ideas ----->|                        |                       |                        |
   |   {idea_text, ...}     |                        |                       |                        |
@@ -1590,13 +1580,13 @@ Founder              Next.js Portal          NestJS API GW          LangGraph Or
   |                        |                        |                        |                        |
   |-- WS connect ---------->-- WS upgrade -------->|                        |                        |
   |   /v1/runs/{id}/stream  |                        |-- auth WS token -----> |                        |
-  |                        |                        |-- Go realtime joins hub[run_id]                  |
+  |                        |                        |-- Supabase Realtime channel subscribed [run_id]  |
 ```
 
 ### 5.2 Pillar 1 — Strategy Agent Execution
 
 ```
-Orchestrator       SQS (pillar-1)      AI Services        Strategy Agent      Guardrails       UDAL           LLM (Claude)      EventBridge
+Orchestrator       SQS (pillar-1)      AI Services        Strategy Agent      Guardrails       UDAL           LLM (Gemini)      EventBridge
      |                   |                   |                    |                  |             |                 |                |
      |-- poll() -------->|                   |                    |                  |             |                 |                |
      |<-- {run_id, step} |                   |                    |                  |             |                 |                |
@@ -1611,7 +1601,7 @@ Orchestrator       SQS (pillar-1)      AI Services        Strategy Agent      Gu
      |                   |                   |                    |<-- (clean_input, results) ---  |                 |                |
      |                   |                   |                    |                  |             |                 |                |
      |                   |                   |                    |-- udal.vector("market_intel") ->|                |                |
-     |                   |                   |                    |                  |-- query MongoDB Atlas -------> |                |
+     |                   |                   |                    |                  |-- query Supabase pgvector ----> |                |
      |                   |                   |                    |                  |<-- top_k docs              -- |                |
      |                   |                   |                    |<-- {context docs}|             |                 |                |
      |                   |                   |                    |                  |             |                 |                |
@@ -1641,7 +1631,7 @@ Orchestrator       SQS (pillar-1)      AI Services        Strategy Agent      Gu
 ### 5.3 HITL Gate — Founder Approves Architecture
 
 ```
-Founder        Portal (Next.js)       NestJS API GW         Orchestrator         PostgreSQL
+Founder        Portal (Next.js)       FastAPI API GW        Orchestrator         PostgreSQL
   |                  |                      |                      |                   |
   | (sees gate UI)   |                      |                      |                   |
   |                  |                      |                      |                   |
@@ -1678,12 +1668,12 @@ Orchestrator         AI Services         Coder Agent            Frontend Spec   
      |                    |   shadcn/ui, Zustand)         |           |                  |
      |                    |         |                     |           |                  |
      |                    |                  backend_specialist.run() |                  |
-     |                    |                  (FastAPI or NestJS,      |                  |
-     |                    |                   SQLAlchemy/Prisma,      |                  |
+     |                    |                  (FastAPI,               |                  |
+     |                    |                   SQLAlchemy + Supabase migrations,          |
      |                    |                   OAuth/JWT, Stripe)      |                  |
      |                    |         |          |                      |                  |
      |                    |                               db_agent.run()                 |
-     |                    |                               (ERD → Prisma schema,          |
+     |                    |                               (ERD → SQLAlchemy models,      |
      |                    |                                migrations, seeds)            |
      |                    |         |          |           |                             |
      |                    |         └──────────┴───────────┘                            |
@@ -1717,7 +1707,7 @@ Orchestrator         Reviewer Agent          Self-Healer          Sandbox Runner
      |                     |<── {coverage: 82%, all PASS} ─────────────|                   |
      |                     |                      |                     |                   |
      |                     |-- security_scan() (Trivy, Snyk, Gitleaks, OWASP ZAP)         |
-     |                     |-- llm_as_judge_review() [Claude Sonnet]                       |
+     |                     |-- llm_as_judge_review() [Gemini 3.5 Flash]                    |
      |                     |<── {judge_score: 0.91, issues: []}         |                   |
      |                     |                      |                     |                   |
      |                     |-- quality_gate.evaluate()  ──────────────────────────────────>|
@@ -1748,7 +1738,7 @@ Orchestrator       DevOps Agent        Infra Provisioner      AWS APIs          
      |                  |                     |-- terraform plan    |                      |
      |                  |                     |-- [cost > threshold]→ infra_spend gate     |
      |                  |                     |-- terraform apply   |                      |
-     |                  |                     |   ECS task def, service, RDS, ElastiCache  |
+     |                  |                     |   ECS task def, service, ElastiCache (Supabase DB is managed)  |
      |                  |                     |<── {service_arn, alb_dns} ───────────────  |
      |                  |                     |                    |                      |
      |                  |-- dns_ssl_agent.configure() ─────────────────────────────────> |
@@ -1812,7 +1802,7 @@ Step Functions          LLMOps Agent        LangSmith          Prompt Optimizer 
        |                     |<── {traces, eval_scores, acceptance_rates} ──────────── |  |
        |                     |                   |                    |                  |
        |                     |-- drift_monitor.check()                |                  |
-       |                     |   (TruLens, Evidently AI)              |                  |
+       |                     |   (LangSmith evals)                    |                  |
        |                     |   [if drift detected → alert]          |                  |
        |                     |                   |                    |                  |
        |                     |-- prompt_optimizer.run(DSPy) ──────────────────────────> |
@@ -1835,10 +1825,10 @@ Step Functions          LLMOps Agent        LangSmith          Prompt Optimizer 
 ### 5.9 JWT Auth & Tenant Resolution
 
 ```
-Request               JWT Guard           Auth0 JWKS           OPA Engine            UDAL
+Request               JWT Guard           Supabase Auth        OPA Engine            UDAL
   |                       |                    |                     |                  |
   |-- Authorization: Bearer <token> ─────────>|                     |                  |
-  |                       |-- JWKS.verify() -->|                     |                  |
+  |                       |-- JWT.verify() --->|                     |                  |
   |                       |<── {valid, claims} |                     |                  |
   |                       |                    |                     |                  |
   |                       |   claims: {sub, tenant_id, role, scopes, exp}               |
@@ -1942,23 +1932,23 @@ Agent Call           Stage 1 Policy       Stage 2 Input        Stage 3 Instructi
 
 ## 6. Service-Level Component Breakdown
 
-### 6.1 `apps/api` — NestJS API Gateway
+### 6.1 `apps/api` — FastAPI API Gateway
 
-**Responsibilities**: JWT validation, tenant resolution, rate-limiting, OPA policy check, request routing to Orchestrator via gRPC, WebSocket upgrade to Go Realtime.
+**Responsibilities**: JWT validation (Supabase Auth), tenant resolution, rate-limiting, OPA policy check, request routing to Orchestrator via gRPC. Realtime streaming handled by Supabase Realtime.
 
 **Internal modules**:
 
-| Module | Key classes | Deps |
+| Router | Key functions | Deps |
 |---|---|---|
-| `AuthModule` | `JwtStrategy`, `OpaGuard`, `TenantDecorator` | Auth0 JWKS, OPA sidecar |
-| `IdeasModule` | `IdeasController`, `IdeasService` | Orchestrator gRPC client, Guardrails Stage 1 |
-| `RunsModule` | `RunsController`, `RunsService` | UDAL (read-only), Orchestrator gRPC |
-| `GatesModule` | `GatesController`, `GatesService` | Orchestrator gRPC |
-| `LlmopsModule` | `LlmopsController` | UDAL (cost_ledger) |
-| `FeedbackModule` | `FeedbackController` | SQS producer (→ LLMOps queue) |
-| `HealthModule` | `HealthController` | RDS ping, Redis ping, Orchestrator gRPC ping |
+| `auth/jwt.py` | `verify_token()`, `get_tenant_context()` | Supabase JWT, OPA sidecar |
+| `routers/ideas.py` | `POST /v1/ideas` | Orchestrator gRPC client, Guardrails Stage 1 |
+| `routers/runs.py` | `GET /v1/runs/{id}`, artifacts | UDAL (read-only), Orchestrator gRPC |
+| `routers/gates.py` | `POST /v1/runs/{id}/gates/{gate_id}` | Orchestrator gRPC |
+| `routers/llmops.py` | `GET /v1/llmops/cost` | UDAL (cost_ledger) |
+| `routers/feedback.py` | `POST /v1/feedback` | Kafka producer (→ LLMOps topic) |
+| `health.py` | `GET /health`, `/ready` | Supabase ping, Redis ping, Orchestrator gRPC ping |
 
-**Rate limiting**: `@nestjs/throttler` backed by Redis; per-tenant sliding window (1 min). Limits by tier: Solo=10/min, Startup=60/min, Enterprise=unlimited.
+**Rate limiting**: `slowapi` backed by Redis; per-tenant sliding window (1 min). Limits by tier: Solo=10/min, Startup=60/min, Enterprise=unlimited.
 
 **Error response format**:
 ```json
@@ -2035,30 +2025,22 @@ class ModelRouter:
         ...
 ```
 
-### 6.4 `apps/realtime` — Go WebSocket Service
+### 6.4 Supabase Realtime — WebSocket Fan-out (Managed)
 
-**Responsibilities**: Accept WebSocket connections from the Founder Portal, fan out step events to the correct connection(s) for a given `run_id`.
+**Responsibilities**: Accept WebSocket connections from the Founder Portal, fan out step events to the correct channel for a given `run_id`. This is a **managed service** — no `apps/realtime` app service is deployed.
 
-**Hub design** (`internal/hub/hub.go`):
-```
-Hub
-  clients: map[run_id] → set of *Client
-  broadcast: chan Message
-  register:  chan *Client
-  unregister: chan *Client
-
-Client
-  run_id: string
-  conn:   *websocket.Conn
-  send:   chan []byte    (buffered 256)
-
-SQS Consumer
-  Polls realtime-events SQS queue
-  Deserializes PlatformEvent
-  Sends to Hub.broadcast
+**How it works**:
+- Orchestrator writes step events to the `step_events` table in Supabase (PostgreSQL NOTIFY via `pg_notify`).
+- Supabase Realtime listens on PostgreSQL replication and broadcasts row-level changes to subscribed clients.
+- The Founder Portal subscribes via the Supabase JS client:
+```javascript
+supabase
+  .channel(`run:${runId}`)
+  .on('postgres_changes', { event: 'INSERT', schema: 'tenant_x', table: 'step_events', filter: `run_id=eq.${runId}` }, handleEvent)
+  .subscribe()
 ```
 
-**Backpressure**: if `client.send` buffer is full, client is disconnected (slow consumer). Portal reconnects with `Last-Event-ID` and replays from `step_events` table.
+**Backpressure**: Supabase Realtime handles backpressure internally. Portal replays missed events by querying `step_events` table on reconnect.
 
 ### 6.5 `apps/web` — Next.js Founder Portal
 
@@ -2067,14 +2049,14 @@ SQS Consumer
 - **`useRun(runId)` hook**: React Query for initial fetch + WebSocket for incremental updates. Merges WS events into React Query cache using `queryClient.setQueryData` with optimistic reconciliation.
 - **Gate surface**: `useGate(gateId)` polls `/v1/runs/{id}/gates/{gateId}` every 5s when state=pending; renders gate-specific UI (e.g. `<LeanCanvasReview />`, `<ArchitectureReview />`).
 - **Monaco diff viewer**: displays Reviewer Agent's code patches side-by-side with original; founder can comment before approving.
-- **Auth**: Auth0 `@auth0/nextjs-auth0` v3; session stored in HttpOnly cookie; `tenant_id` extracted from JWT on every API call via `withApiAuthRequired`.
+- **Auth**: Supabase Auth (`@supabase/ssr`); session stored in HttpOnly cookie; `tenant_id` extracted from Supabase JWT on every API call.
 - **Error boundary**: per-surface React error boundary; Sentry `captureException` on unhandled errors.
 
 ### 6.6 `packages/db` — UDAL
 
 **Invariant**: no code outside this package may import `pg`, `pymongo`, `neo4j`, `boto3.s3`, or `ioredis` directly.
 
-**TypeScript UDAL request lifecycle**:
+**UDAL request lifecycle** (Python primary; TypeScript client for frontend read-only queries):
 ```
 1. Extract tenant_id from AsyncLocalStorage (set by AuthMiddleware)
 2. Validate tenant_id present (throws UDALError.NoTenantContext if missing)
@@ -2203,13 +2185,10 @@ Every marketing asset goes through `feature_list_crossref()`:
 The model router runs a rule table evaluated left-to-right:
 
 ```
-task_class == "complex_reasoning"  AND cost_headroom > $0.50  → claude-sonnet-4-6
-task_class == "complex_reasoning"  AND cost_headroom <= $0.50 → gpt-4o (fallback)
-task_class == "code_gen"           AND lines_of_code < 200    → gpt-4o-mini
-task_class == "code_gen"           AND lines_of_code >= 200   → gpt-4o
-task_class == "classification"                                 → gpt-4o-mini
-task_class == "embedding"          AND domain == "code"        → voyage-code-2
-task_class == "embedding"                                      → text-embedding-3-large
+task_class == "complex_reasoning"                              → gemini-1.5-flash-002
+task_class == "code_gen"                                       → gemini-1.5-flash-002
+task_class == "classification"                                 → gemini-1.5-flash-002
+task_class == "embedding"                                      → gemini-embedding-002
 task_class == "image_gen"                                      → dall-e-3
 task_class == "speech"                                         → whisper-1
 task_class == "safety_classifier"                              → llama-guard-3
@@ -2223,15 +2202,15 @@ task_class == "safety_classifier"                              → llama-guard-3
 
 **Implementation**: `self_heal_cycle` counter stored in `RunState.step_outputs`. On cycle 5 failure: insert `escalation` gate, pause run, emit `gate.required` to portal.
 
-### 7.6 Go for WebSocket fan-out
+### 7.6 Supabase Realtime over custom WebSocket service
 
-FastAPI handles WebSocket connections adequately, but a single Go goroutine per connection at 500 concurrent builds × N founders per build = potentially thousands of concurrent connections. Go's goroutine model handles this at O(KB) per connection vs O(MB) for Python async tasks under real I/O load. The trade-off is an additional language in the stack; mitigated by keeping the Go service minimal (hub + pump + SQS consumer only, ~400 LoC).
+Supabase Realtime provides PostgreSQL-native change data capture broadcast over WebSocket. This eliminates the Go service (~400 LoC) and a separate SQS realtime-events queue. The trade-off is coupling the real-time layer to Supabase; mitigated by the fact that Supabase is already the primary data store. Portal reconnection and event replay are handled by the Supabase JS client and `step_events` table query on reconnect.
 
-### 7.7 MongoDB Atlas as primary vector store
+### 7.7 Supabase pgvector as primary vector store
 
-**Decision factors**: Atlas provides unified document + vector search on a single cluster. Avoids a separate Pinecone/Milvus deployment in early phases. Each tenant namespace is logically isolated. Per-query pricing aligns with the per-tenant cost model.
+**Decision factors**: pgvector runs inside the same Supabase PostgreSQL instance — no separate vector DB deployment, no cross-service network calls. HNSW indexing in pgvector provides recall@10 ~95% on 768-dim gemini-embedding-2 vectors, sufficient for RAG use cases. Schema-per-tenant isolation carries through naturally (each tenant schema has its own vector tables). UDAL vector calls become simple parameterized SQL — no MongoDB driver.
 
-**Risk**: Atlas vector indexing is approximate (HNSW); recall@10 ~96% vs. Pinecone's ~98%. Reranker compensates for the recall gap. If benchmark shows Atlas falling below 90% recall on code embeddings, the `code_patterns` collection migrates to Pinecone with voyage-code-2 (isolated change, UDAL abstracts the swap).
+**Risk**: pgvector query latency is higher than dedicated vector DBs at very large scale (>10M vectors). Mitigated by: embedding cache (Redis), reranker compensating for recall gap, and horizontal Supabase read replicas if needed.
 
 ### 7.8 Jinja2 over f-strings for prompts
 
@@ -2248,12 +2227,11 @@ All prompts are Jinja2 templates stored in the prompt registry, never Python f-s
 ```
 Service / Package          Direct Dependencies
 ─────────────────────────────────────────────────────────────────────────────
-apps/api                   packages/shared, packages/db (TS)
-                           Auth0 JWKS endpoint (external)
+apps/api                   packages/shared, packages/db (Python + TS read-only)
+                           Supabase Auth (JWT) (external)
                            OPA sidecar (gRPC localhost:8181)
                            apps/orchestrator (gRPC)
-                           apps/realtime (internal HTTP redirect for WS upgrade)
-                           Amazon SQS (feedback queue publish)
+                           Kafka producer (feedback topic publish)
 
 apps/orchestrator          packages/shared, packages/db (Python)
                            apps/ai-services (gRPC)
@@ -2265,17 +2243,14 @@ apps/orchestrator          packages/shared, packages/db (Python)
 apps/ai-services           packages/agents, packages/guardrails
                            packages/tools, packages/prompts
                            packages/db (Python)
-                           OpenAI API, Anthropic API, AWS Bedrock
+                           Google AI API (Gemini)
+                           Supabase (pgvector + Storage)
                            Amazon ECR (sandbox image pull)
                            Amazon ECS (sandbox task launch)
                            Amazon EventBridge (publish traces)
 
-apps/realtime              Amazon SQS (realtime-events queue — consume)
-                           Redis (none — stateless hub)
-                           Auth0 JWKS (JWT validation)
-
-apps/web                   apps/api (REST + WS)
-                           Auth0 (nextjs-auth0)
+apps/web                   apps/api (REST)
+                           Supabase JS client (Realtime + Auth)
                            Sentry browser SDK
 
 packages/agents            packages/db (Python), packages/tools
@@ -2288,11 +2263,10 @@ packages/guardrails        OPA (HTTP policy evaluation)
                            TruLens (output eval)
                            PostgreSQL (audit_log — via UDAL)
 
-packages/db                PostgreSQL (PgBouncer → RDS)
-                           MongoDB Atlas
+packages/db                Supabase PostgreSQL (pgvector + Storage)
                            Redis (ElastiCache)
                            Neo4j / Amazon Neptune
-                           Amazon S3
+                           Amazon S3 (data lake / audit)
 
 packages/tools             External tool APIs (scoped egress per tool)
                            packages/db (tool_registry read via UDAL)
@@ -2376,7 +2350,7 @@ All retries add ±20% jitter to the backoff value to prevent thundering-herd on 
 
 ### 9.3 Circuit breaker configuration
 
-Each external integration (OpenAI, Anthropic, Tavily, GitHub, etc.) has a per-process circuit breaker:
+Each external integration (Google AI, Tavily, GitHub, etc.) has a per-process circuit breaker:
 
 ```
 State:     CLOSED → OPEN → HALF_OPEN → CLOSED
@@ -2406,15 +2380,14 @@ All non-secret config lives in AWS SSM Parameter Store (`/{env}/autofounder/{ser
 All secrets live in AWS Secrets Manager (`/{env}/autofounder/{service}/{secret_name}`).  
 **No `.env` files in the repository** (enforced by Gitleaks + semgrep rule `no-dotenv-in-repo`).
 
-### 10.1 `apps/api` (NestJS)
+### 10.1 `apps/api` (FastAPI)
 
 | Variable | Source | Example |
 |---|---|---|
-| `AUTH0_DOMAIN` | SSM | `euron-autofounder.auth0.com` |
-| `AUTH0_AUDIENCE` | SSM | `https://api.autofounder.euron.one` |
+| `SUPABASE_URL` | SSM | `https://<project>.supabase.co` |
+| `SUPABASE_JWT_SECRET` | Secrets Mgr | `<supabase-jwt-secret>` |
 | `OPA_ENDPOINT` | SSM | `http://localhost:8181` |
 | `ORCHESTRATOR_GRPC_HOST` | SSM | `orchestrator.internal:50051` |
-| `REALTIME_WS_HOST` | SSM | `realtime.internal:8080` |
 | `REDIS_URL` | Secrets Mgr | `rediss://...` |
 | `THROTTLE_TTL` | SSM | `60` |
 | `THROTTLE_LIMIT_SOLO` | SSM | `10` |
@@ -2436,10 +2409,9 @@ All secrets live in AWS Secrets Manager (`/{env}/autofounder/{service}/{secret_n
 
 | Variable | Source | Example |
 |---|---|---|
-| `OPENAI_API_KEY` | Secrets Mgr | `sk-...` |
-| `ANTHROPIC_API_KEY` | Secrets Mgr | `sk-ant-...` |
-| `AWS_BEDROCK_REGION` | SSM | `ap-south-1` |
-| `MONGODB_ATLAS_URI` | Secrets Mgr | `mongodb+srv://...` |
+| `GOOGLE_AI_API_KEY` | Secrets Mgr | `AIza...` |
+| `SUPABASE_URL` | SSM | `https://<project>.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Secrets Mgr | `<supabase-service-role-key>` |
 | `S3_ARTIFACTS_BUCKET` | SSM | `autofounder-artifacts-prod` |
 | `ECS_CLUSTER_ARN` | SSM | `arn:aws:ecs:ap-south-1:...` |
 | `ECS_SANDBOX_TASK_DEF` | SSM | `autofounder-sandbox:12` |
@@ -2449,14 +2421,9 @@ All secrets live in AWS Secrets Manager (`/{env}/autofounder/{service}/{secret_n
 | `COST_CAP_SOLO_USD` | SSM | `25` |
 | `COST_CAP_STARTUP_USD` | SSM | `200` |
 
-### 10.4 `apps/realtime` (Go)
+### 10.4 Supabase Realtime (Managed — no env config required)
 
-| Variable | Source | Example |
-|---|---|---|
-| `SQS_REALTIME_QUEUE_URL` | SSM | `https://sqs.ap-south-1.amazonaws.com/...` |
-| `AUTH0_JWKS_URI` | SSM | `https://euron-autofounder.auth0.com/.well-known/jwks.json` |
-| `PORT` | SSM | `8080` |
-| `MAX_CONNECTIONS_PER_RUN` | SSM | `10` |
+Supabase Realtime is configured via the Supabase project dashboard and inherits the project's JWT secret. No separate service deployment or environment variables are needed beyond `SUPABASE_URL` and `SUPABASE_ANON_KEY` (already in `apps/web`).
 
 ### 10.5 Feature flags (GrowthBook / Statsig)
 
@@ -2471,5 +2438,4 @@ All secrets live in AWS Secrets Manager (`/{env}/autofounder/{service}/{secret_n
 
 ---
 
-*Generated from CLAUDE.md v1.0 — 2026-05-19*  
 *Companion document: `docs/HLD.md`*

@@ -53,11 +53,11 @@ C4Context
 
   System(autofounder, "AutoFounder AI", "Multi-tenant agentic AI SaaS that autonomously builds startups from a text idea")
 
-  System_Ext(llm, "LLM Providers", "OpenAI (GPT-4o), Anthropic (Claude Sonnet), AWS Bedrock")
+  System_Ext(llm, "LLM Providers", "Google AI (Gemini 3.5 Flash + gemini-embedding-2)")
   System_Ext(research, "Research APIs", "Tavily, SerpAPI, Crunchbase, G2, SimilarWeb, Google Trends")
-  System_Ext(devtools, "Dev & Deploy Tools", "GitHub, Stripe, Auth0, Vercel, AWS")
+  System_Ext(devtools, "Dev & Deploy Tools", "GitHub, Stripe, Supabase, Vercel, AWS")
   System_Ext(marketing, "Marketing Platforms", "ProductHunt, X, LinkedIn, Reddit, Mailchimp, Resend")
-  System_Ext(monitoring, "Observability Tools", "LangSmith, Sentry, Datadog, Prometheus/Grafana")
+  System_Ext(monitoring, "Observability Tools", "LangSmith, Prometheus/Grafana, Sentry")
 
   Rel(founder, autofounder, "Submits idea, approves HITL gates", "HTTPS / WebSocket")
   Rel(admin, autofounder, "Manages tenants, monitors platform", "HTTPS")
@@ -84,7 +84,7 @@ block-beta
 
   block:orch["2. AGENT ORCHESTRATION LAYER (LangGraph)"]:1
     O1["Dynamic Task Allocation"]
-    O2["Inter-Agent Event Bus (EventBridge)"]
+    O2["Inter-Agent Event Bus (Confluent Kafka · EventBridge)"]
     O3["Workflow & Plan Management (DAGs)"]
     O4["HITL Gates · Monitoring"]
   end
@@ -100,14 +100,14 @@ block-beta
   end
 
   block:models["4. MODEL & CAPABILITY LAYER"]:1
-    M1["LLMs (Claude Sonnet · GPT-4o · GPT-4o-mini)"]
+    M1["LLMs (Gemini 3.5 Flash)"]
     M2["Embeddings · Vision · Speech (Whisper)"]
     M3["RAG & Retrieval · RLHF / Alignment"]
   end
 
   block:data["5. DATA & KNOWLEDGE LAYER"]:1
     D1["PostgreSQL 16 (Relational)"]
-    D2["MongoDB Atlas / Pinecone (Vector)"]
+    D2["Supabase pgvector (Vector)"]
     D3["Neo4j / Neptune (Graph)"]
     D4["Redis / DynamoDB (Cache)"]
     D5["S3 Raw Data Lake"]
@@ -135,7 +135,7 @@ block-beta
   end
 
   block:observability["10. OBSERVABILITY & MLOPS FOUNDATION"]:1
-    OB1["ELK / Prometheus / Grafana · OpenTelemetry · LangSmith"]
+    OB1["Prometheus / Grafana · OpenTelemetry · LangSmith"]
     OB2["Feature Store (Feast) · Cost FinOps · CI/CD"]
   end
 ```
@@ -288,7 +288,7 @@ graph LR
 sequenceDiagram
     participant U as Founder
     participant FE as Founder Portal
-    participant GW as NestJS API GW
+    participant GW as FastAPI API GW
     participant ORCH as LangGraph Orchestrator
     participant STR as Strategy Agent
     participant ENG as Engineering Agent
@@ -359,7 +359,7 @@ flowchart LR
 
     subgraph Stream["Streaming (WebSocket)"]
         direction TB
-        ORCH3[Orchestrator] -->|"token stream\nstep events\nlog lines"| WS[Go Realtime Service]
+        ORCH3[Orchestrator] -->|"pg_notify\nchange events"| WS[Supabase Realtime\nManaged WebSocket]
         WS -->|"WebSocket"| Portal[Founder Portal]
     end
 
@@ -376,9 +376,9 @@ flowchart LR
 | Agent → Agent (low latency) | gRPC (Protocol Buffers) | Synchronous request/response |
 | Orchestrator → Agents | EventBridge → SQS | Async task dispatch |
 | Run events (fan-out) | EventBridge → SNS | Notifications, webhooks |
-| Live token/log stream | WebSocket (Go service) | Founder Portal real-time updates |
+| Live token/log stream | Supabase Realtime (WebSocket) | Founder Portal real-time updates |
 | LLMOps weekly cycle | AWS Step Functions | Long-running multi-day pipelines |
-| High-throughput telemetry | Kafka / MSK | LLMOps trace ingestion |
+| High-throughput telemetry | Confluent Kafka | LLMOps trace ingestion |
 
 ---
 
@@ -392,7 +392,7 @@ graph TB
         WM["Working Memory\nIn-process buffer\nTTL: current step"]
         ST["Short-term / Session\nRedis Cluster\nTTL: 24h sliding"]
         EP["Episodic\nPostgreSQL memory.episodes\nTTL: 90 days"]
-        SEM["Semantic / Long-term\nMongoDB Atlas Vector / Pinecone\nTTL: unbounded"]
+        SEM["Semantic / Long-term\nSupabase pgvector\nTTL: unbounded"]
         PROC["Procedural\nPrompt + Tool Registry (Postgres)\nTTL: versioned"]
         REL["Relational Knowledge\nNeo4j / Amazon Neptune\nTTL: unbounded"]
         COLD["Cold Archive\nS3 Object Lock\nTTL: 7 years (audit)"]
@@ -424,11 +424,10 @@ graph LR
     UDAL["Unified Data Access Layer\n(packages/db)\nEnforces tenant_id · Routes calls\nEmits lineage events"]
 
     UDAL -->|"udal.relational()"| PG["PostgreSQL 16\nRDS Multi-AZ\nSchema-per-tenant + RLS\nruns · artifacts · gates\nmemory.episodes · prompt_registry"]
-    UDAL -->|"udal.vector()"| VEC["MongoDB Atlas Vector Search\n(primary)\n+ Pinecone / Milvus (alt)\nNamespace per tenant\n7 collections"]
+    UDAL -->|"udal.vector()"| VEC["Supabase pgvector\nPGVECTOR extension\nvector(768) HNSW index\nSchema-per-tenant\n7 collections"]
     UDAL -->|"udal.graph()"| GRAPH["Neo4j / Amazon Neptune\nCompetitor ↔ Market\n↔ Persona entity graph"]
     UDAL -->|"cache"| REDIS["Redis (ElastiCache)\nSession state\nPlan checkpoints\nEmbedding cache"]
-    UDAL -->|"udal.object()"| S3["Amazon S3\nArtifacts · Assets\nRLHF datasets\ns3://bucket/{tenant_id}/..."]
-    UDAL -->|"session catalog"| DDB["DynamoDB\nSession catalog"]
+    UDAL -->|"udal.object()"| S3["Supabase Storage\nArtifacts · Assets\nRLHF datasets\nbucket/{tenant_id}/..."]
 ```
 
 ### 8.2 RAG Pipeline
@@ -471,11 +470,11 @@ graph TB
     MOBILE[Mobile / Webhooks] -->|"REST HTTPS"| GW
     ADMIN[Admin Dashboard] -->|"REST HTTPS"| GW
 
-    GW["NestJS API Gateway\napps/api :443\nAuth · Tenancy · Rate-limits\nJWT validation"]
+    GW["FastAPI API Gateway\napps/api :8000\nAuth · Tenancy · Rate-limits\nJWT validation"]
 
     GW -->|"gRPC"| ORCH[LangGraph Orchestrator\napps/orchestrator]
     GW -->|"gRPC"| AI[FastAPI Agent Workers\napps/ai-services]
-    GW -->|"WebSocket /v1/runs/{id}/stream"| RT[Go Realtime Service\napps/realtime]
+    GW -->|"WebSocket /v1/runs/{id}/stream"| RT[Supabase Realtime\nManaged WebSocket]
 
     ORCH -->|"gRPC"| AI
     RT -->|"WebSocket"| FE
@@ -541,10 +540,10 @@ graph TB
 
         subgraph PRIVATE_APP["Private App Subnets (AZ-a, AZ-b)"]
             ECS_WEB["ECS Fargate\napps/web :3000\nFounder Portal"]
-            ECS_API["ECS Fargate\napps/api :443\nNestJS API GW"]
+            ECS_API["ECS Fargate\napps/api :8000\nFastAPI API GW"]
             ECS_AI["ECS Fargate\napps/ai-services :8000\nFastAPI Agent Workers"]
             ECS_ORCH["ECS Fargate\napps/orchestrator\nLangGraph Engine"]
-            ECS_RT["ECS Fargate\napps/realtime\nGo WebSocket"]
+            ECS_RT["Supabase Realtime\nManaged WebSocket\npg_notify broadcast"]
         end
 
         subgraph PRIVATE_DATA["Private Data Subnets (AZ-a, AZ-b)"]
@@ -558,8 +557,8 @@ graph TB
     end
 
     subgraph EXTERNAL["External / Managed Services"]
-        MONGO["MongoDB Atlas\nVector Search\nNamespace per tenant"]
-        S3["Amazon S3\nArtifacts · RLHF Data Lake"]
+        SUPA["Supabase\nPostgreSQL + pgvector + Storage\n+ Auth + Realtime"]
+        S3["Amazon S3\nRLHF Data Lake · Audit Archive"]
         ECR["Amazon ECR\nContainer Registry"]
         SM["Secrets Manager\n+ SSM Parameter Store"]
         EB["EventBridge\n+ SQS / SNS"]
@@ -569,13 +568,13 @@ graph TB
         ACM["ACM\nTLS Certificates"]
     end
 
-    ALB --> ECS_WEB & ECS_API & ECS_RT
+    ALB --> ECS_WEB & ECS_API
     ECS_API --> ECS_ORCH & ECS_AI
     ECS_ORCH --> ECS_AI
     ECS_AI --> SBENV
 
-    ECS_API & ECS_ORCH & ECS_AI --> RDS & REDIS
-    ECS_API & ECS_ORCH & ECS_AI --> MONGO
+    ECS_API & ECS_ORCH & ECS_AI --> REDIS
+    ECS_API & ECS_ORCH & ECS_AI --> SUPA
     ECS_AI --> S3
     ECS_ORCH --> EB & SF
     ECS_AI --> MSK
@@ -589,11 +588,12 @@ graph TB
 | ECS Service | Image | Port | Scale Trigger |
 |---|---|---|---|
 | `web` | Next.js 14 | 3000 | CPU target 60% |
-| `api` | NestJS | 443 | RPS target |
-| `ai-services` | FastAPI | 8000 | SQS queue depth |
+| `api` | FastAPI | 8000 | RPS target |
+| `ai-services` | FastAPI | 8001 | SQS queue depth |
 | `orchestrator` | Python / LangGraph | internal | SQS queue depth |
-| `realtime` | Go | 8080 | Connection count |
 | `sandbox-runner` | Docker-in-Fargate | ephemeral | On-demand per build |
+
+Note: Supabase Realtime is a managed service — no ECS task needed.
 
 ### 11.3 Tenant Isolation Model
 
@@ -659,12 +659,12 @@ graph TB
     end
 
     subgraph Backends["Observability Backends"]
-        ELK["ELK / OpenSearch\n+ CloudWatch\n+ Fluent Bit"]
+        ELK["CloudWatch\n+ Fluent Bit\nStructured logs"]
         PROM["Prometheus\n+ Grafana\n+ Amazon Managed Grafana"]
         XRAY["AWS X-Ray\n(OTel exporter)"]
         LS["LangSmith\nLLM call spans\nEval scores\nGroundedness"]
         SENTRY["Sentry\nFrontend + Backend errors"]
-        TL["TruLens + Evidently AI\nDrift · Quality · Bias"]
+        TL["LangSmith Evals\nDrift · Quality · Bias"]
     end
 
     AGENTS & ORCH & API --> LOGS & METRICS & TRACES
@@ -675,7 +675,7 @@ graph TB
     TRACES --> XRAY
     LLM_TRACES --> LS
     FE --> SENTRY
-    TRACES & LLM_TRACES --> TL
+    LLM_TRACES --> TL
 ```
 
 **Mandatory tags on every signal**: `tenant_id` · `pillar` · `agent_id` · `model` · `run_id` · `env`
@@ -781,7 +781,7 @@ graph TB
 | Test coverage (generated code) | ≥ 80% |
 | Platform uptime | 99.9% |
 | Concurrent builds | 500 |
-| COGS per MVP | $200–$700 (≈ < ₹50,000) |
+| COGS per MVP | < ₹500 |
 
 ### Scalability Design
 
@@ -824,10 +824,10 @@ graph LR
 |---|---|---|
 | **Orchestration** | LangGraph (primary) + AutoGen (fallback) | Stateful DAGs with deterministic checkpoints; AutoGen for free-form multi-agent patterns |
 | **Compute** | Amazon ECS on Fargate | Serverless containers, no cluster management, per-task isolation; Kubernetes deferred to v2 |
-| **Vector store** | MongoDB Atlas Vector Search | Unified document + vector ops; Pinecone/Milvus as drop-in alternates |
+| **Vector store** | Supabase pgvector | Eliminates separate vector DB; uses pgvector extension with vector(768) for gemini-embedding-2; HNSW index; schema-per-tenant |
 | **Graph DB** | Neo4j / Amazon Neptune | TBD — pending benchmark on competitor ↔ market ↔ persona query patterns |
 | **Agent isolation** | Tenant-scoped UDAL (mandatory) | Agents can never issue direct DB calls; prevents cross-tenant data leakage |
-| **LLM routing** | Cheapest-capable model (LiteLLM router) | Cost optimization; complex reasoning → Claude Sonnet, bulk tasks → GPT-4o-mini |
+| **LLM routing** | Gemini 3.5 Flash via LiteLLM router | Unified model for all task classes; gemini-embedding-2 (768-dim) for all collections; cost optimized |
 | **Prompt management** | Versioned in `prompt_registry` + S3; DSPy auto-tune | Immutable prompt artifacts + automated weekly optimization using RLHF data |
 | **Sandbox isolation** | Firecracker + gVisor + strict egress allow-list | Defense-in-depth for code execution; VM-level + syscall-level isolation |
 | **Deploy strategy** | Blue/green on ECS via AWS CodeDeploy | Zero-downtime; instant 1-click rollback; canary ramp before full traffic |
@@ -836,5 +836,3 @@ graph LR
 | **Retry / self-heal** | Max 5 cycles in Pillar 4; then HITL escalation | Bounded autonomy — prevents infinite loops; degrades gracefully to human review |
 
 ---
-
-*Generated from `CLAUDE.md` v1.0 — 2026-05-19*

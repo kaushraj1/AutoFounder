@@ -27,7 +27,7 @@
 |----|------|--------|--------|
 | AF-001 | Init pnpm workspace (`pnpm-workspace.yaml`) + Turborepo (`turbo.json`) with `dev`, `lint`, `build` pipelines | `feature/monorepo-init` | ✅ Completed |
 | AF-002 | Root `package.json` — `turbo dev`, unified `lint`, `format:check` scripts wiring Ruff + ESLint | `feature/root-scripts` | ✅ Completed |
-| AF-003 | `docker-compose.yml` — PostgreSQL 16 (healthcheck) + Redis 7 (AOF persistence) with named volumes | `feature/docker-compose-setup` | ✅ Completed |
+| AF-003 | `docker-compose.yml` — Redis 7 only (AOF persistence) with named volumes; Supabase CLI manages PostgreSQL + pgvector + Auth + Storage + Realtime locally via `supabase start` | `feature/docker-compose-setup` | ✅ Completed |
 | AF-004 | Backend scaffold — `backend/` with `pyproject.toml`, `uv.lock`, Ruff + isort config, `src/` layout, `Dockerfile` | `feature/backend-scaffold` | ✅ Completed |
 | AF-005 | Frontend scaffold — `frontend/` TypeScript + React placeholder, `tsconfig.json`, `package.json` | `feature/frontend-scaffold` | ✅ Completed |
 | AF-006 | Mobile scaffold — `mobile-app/` Expo + TypeScript placeholder, `tsconfig.json`, `package.json` | `feature/mobile-scaffold` | ✅ Completed |
@@ -48,10 +48,10 @@
 |----|------|--------|--------|
 | AF-012 | Terraform module `networking` — VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints for S3/ECR/Secrets | `feature/terraform-networking` | ❌ Pending |
 | AF-013 | Terraform module `ecs` — ECS Fargate cluster, task definitions per service, auto-scaling target-tracking policies | `feature/terraform-ecs` | ❌ Pending |
-| AF-014 | Terraform module `rds` — PostgreSQL 16 Multi-AZ, parameter groups, subnet groups, automated backups | `feature/terraform-rds` | ❌ Pending |
+| AF-014 | Supabase project setup — link Supabase project (`supabase link`), configure RLS policies, pgvector extension, schema-per-tenant migrations; Supabase is hosted (no RDS provisioning required) | `feature/supabase-setup` | ❌ Pending |
 | AF-015 | Terraform module `elasticache` — Redis 7 cluster (Multi-AZ), subnet groups, auth token | `feature/terraform-elasticache` | ❌ Pending |
 | AF-016 | Terraform module `s3` — artifacts bucket, RLHF data lake, prompt-templates bucket; S3 Object Lock on audit bucket (7 yr) | `feature/terraform-s3` | ❌ Pending |
-| AF-017 | Terraform module `messaging` — EventBridge custom bus + rules, per-pillar SQS queues + DLQs, SNS notification topic | `feature/terraform-messaging` | ❌ Pending |
+| AF-017 | Terraform module `messaging` — Confluent Kafka cluster (primary inter-agent bus + LLMOps telemetry), EventBridge custom bus + rules, per-pillar SQS queues + DLQs, SNS notification topic | `feature/terraform-messaging` | ❌ Pending |
 | AF-018 | Terraform module `alb` — Application Load Balancer (L7), HTTPS listener, target groups per ECS service; CloudFront + WAF + Shield | `feature/terraform-alb` | ❌ Pending |
 | AF-019 | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | ❌ Pending |
 | AF-020 | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | ❌ Pending |
@@ -75,9 +75,9 @@
 | AF-026 | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) and orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | ❌ Pending |
 | AF-027 | UDAL — `packages/db/` Python client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | ❌ Pending |
 | AF-028 | FastAPI app bootstrap — lifespan, dependency injection, global exception handler (structured `{code, message, requestId}` response), CORS | `feature/fastapi-app-setup` | ❌ Pending |
-| AF-029 | Auth middleware — Auth0 JWKS JWT validation, OPA policy sidecar integration, `TenantContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | ❌ Pending |
+| AF-029 | Auth middleware — Supabase JWT validation (SUPABASE_JWT_SECRET), OPA policy sidecar integration, `TenantContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | ❌ Pending |
 | AF-030 | REST API endpoints — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | ❌ Pending |
-| AF-031 | WebSocket handler — `/v1/runs/{id}/stream` upgrade, per-run connection hub, SQS realtime-events consumer, reconnect replay from `step_events` | `feature/websocket-handler` | ❌ Pending |
+| AF-031 | Supabase Realtime integration — subscribe to `step_events` table changes via Supabase Realtime (pg_notify); frontend uses `@supabase/supabase-js` Realtime channel; reconnect replay from `step_events` | `feature/realtime-integration` | ❌ Pending |
 | AF-032 | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | ❌ Pending |
 
 ### 3b — LangGraph Orchestration
@@ -97,7 +97,7 @@
 | AF-038 | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb tool fan-out, synthesis, citation groundedness check | `feature/research-agent` | ❌ Pending |
 | AF-039 | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | ❌ Pending |
 | AF-040 | Architect Agent (Pillar 2) — FRs/NFRs extraction, ERD, OpenAPI contract, stack selection, microservice boundary analysis, cost forecast; HITL approval gate | `feature/architect-agent` | ❌ Pending |
-| AF-041 | Coder Agent (Pillar 3) — Frontend Specialist (Next.js 14 + Tailwind + shadcn/ui) ∥ Backend Specialist (FastAPI + Prisma + Auth + Stripe); DB migrations; zero lint errors; CI/CD scaffold | `feature/coder-agent` | ❌ Pending |
+| AF-041 | Coder Agent (Pillar 3) — Frontend Specialist (Next.js 14 + Tailwind + shadcn/ui) ∥ Backend Specialist (FastAPI + SQLAlchemy + Supabase Auth + Stripe); Alembic DB migrations; zero lint errors; CI/CD scaffold | `feature/coder-agent` | ❌ Pending |
 | AF-042 | Reviewer / Self-Healer Agent (Pillar 4) — static analysis, unit + integration test gen, security scans (Trivy/Semgrep/Snyk), sandbox execution, AST-aware patching, LLM-as-judge; max 5 cycles; coverage ≥ 80% | `feature/reviewer-agent` | ❌ Pending |
 | AF-043 | DevOps Agent (Pillar 5) — multi-stage Dockerfile, Terraform plan + apply, ECS provisioning, Route 53 + ACM, monitoring setup, smoke test; SLA < 10 min; infra-spend HITL gate | `feature/devops-agent` | ❌ Pending |
 | AF-044 | Marketing Agent (Pillar 6) — brand kit (DALL-E 3), landing page, SEO content engine (10 blog drafts), email drip sequences, social posts; feature-list hallucination cross-ref; Launch Control Center HITL gate | `feature/marketing-agent` | ❌ Pending |
@@ -110,7 +110,7 @@
 | AF-046 | 6-stage Guardrails Pipeline — OPA policy, Presidio PII + Llama Guard input, prompt constraint validators, tool schema + cost-cap execution guard, TruLens + citation output guard, Evidently AI monitoring; immutable audit log | `feature/guardrails-pipeline` | ❌ Pending |
 | AF-047 | Tool Registry + tools — `ToolRegistry` singleton; research tools (Tavily, SerpAPI, Crunchbase, G2); engineering tools (GitHub, Stripe, AWS Pricing API); marketing tools (X, LinkedIn, Resend, ProductHunt) | `feature/tool-registry` | ❌ Pending |
 | AF-048 | Prompt Registry — versioned Jinja2 templates in `prompt_registry` table + S3; `get()` resolves active/canary; deterministic canary split; strict variable validation; all agent prompt templates | `feature/prompt-registry` | ❌ Pending |
-| AF-049 | LiteLLM Model Router + RAG Pipeline — task-class → model routing rules (Claude Sonnet / GPT-4o / GPT-4o-mini / embeddings); hybrid BM25 + ANN retrieval; Cohere reranking; context compression; citation check | `feature/model-router-rag` | ❌ Pending |
+| AF-049 | LiteLLM Model Router + RAG Pipeline — task-class → model routing rules (Gemini 3.5 Flash for all tasks; gemini-embedding-2 768-dim for all collections); hybrid BM25 + ANN retrieval on Supabase pgvector; Cohere reranking; context compression; citation check | `feature/model-router-rag` | ❌ Pending |
 | AF-050 | Eval harness — Promptfoo golden sets per agent, LangSmith batch eval runner, CI gate blocking prompt promotion on score regression > 2% | `feature/eval-harness` | ❌ Pending |
 
 ---
@@ -122,8 +122,8 @@
 
 | ID | Task | Branch | Status |
 |----|------|--------|--------|
-| AF-051 | Next.js 14 App Router setup — TypeScript strict, Tailwind CSS, shadcn/ui, Auth0 `@auth0/nextjs-auth0` v3, global error boundary + Sentry | `feature/nextjs-setup` | ❌ Pending |
-| AF-052 | Typed API client (`lib/api-client.ts`) + WebSocket hook (`lib/ws-client.ts`) — `useRun()` merging React Query + WS events, `useGate()` polling + mutation | `feature/api-client-hooks` | ❌ Pending |
+| AF-051 | Next.js 14 App Router setup — TypeScript strict, Tailwind CSS, shadcn/ui, Supabase Auth `@supabase/supabase-js` + `@supabase/ssr`, global error boundary + Sentry | `feature/nextjs-setup` | ❌ Pending |
+| AF-052 | Typed API client (`lib/api-client.ts`) + Supabase Realtime hook (`lib/realtime-client.ts`) — `useRun()` merging React Query + Supabase Realtime channel events, `useGate()` polling + mutation | `feature/api-client-hooks` | ❌ Pending |
 | AF-053 | Zustand stores + React Query config — `runStore`, `gateStore`, `uiStore`; responsive layout shell with live cost ticker | `feature/state-management` | ❌ Pending |
 | AF-054 | Idea Intake surface — multi-modal form (text, PDF upload, voice record, URL), locale selector, `POST /v1/ideas`, redirect to run page | `feature/idea-intake-ui` | ❌ Pending |
 | AF-055 | Validation Studio (Pillar 1) — Lean Canvas viewer, viability gauge 0–100, ICP persona cards, pivot picker, approve/pivot HITL gate UI | `feature/validation-studio` | ❌ Pending |
@@ -213,3 +213,4 @@ Phase 3 sub-phases: 3a (API + DB) → 3b (Orchestrator) → 3c (Agents) → 3d (
 | Date | Version | Author | Description |
 |------|---------|--------|-------------|
 | 2026-05-20 | 1.0.0 | Team | Initial TASKS.md — 74 tasks across 6 phases; Phase 1 marked complete from existing monorepo scaffold |
+| 2026-05-26 | 1.1.0 | Team | Tech stack alignment: Supabase (PostgreSQL + pgvector + Realtime) replaces RDS + MongoDB Atlas + Go WebSocket; Gemini 3.5 Flash replaces Claude Sonnet / GPT-4o; Supabase Auth replaces Auth0; Confluent Kafka added as primary event bus; SQLAlchemy replaces Prisma |
