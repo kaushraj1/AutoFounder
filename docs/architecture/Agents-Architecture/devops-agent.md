@@ -1,0 +1,2065 @@
+# Low-Level Design — DevOps Agent
+
+> **Phase**: Phase 2 — MVP Builder (Upcoming) / Phase 4 — Enterprise Scale (Planned)
+> **SLA**: < 10 minutes end-to-end (excluding async HITL spend gate)
+> **Owner**: Auto-Founder AI Platform Team | product@euron.one
+
+---
+
+## Table of Contents
+
+1. [Overview](#1-overview)
+2. [LangGraph State Schema (Pydantic V2)](#2-langgraph-state-schema-pydantic-v2)
+3. [Node Graph Definition](#3-node-graph-definition)
+4. [Tool Bindings](#4-tool-bindings)
+5. [Prompt Templates](#5-prompt-templates)
+6. [Sequence Diagrams](#6-sequence-diagrams)
+7. [Error Handling Logic](#7-error-handling-logic)
+8. [Output Contract](#8-output-contract)
+
+---
+
+## 1. Overview
+
+The DevOps Agent is the fifth stage of the Auto-Founder AI pipeline. It receives a tested, containerised `CoderOutput` via gRPC and autonomously provisions, deploys, and monitors a live production environment. Its output is a **fully operational live URL** with SSL, DNS, CI/CD, and observability configured.
+
+The agent runs as a LangGraph stateful graph with a mandatory **Human-in-the-Loop (HITL) spend gate** before any AWS resource is created. All infrastructure is managed as code (Terraform); all deployments are GitOps-driven via ArgoCD.
+
+### Sub-tasks executed (with target SLA)
+
+| Sub-task | Node | Target |
+|---|---|---|
+| Ingest + validate CoderOutput | `ingest_input` | < 15 s |
+| HITL infrastructure spend approval | `hitl_spend_gate` | async (10 min timeout) |
+| VPC + subnets + security groups | `provision_networking` | < 3 min |
+| EKS cluster + node groups | `provision_compute` | < 4 min |
+| RDS + ElastiCache + S3 bucket | `provision_data_layer` | < 3 min |
+| AWS Secrets Manager seeding | `provision_secrets` | < 30 s |
+| Helm chart generation for all services | `build_helm_charts` | < 2 min |
+| ArgoCD app definitions + sync policy | `configure_argocd` | < 1 min |
+| ArgoCD sync → EKS rolling deploy | `deploy_application` | < 3 min |
+| Route53 A record + cert-manager TLS | `configure_dns_ssl` | < 1 min |
+| CloudWatch alarms + Prometheus + Grafana | `configure_monitoring` | < 1 min |
+| GitHub Actions deploy workflow update | `configure_cicd` | < 1 min |
+| Live health check smoke tests | `smoke_test` | < 30 s |
+| Deploy report rendering | `render_deploy_report` | < 1 min |
+
+---
+
+## 2. LangGraph State Schema (Pydantic V2)
+
+```python
+# packages/agents/devops/schema.py
+
+from __future__ import annotations
+
+from datetime import datetime
+from enum import StrEnum
+from typing import Annotated, Any
+from uuid import UUID, uuid4
+
+from pydantic import BaseModel, Field, field_validator, model_validator
+from langgraph.graph.message import add_messages
+
+
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+
+class NodeStatus(StrEnum):
+    PENDING   = "pending"
+    RUNNING   = "running"
+    COMPLETED = "completed"
+    FAILED    = "failed"
+    SKIPPED   = "skipped"
+
+
+class ApprovalStatus(StrEnum):
+    PENDING   = "pending"
+    APPROVED  = "approved"
+    REJECTED  = "rejected"
+    TIMED_OUT = "timed_out"
+
+
+class DeployStrategy(StrEnum):
+    ROLLING      = "rolling"
+    BLUE_GREEN   = "blue_green"
+    CANARY       = "canary"
+
+
+class TerraformAction(StrEnum):
+    PLAN  = "plan"
+    APPLY = "apply"
+    DESTROY = "destroy"
+
+
+class InfraStatus(StrEnum):
+    NOT_STARTED = "not_started"
+    PROVISIONING = "provisioning"
+    READY        = "ready"
+    FAILED       = "failed"
+
+
+class DeployStatus(StrEnum):
+    NOT_STARTED = "not_started"
+    SYNCING     = "syncing"
+    HEALTHY     = "healthy"
+    DEGRADED    = "degraded"
+    FAILED      = "failed"
+
+
+# ---------------------------------------------------------------------------
+# Sub-models: Input from Coder Agent
+# ---------------------------------------------------------------------------
+
+class ServiceManifest(BaseModel):
+    name: str                    # e.g. "api-gateway", "ai-services", "web"
+    image_uri: str               # ECR URI: {account}.dkr.ecr.{region}.amazonaws.com/{repo}:{tag}
+    port: int
+    replicas_baseline: int = 2
+    health_check_path: str = "/health"
+    env_secret_refs: list[str]   = Field(default_factory=list)  # Secrets Manager secret names
+    resource_requests: dict[str, str] = Field(
+        default_factory=lambda: {"cpu": "250m", "memory": "512Mi"}
+    )
+    resource_limits: dict[str, str] = Field(
+        default_factory=lambda: {"cpu": "1000m", "memory": "2Gi"}
+    )
+
+
+# ---------------------------------------------------------------------------
+# Sub-models: Networking
+# ---------------------------------------------------------------------------
+
+class VPCConfig(BaseModel):
+    vpc_id: str | None       = None
+    cidr_block: str          = "10.0.0.0/16"
+    public_subnet_ids: list[str]  = Field(default_factory=list)
+    private_subnet_ids: list[str] = Field(default_factory=list)
+    availability_zones: list[str] = Field(default_factory=lambda: ["ap-south-1a", "ap-south-1b"])
+    nat_gateway_id: str | None    = None
+    internet_gateway_id: str | None = None
+    security_group_ids: dict[str, str] = Field(
+        default_factory=dict,
+        description="Role → SG ID: 'alb', 'eks_nodes', 'rds', 'redis'"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Sub-models: Compute (EKS)
+# ---------------------------------------------------------------------------
+
+class EKSNodeGroup(BaseModel):
+    name: str
+    instance_type: str    = "t3.medium"
+    min_size: int         = 2
+    max_size: int         = 10
+    desired_size: int     = 2
+    disk_size_gb: int     = 50
+    labels: dict[str, str] = Field(default_factory=dict)
+
+
+class EKSCluster(BaseModel):
+    cluster_name: str | None  = None
+    cluster_arn: str | None   = None
+    kubernetes_version: str   = "1.30"
+    region: str               = "ap-south-1"
+    endpoint: str | None      = None
+    oidc_provider_arn: str | None = None
+    node_groups: list[EKSNodeGroup] = Field(default_factory=list)
+    status: InfraStatus       = InfraStatus.NOT_STARTED
+
+
+# ---------------------------------------------------------------------------
+# Sub-models: Data Layer
+# ---------------------------------------------------------------------------
+
+class RDSInstance(BaseModel):
+    identifier: str | None = None
+    engine: str            = "postgres"
+    engine_version: str    = "16.2"
+    instance_class: str    = "db.t3.micro"
+    allocated_storage_gb: int = 20
+    storage_type: str      = "gp3"
+    multi_az: bool         = False
+    db_name: str | None    = None
+    endpoint: str | None   = None
+    port: int              = 5432
+    status: InfraStatus    = InfraStatus.NOT_STARTED
+
+
+class ElastiCacheCluster(BaseModel):
+    cluster_id: str | None = None
+    engine: str            = "redis"
+    engine_version: str    = "7.1"
+    node_type: str         = "cache.t3.micro"
+    num_cache_nodes: int   = 1
+    endpoint: str | None   = None
+    port: int              = 6379
+    status: InfraStatus    = InfraStatus.NOT_STARTED
+
+
+class S3Bucket(BaseModel):
+    bucket_name: str | None = None
+    region: str             = "ap-south-1"
+    versioning_enabled: bool = True
+    encryption: str         = "AES256"
+    public_access_blocked: bool = True
+
+
+# ---------------------------------------------------------------------------
+# Sub-models: Secrets
+# ---------------------------------------------------------------------------
+
+class SecretRef(BaseModel):
+    secret_name: str        # AWS Secrets Manager secret name
+    secret_arn: str | None  = None
+    keys: list[str]         = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Sub-models: Helm / ArgoCD
+# ---------------------------------------------------------------------------
+
+class HelmChart(BaseModel):
+    service_name: str
+    chart_path: str         # relative path in the repo
+    values_yaml: str        # rendered values.yaml content
+    release_name: str
+    namespace: str          = "default"
+
+
+class ArgoCDApp(BaseModel):
+    app_name: str
+    repo_url: str
+    target_revision: str    = "HEAD"
+    path: str               # path in repo to Helm chart
+    destination_namespace: str
+    sync_policy: str        = "automated"
+    health_status: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Sub-models: DNS / TLS
+# ---------------------------------------------------------------------------
+
+class DNSRecord(BaseModel):
+    hosted_zone_id: str | None = None
+    record_name: str           # e.g. "app.euron.one"
+    record_type: str           = "A"
+    alb_dns_name: str | None   = None
+    ttl: int                   = 300
+
+
+class TLSCertificate(BaseModel):
+    domain: str
+    cert_arn: str | None       = None   # ACM cert ARN
+    issuer: str                = "letsencrypt-prod"
+    status: str | None         = None   # "Issued" | "Pending"
+
+
+# ---------------------------------------------------------------------------
+# Sub-models: Monitoring
+# ---------------------------------------------------------------------------
+
+class CloudWatchAlarm(BaseModel):
+    alarm_name: str
+    metric_name: str
+    namespace: str
+    threshold: float
+    comparison: str           # "GreaterThanThreshold" | "LessThanThreshold"
+    evaluation_periods: int   = 2
+    period_seconds: int       = 60
+    sns_topic_arn: str | None = None
+
+
+class MonitoringConfig(BaseModel):
+    cloudwatch_alarms: list[CloudWatchAlarm] = Field(default_factory=list)
+    prometheus_scrape_configs: list[str]     = Field(default_factory=list)
+    grafana_dashboard_url: str | None        = None
+    log_group_name: str | None               = None
+    log_retention_days: int                  = 90
+
+
+# ---------------------------------------------------------------------------
+# Sub-models: CI/CD
+# ---------------------------------------------------------------------------
+
+class CICDConfig(BaseModel):
+    workflow_file_path: str     # e.g. ".github/workflows/deploy.yml"
+    workflow_yaml: str          # generated workflow YAML content
+    argocd_server: str | None   = None
+    ecr_registry: str | None    = None
+
+
+# ---------------------------------------------------------------------------
+# Sub-models: Smoke Test
+# ---------------------------------------------------------------------------
+
+class SmokeTestResult(BaseModel):
+    endpoint: str
+    status_code: int
+    latency_ms: float
+    passed: bool
+    error: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Execution metadata helpers
+# ---------------------------------------------------------------------------
+
+class NodeTrace(BaseModel):
+    node: str
+    status: NodeStatus
+    started_at: datetime | None   = None
+    completed_at: datetime | None = None
+    error: str | None             = None
+    retry_count: int              = 0
+    terraform_output: str | None  = None
+
+
+class RetryPolicy(BaseModel):
+    max_retries: int = 3
+    backoff_seconds: list[int] = Field(default_factory=lambda: [10, 30, 60])
+
+
+# ---------------------------------------------------------------------------
+# Root Graph State
+# ---------------------------------------------------------------------------
+
+class DevOpsState(BaseModel):
+    """
+    Single source of truth threaded through every node in the DevOps graph.
+    LangGraph merges updates via add_messages for the messages channel;
+    all other fields are last-write-wins.
+    """
+
+    # Identity
+    run_id: UUID            = Field(default_factory=uuid4)
+    parent_run_id: UUID     = Field(..., description="Coder Agent run_id")
+    grandparent_run_id: UUID = Field(..., description="Architect Agent run_id")
+    tenant_id: str          = Field(..., description="Validated from JWT claims")
+
+    # Input from Coder Agent (deserialized from gRPC CoderOutput)
+    idea_normalised: str
+    domain: str
+    repo_url: str                             # GitHub repo with generated code
+    services: list[ServiceManifest]          = Field(default_factory=list)
+    overall_pattern: str                     = "modular_monolith"
+    aws_region: str                          = "ap-south-1"
+    deploy_strategy: DeployStrategy          = DeployStrategy.ROLLING
+    estimated_monthly_cost_usd: float        = 0.0
+
+    # HITL spend gate
+    approval_status: ApprovalStatus          = ApprovalStatus.PENDING
+    approval_comment: str | None             = None
+    approval_timeout_at: datetime | None     = None
+
+    # Infrastructure outputs (populated by provision_* nodes)
+    vpc_config: VPCConfig | None             = None
+    eks_cluster: EKSCluster | None           = None
+    rds_instance: RDSInstance | None         = None
+    elasticache_cluster: ElastiCacheCluster | None = None
+    s3_bucket: S3Bucket | None               = None
+    secrets: list[SecretRef]                 = Field(default_factory=list)
+
+    # Deployment artefacts
+    helm_charts: list[HelmChart]             = Field(default_factory=list)
+    argocd_apps: list[ArgoCDApp]             = Field(default_factory=list)
+    deploy_status: DeployStatus              = DeployStatus.NOT_STARTED
+
+    # Post-deploy configuration
+    dns_record: DNSRecord | None             = None
+    tls_certificate: TLSCertificate | None   = None
+    live_url: str | None                     = None
+    monitoring_config: MonitoringConfig | None = None
+    cicd_config: CICDConfig | None           = None
+
+    # Smoke test results
+    smoke_test_results: list[SmokeTestResult] = Field(default_factory=list)
+    smoke_tests_passed: bool                  = False
+
+    # Final output
+    deploy_report_markdown: str | None       = None
+
+    # Terraform state
+    terraform_plan_output: str | None        = None
+    terraform_state_s3_key: str | None       = None
+
+    # Execution metadata
+    node_traces: list[NodeTrace]             = Field(default_factory=list)
+    retry_policy: RetryPolicy                = Field(default_factory=RetryPolicy)
+    total_llm_tokens_used: int               = 0
+    total_tool_calls: int                    = 0
+    error_count: int                         = 0
+
+    # LangGraph message channel
+    messages: Annotated[list[Any], add_messages] = Field(default_factory=list)
+
+    # Terminal flags
+    is_complete: bool    = False
+    fatal_error: str | None = None
+
+    class Config:
+        arbitrary_types_allowed = True
+```
+
+---
+
+## 3. Node Graph Definition
+
+### 3.1 Node inventory
+
+| Node ID | Type | Description | Model / Runtime |
+|---|---|---|---|
+| `ingest_input` | Sequential | Deserialise + validate CoderOutput from gRPC | — (validation only) |
+| `hitl_spend_gate` | HITL / Async | Block until Founder approves AWS spend | — |
+| `provision_networking` | Sequential | Terraform: VPC, subnets, SGs, NAT, IGW | Claude Sonnet (plan gen) |
+| `provision_compute` | Sequential | Terraform: EKS cluster + managed node groups | Claude Sonnet |
+| `provision_data_layer` | Parallel branch | Terraform: RDS + ElastiCache + S3 | Claude Sonnet |
+| `infra_join` | Barrier | Waits for compute + data layer | — |
+| `provision_secrets` | Sequential | boto3: seed AWS Secrets Manager secrets | GPT-4o |
+| `build_helm_charts` | Parallel branch | Generate Helm values.yaml per service | GPT-4o |
+| `configure_argocd` | Parallel branch | Generate ArgoCD Application manifests | GPT-4o |
+| `deploy_join` | Barrier | Waits for Helm charts + ArgoCD config | — |
+| `deploy_application` | Sequential | ArgoCD sync → EKS rolling deploy | — (API call) |
+| `configure_dns_ssl` | Sequential | Route53 A record + cert-manager TLS | GPT-4o |
+| `configure_monitoring` | Parallel branch | CloudWatch alarms + Prometheus scrape | GPT-4o |
+| `configure_cicd` | Parallel branch | GitHub Actions deploy workflow | GPT-4o |
+| `postdeploy_join` | Barrier | Waits for monitoring + CI/CD config | — |
+| `smoke_test` | Sequential | HTTP health checks on live URL | — (HTTP calls) |
+| `render_deploy_report` | Sequential | Assemble final Markdown deploy report | GPT-4o |
+| `error_handler` | Error sink | Classifies failure, tears down partial infra, alerts | — |
+
+### 3.2 Graph definition
+
+```python
+# packages/agents/devops/graph.py
+
+from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.postgres import PostgresSaver
+
+from .schema import DevOpsState
+from .nodes import (
+    ingest_input,
+    hitl_spend_gate,
+    provision_networking,
+    provision_compute,
+    provision_data_layer,
+    infra_join,
+    provision_secrets,
+    build_helm_charts,
+    configure_argocd,
+    deploy_join,
+    deploy_application,
+    configure_dns_ssl,
+    configure_monitoring,
+    configure_cicd,
+    postdeploy_join,
+    smoke_test,
+    render_deploy_report,
+    error_handler,
+)
+from .routers import (
+    route_after_ingest,
+    route_after_approval,
+    route_after_networking,
+    route_after_infra_join,
+    route_after_secrets,
+    route_after_deploy_join,
+    route_after_deploy,
+    route_after_dns,
+    route_after_postdeploy_join,
+    route_after_smoke,
+    route_terminal,
+)
+
+
+def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
+    graph = StateGraph(DevOpsState)
+
+    # -- Node registration --------------------------------------------------
+    graph.add_node("ingest_input",          ingest_input)
+    graph.add_node("hitl_spend_gate",       hitl_spend_gate)
+    graph.add_node("provision_networking",  provision_networking)
+    graph.add_node("provision_compute",     provision_compute)
+    graph.add_node("provision_data_layer",  provision_data_layer)
+    graph.add_node("infra_join",            infra_join)
+    graph.add_node("provision_secrets",     provision_secrets)
+    graph.add_node("build_helm_charts",     build_helm_charts)
+    graph.add_node("configure_argocd",      configure_argocd)
+    graph.add_node("deploy_join",           deploy_join)
+    graph.add_node("deploy_application",    deploy_application)
+    graph.add_node("configure_dns_ssl",     configure_dns_ssl)
+    graph.add_node("configure_monitoring",  configure_monitoring)
+    graph.add_node("configure_cicd",        configure_cicd)
+    graph.add_node("postdeploy_join",       postdeploy_join)
+    graph.add_node("smoke_test",            smoke_test)
+    graph.add_node("render_deploy_report",  render_deploy_report)
+    graph.add_node("error_handler",         error_handler)
+
+    # -- Entry point --------------------------------------------------------
+    graph.set_entry_point("ingest_input")
+
+    # -- Ingest → HITL spend gate ------------------------------------------
+    graph.add_conditional_edges(
+        "ingest_input",
+        route_after_ingest,
+        {
+            "hitl_spend_gate": "hitl_spend_gate",
+            "error_handler":   "error_handler",
+        },
+    )
+
+    # -- HITL spend gate → networking (sequential) -------------------------
+    graph.add_conditional_edges(
+        "hitl_spend_gate",
+        route_after_approval,
+        {
+            "provision_networking": "provision_networking",
+            "error_handler":        "error_handler",  # rejected or timed out
+        },
+    )
+
+    # -- Networking → compute (sequential: compute depends on VPC) ---------
+    graph.add_conditional_edges(
+        "provision_networking",
+        route_after_networking,
+        {
+            "parallel": ["provision_compute", "provision_data_layer"],
+            "error_handler": "error_handler",
+        },
+    )
+
+    # -- Compute + data layer converge at barrier --------------------------
+    graph.add_edge("provision_compute",    "infra_join")
+    graph.add_edge("provision_data_layer", "infra_join")
+
+    # -- Post-infra sequential chain ----------------------------------------
+    graph.add_conditional_edges(
+        "infra_join",
+        route_after_infra_join,
+        {
+            "provision_secrets": "provision_secrets",
+            "error_handler":     "error_handler",
+        },
+    )
+
+    # -- Secrets → fan-out: Helm charts + ArgoCD config --------------------
+    graph.add_conditional_edges(
+        "provision_secrets",
+        route_after_secrets,
+        {
+            "parallel":      ["build_helm_charts", "configure_argocd"],
+            "error_handler": "error_handler",
+        },
+    )
+
+    graph.add_edge("build_helm_charts", "deploy_join")
+    graph.add_edge("configure_argocd",  "deploy_join")
+
+    # -- Deploy join → application deploy ----------------------------------
+    graph.add_conditional_edges(
+        "deploy_join",
+        route_after_deploy_join,
+        {
+            "deploy_application": "deploy_application",
+            "error_handler":      "error_handler",
+        },
+    )
+
+    # -- Deploy → DNS/SSL --------------------------------------------------
+    graph.add_conditional_edges(
+        "deploy_application",
+        route_after_deploy,
+        {
+            "configure_dns_ssl": "configure_dns_ssl",
+            "error_handler":     "error_handler",
+        },
+    )
+
+    # -- DNS/SSL → parallel post-deploy config -----------------------------
+    graph.add_conditional_edges(
+        "configure_dns_ssl",
+        route_after_dns,
+        {
+            "parallel":      ["configure_monitoring", "configure_cicd"],
+            "error_handler": "error_handler",
+        },
+    )
+
+    graph.add_edge("configure_monitoring", "postdeploy_join")
+    graph.add_edge("configure_cicd",       "postdeploy_join")
+
+    # -- Post-deploy join → smoke tests ------------------------------------
+    graph.add_conditional_edges(
+        "postdeploy_join",
+        route_after_postdeploy_join,
+        {
+            "smoke_test":    "smoke_test",
+            "error_handler": "error_handler",
+        },
+    )
+
+    # -- Smoke → report ----------------------------------------------------
+    graph.add_conditional_edges(
+        "smoke_test",
+        route_after_smoke,
+        {
+            "render_deploy_report": "render_deploy_report",
+            "error_handler":        "error_handler",
+        },
+    )
+
+    # -- Terminal routing --------------------------------------------------
+    graph.add_conditional_edges(
+        "render_deploy_report",
+        route_terminal,
+        {
+            "end":           END,
+            "error_handler": "error_handler",
+        },
+    )
+
+    graph.add_edge("error_handler", END)
+
+    return graph.compile(
+        checkpointer=checkpointer,
+        interrupt_before=["hitl_spend_gate"],   # LangGraph HITL interrupt before spend
+    )
+
+
+# ---------------------------------------------------------------------------
+# Router implementations
+# ---------------------------------------------------------------------------
+
+# packages/agents/devops/routers.py
+
+from .schema import DevOpsState, ApprovalStatus, DeployStatus, InfraStatus
+
+
+def route_after_ingest(state: DevOpsState) -> str:
+    if state.fatal_error or not state.services:
+        return "error_handler"
+    return "hitl_spend_gate"
+
+
+def route_after_approval(state: DevOpsState) -> str:
+    if state.approval_status == ApprovalStatus.APPROVED:
+        return "provision_networking"
+    return "error_handler"
+
+
+def route_after_networking(state: DevOpsState) -> str | list[str]:
+    if state.fatal_error or state.vpc_config is None:
+        return "error_handler"
+    return "parallel"
+
+
+def route_after_infra_join(state: DevOpsState) -> str:
+    if state.error_count >= state.retry_policy.max_retries:
+        return "error_handler"
+    if state.eks_cluster is None or state.eks_cluster.status != InfraStatus.READY:
+        return "error_handler"
+    return "provision_secrets"
+
+
+def route_after_secrets(state: DevOpsState) -> str | list[str]:
+    if state.fatal_error:
+        return "error_handler"
+    return "parallel"
+
+
+def route_after_deploy_join(state: DevOpsState) -> str:
+    if not state.helm_charts or not state.argocd_apps:
+        return "error_handler"
+    return "deploy_application"
+
+
+def route_after_deploy(state: DevOpsState) -> str:
+    if state.deploy_status == DeployStatus.FAILED:
+        return "error_handler"
+    return "configure_dns_ssl"
+
+
+def route_after_dns(state: DevOpsState) -> str | list[str]:
+    if state.fatal_error or state.live_url is None:
+        return "error_handler"
+    return "parallel"
+
+
+def route_after_postdeploy_join(state: DevOpsState) -> str:
+    if state.fatal_error:
+        return "error_handler"
+    return "smoke_test"
+
+
+def route_after_smoke(state: DevOpsState) -> str:
+    if not state.smoke_tests_passed:
+        return "error_handler"
+    return "render_deploy_report"
+
+
+def route_terminal(state: DevOpsState) -> str:
+    if state.fatal_error or not state.deploy_report_markdown:
+        return "error_handler"
+    return "end"
+```
+
+### 3.3 Visual graph (Mermaid)
+
+```mermaid
+flowchart TD
+    START([Coder Output via gRPC]) --> ingest_input
+
+    ingest_input -->|missing services| error_handler
+    ingest_input -->|ok| hitl_spend_gate
+
+    hitl_spend_gate -->|approved| provision_networking
+    hitl_spend_gate -->|rejected / timeout| error_handler
+
+    provision_networking -->|vpc nil| error_handler
+    provision_networking -->|ok| provision_compute & provision_data_layer
+
+    provision_compute    --> infra_join
+    provision_data_layer --> infra_join
+
+    infra_join -->|EKS not ready| error_handler
+    infra_join -->|ok| provision_secrets
+
+    provision_secrets -->|fatal| error_handler
+    provision_secrets -->|ok| build_helm_charts & configure_argocd
+
+    build_helm_charts --> deploy_join
+    configure_argocd  --> deploy_join
+
+    deploy_join -->|charts missing| error_handler
+    deploy_join -->|ok| deploy_application
+
+    deploy_application -->|FAILED| error_handler
+    deploy_application -->|ok| configure_dns_ssl
+
+    configure_dns_ssl -->|live_url nil| error_handler
+    configure_dns_ssl -->|ok| configure_monitoring & configure_cicd
+
+    configure_monitoring --> postdeploy_join
+    configure_cicd       --> postdeploy_join
+
+    postdeploy_join -->|fatal| error_handler
+    postdeploy_join -->|ok| smoke_test
+
+    smoke_test -->|tests failed| error_handler
+    smoke_test -->|passed| render_deploy_report
+
+    render_deploy_report -->|ok| END([Marketer Agent])
+    render_deploy_report -->|missing report| error_handler
+
+    error_handler --> END
+
+    style START           fill:#4f46e5,color:#fff
+    style END             fill:#16a34a,color:#fff
+    style error_handler   fill:#dc2626,color:#fff
+    style hitl_spend_gate fill:#7c3aed,color:#fff
+    style infra_join      fill:#f59e0b,color:#000
+    style deploy_join     fill:#f59e0b,color:#000
+    style postdeploy_join fill:#f59e0b,color:#000
+```
+
+---
+
+## 4. Tool Bindings
+
+### 4.1 Tool definitions (LangChain-compatible)
+
+```python
+# packages/agents/devops/tools.py
+
+import os
+import json
+import subprocess
+import tempfile
+import logging
+from typing import Any
+
+import boto3
+import httpx
+from langchain.tools import StructuredTool
+from pydantic import BaseModel, Field
+
+logger = logging.getLogger("devops.tools")
+
+
+# ---------------------------------------------------------------------------
+# Terraform CLI
+# ---------------------------------------------------------------------------
+
+class TerraformInput(BaseModel):
+    working_dir: str = Field(..., description="Path to the Terraform module directory")
+    action: str      = Field(..., description="'plan' | 'apply' | 'destroy'")
+    var_file: str | None = Field(None, description="Path to .tfvars file")
+    extra_vars: dict[str, str] = Field(default_factory=dict)
+
+
+def _terraform_run(working_dir: str, action: str,
+                   var_file: str | None = None,
+                   extra_vars: dict[str, str] | None = None) -> dict:
+    cmd = ["terraform", action, "-no-color", "-input=false"]
+    if action == "apply":
+        cmd.append("-auto-approve")
+    if var_file:
+        cmd += [f"-var-file={var_file}"]
+    for k, v in (extra_vars or {}).items():
+        cmd += [f"-var={k}={v}"]
+
+    result = subprocess.run(
+        cmd,
+        cwd=working_dir,
+        capture_output=True,
+        text=True,
+        timeout=600,
+        env={**os.environ, "TF_IN_AUTOMATION": "true"},
+    )
+    return {
+        "returncode": result.returncode,
+        "stdout":     result.stdout[-4000:],  # tail to avoid token bloat
+        "stderr":     result.stderr[-2000:],
+        "success":    result.returncode == 0,
+    }
+
+
+terraform_run = StructuredTool.from_function(
+    func=_terraform_run,
+    name="terraform_run",
+    description="Run a Terraform plan, apply, or destroy in the given working directory.",
+    args_schema=TerraformInput,
+)
+
+
+# ---------------------------------------------------------------------------
+# kubectl (Kubernetes CLI)
+# ---------------------------------------------------------------------------
+
+class KubectlInput(BaseModel):
+    command: str  = Field(..., description="Full kubectl command excluding the 'kubectl' binary, e.g. 'get pods -n default'")
+    kubeconfig: str | None = Field(None, description="Path to kubeconfig file")
+
+
+def _kubectl(command: str, kubeconfig: str | None = None) -> dict:
+    env = {**os.environ}
+    if kubeconfig:
+        env["KUBECONFIG"] = kubeconfig
+
+    result = subprocess.run(
+        ["kubectl"] + command.split(),
+        capture_output=True,
+        text=True,
+        timeout=60,
+        env=env,
+    )
+    return {
+        "returncode": result.returncode,
+        "stdout":     result.stdout[:3000],
+        "stderr":     result.stderr[:1000],
+        "success":    result.returncode == 0,
+    }
+
+
+kubectl = StructuredTool.from_function(
+    func=_kubectl,
+    name="kubectl",
+    description="Run a kubectl command against the provisioned EKS cluster.",
+    args_schema=KubectlInput,
+)
+
+
+# ---------------------------------------------------------------------------
+# Helm CLI
+# ---------------------------------------------------------------------------
+
+class HelmInput(BaseModel):
+    command: str     = Field(..., description="Helm sub-command, e.g. 'upgrade --install my-app ./charts/my-app -n default'")
+    kubeconfig: str | None = None
+
+
+def _helm(command: str, kubeconfig: str | None = None) -> dict:
+    env = {**os.environ}
+    if kubeconfig:
+        env["KUBECONFIG"] = kubeconfig
+
+    result = subprocess.run(
+        ["helm"] + command.split(),
+        capture_output=True,
+        text=True,
+        timeout=120,
+        env=env,
+    )
+    return {
+        "returncode": result.returncode,
+        "stdout":     result.stdout[:3000],
+        "stderr":     result.stderr[:1000],
+        "success":    result.returncode == 0,
+    }
+
+
+helm_cli = StructuredTool.from_function(
+    func=_helm,
+    name="helm_cli",
+    description="Run a Helm command (lint, upgrade, install, rollback) against the EKS cluster.",
+    args_schema=HelmInput,
+)
+
+
+# ---------------------------------------------------------------------------
+# ArgoCD REST API
+# ---------------------------------------------------------------------------
+
+class ArgoCDSyncInput(BaseModel):
+    app_name: str         = Field(..., description="ArgoCD Application name to sync")
+    argocd_server: str    = Field(..., description="ArgoCD server URL, e.g. 'https://argocd.internal'")
+    argocd_token: str     = Field(..., description="ArgoCD API token (from Secrets Manager)")
+    force: bool           = False
+
+
+async def _argocd_sync(app_name: str, argocd_server: str,
+                       argocd_token: str, force: bool = False) -> dict:
+    headers = {"Authorization": f"Bearer {argocd_token}"}
+    payload: dict[str, Any] = {"prune": True, "dryRun": False, "force": force}
+
+    async with httpx.AsyncClient(verify=False, timeout=120) as client:
+        resp = await client.post(
+            f"{argocd_server}/api/v1/applications/{app_name}/sync",
+            headers=headers,
+            json=payload,
+        )
+        resp.raise_for_status()
+        return {"app_name": app_name, "status": resp.json().get("status"), "success": True}
+
+
+argocd_sync = StructuredTool.from_function(
+    coroutine=_argocd_sync,
+    name="argocd_sync",
+    description="Trigger an ArgoCD sync for a named application and wait for health.",
+    args_schema=ArgoCDSyncInput,
+)
+
+
+# ---------------------------------------------------------------------------
+# AWS Route53
+# ---------------------------------------------------------------------------
+
+class Route53UpsertInput(BaseModel):
+    hosted_zone_id: str  = Field(..., description="Route53 hosted zone ID")
+    record_name: str     = Field(..., description="DNS record name, e.g. 'app.euron.one'")
+    alb_dns_name: str    = Field(..., description="ALB DNS name to point to")
+    alb_hosted_zone_id: str = Field(..., description="ALB canonical hosted zone ID for alias record")
+
+
+def _route53_upsert(hosted_zone_id: str, record_name: str,
+                    alb_dns_name: str, alb_hosted_zone_id: str) -> dict:
+    client = boto3.client("route53", region_name="us-east-1")
+    change_batch = {
+        "Changes": [{
+            "Action": "UPSERT",
+            "ResourceRecordSet": {
+                "Name": record_name,
+                "Type": "A",
+                "AliasTarget": {
+                    "HostedZoneId":         alb_hosted_zone_id,
+                    "DNSName":              alb_dns_name,
+                    "EvaluateTargetHealth": True,
+                },
+            },
+        }]
+    }
+    resp = client.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch=change_batch,
+    )
+    return {
+        "change_id": resp["ChangeInfo"]["Id"],
+        "status":    resp["ChangeInfo"]["Status"],
+        "success":   True,
+    }
+
+
+route53_upsert = StructuredTool.from_function(
+    func=_route53_upsert,
+    name="route53_upsert",
+    description="Create or update a Route53 A alias record pointing to an ALB.",
+    args_schema=Route53UpsertInput,
+)
+
+
+# ---------------------------------------------------------------------------
+# AWS Secrets Manager
+# ---------------------------------------------------------------------------
+
+class SecretsManagerCreateInput(BaseModel):
+    secret_name: str  = Field(..., description="Secret name, e.g. '{tenant_id}/{run_id}/db-password'")
+    secret_value: str = Field(..., description="JSON string of key-value pairs")
+    region: str       = Field("ap-south-1")
+
+
+def _secrets_manager_create(secret_name: str, secret_value: str, region: str = "ap-south-1") -> dict:
+    client = boto3.client("secretsmanager", region_name=region)
+    try:
+        resp = client.create_secret(Name=secret_name, SecretString=secret_value)
+    except client.exceptions.ResourceExistsException:
+        resp = client.update_secret(SecretId=secret_name, SecretString=secret_value)
+    return {"secret_arn": resp["ARN"], "name": resp["Name"], "success": True}
+
+
+secrets_manager_create = StructuredTool.from_function(
+    func=_secrets_manager_create,
+    name="secrets_manager_create",
+    description="Create or update an AWS Secrets Manager secret for a tenant.",
+    args_schema=SecretsManagerCreateInput,
+)
+
+
+# ---------------------------------------------------------------------------
+# HTTP Health Check
+# ---------------------------------------------------------------------------
+
+class HealthCheckInput(BaseModel):
+    url: str               = Field(..., description="Full URL to health check endpoint")
+    expected_status: int   = Field(200)
+    timeout_s: float       = Field(10.0)
+
+
+async def _http_health_check(url: str, expected_status: int = 200, timeout_s: float = 10.0) -> dict:
+    import time
+    start = time.monotonic()
+    try:
+        async with httpx.AsyncClient(timeout=timeout_s, verify=True) as client:
+            resp = await client.get(url)
+        latency_ms = (time.monotonic() - start) * 1000
+        return {
+            "url":         url,
+            "status_code": resp.status_code,
+            "latency_ms":  round(latency_ms, 1),
+            "passed":      resp.status_code == expected_status,
+            "error":       None,
+        }
+    except Exception as exc:
+        latency_ms = (time.monotonic() - start) * 1000
+        return {"url": url, "status_code": 0, "latency_ms": round(latency_ms, 1),
+                "passed": False, "error": str(exc)}
+
+
+http_health_check = StructuredTool.from_function(
+    coroutine=_http_health_check,
+    name="http_health_check",
+    description="Perform an HTTP GET health check against a URL and measure latency.",
+    args_schema=HealthCheckInput,
+)
+
+
+# ---------------------------------------------------------------------------
+# GitHub API (update workflow file)
+# ---------------------------------------------------------------------------
+
+class GitHubFileUpsertInput(BaseModel):
+    repo_full_name: str  = Field(..., description="Owner/repo, e.g. 'euron-ai/tenant-abc-app'")
+    file_path: str       = Field(..., description="File path in repo, e.g. '.github/workflows/deploy.yml'")
+    content: str         = Field(..., description="File content (plaintext, will be base64-encoded)")
+    commit_message: str  = Field("ci: add ArgoCD deploy workflow [AutoFounder AI]")
+    branch: str          = Field("main")
+
+
+async def _github_upsert_file(repo_full_name: str, file_path: str,
+                               content: str, commit_message: str, branch: str) -> dict:
+    import base64
+    token = os.environ["GITHUB_TOKEN"]
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+    api_url = f"https://api.github.com/repos/{repo_full_name}/contents/{file_path}"
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        get_resp = await client.get(api_url, headers=headers, params={"ref": branch})
+        sha = get_resp.json().get("sha") if get_resp.status_code == 200 else None
+
+        payload: dict[str, Any] = {
+            "message": commit_message,
+            "content": base64.b64encode(content.encode()).decode(),
+            "branch":  branch,
+        }
+        if sha:
+            payload["sha"] = sha
+
+        resp = await client.put(api_url, headers=headers, json=payload)
+        resp.raise_for_status()
+        return {"path": file_path, "sha": resp.json()["content"]["sha"], "success": True}
+
+
+github_upsert_file = StructuredTool.from_function(
+    coroutine=_github_upsert_file,
+    name="github_upsert_file",
+    description="Create or update a file in a GitHub repository via the Contents API.",
+    args_schema=GitHubFileUpsertInput,
+)
+
+
+# ---------------------------------------------------------------------------
+# Tool registry (keyed by node)
+# ---------------------------------------------------------------------------
+
+TOOL_REGISTRY: dict[str, list] = {
+    "ingest_input":         [],
+    "hitl_spend_gate":      [],
+    "provision_networking": [terraform_run],
+    "provision_compute":    [terraform_run],
+    "provision_data_layer": [terraform_run],
+    "provision_secrets":    [secrets_manager_create],
+    "build_helm_charts":    [helm_cli],
+    "configure_argocd":     [],                               # manifest generation only
+    "deploy_application":   [argocd_sync, kubectl],
+    "configure_dns_ssl":    [route53_upsert, kubectl],
+    "configure_monitoring": [],                               # CloudWatch via boto3 in node
+    "configure_cicd":       [github_upsert_file],
+    "smoke_test":           [http_health_check],
+    "render_deploy_report": [],
+}
+```
+
+### 4.2 Tool timeout and rate-limit policy
+
+| Tool | Timeout | Rate limit guard | Fallback |
+|---|---|---|---|
+| `terraform_run` | 600 s (apply) | Serialised per-tenant; no concurrent applies | Retry with fresh `plan` |
+| `kubectl` | 60 s | Local kubeconfig; no rate limit | Skip + log |
+| `helm_cli` | 120 s | Local binary; no rate limit | `kubectl apply` direct |
+| `argocd_sync` | 120 s | 10 req/s via ArgoCD server | `kubectl rollout` fallback |
+| `route53_upsert` | 10 s | AWS default (5 req/s) | Retry with exp. back-off |
+| `secrets_manager_create` | 10 s | AWS default (100 TPS) | Retry |
+| `http_health_check` | 10 s | 10 checks × 3 retries max | Mark failed, escalate |
+| `github_upsert_file` | 20 s | 5000 req/hr per token | Retry once |
+
+---
+
+## 5. Prompt Templates
+
+All prompts use **Claude Sonnet** (infrastructure reasoning, Terraform plan generation) or **GPT-4o** (manifest generation, structured YAML output) per the model routing policy.
+
+### 5.1 `provision_networking` — Terraform VPC Plan
+
+```jinja2
+{# packages/agents/devops/prompts/provision_networking.j2 #}
+
+SYSTEM:
+You are a senior cloud infrastructure engineer generating Terraform for AWS.
+You will produce the VPC + networking Terraform module for a multi-tenant SaaS platform.
+
+Mandatory constraints:
+- Region: {{ aws_region }}
+- CIDR: 10.0.0.0/16
+- 2 public subnets (10.0.0.0/24, 10.0.1.0/24) and 2 private subnets (10.0.10.0/24, 10.0.11.0/24)
+  across 2 AZs: ap-south-1a and ap-south-1b
+- NAT Gateway in public subnet (cost-optimised: 1 NAT, not HA)
+- Internet Gateway for public subnets
+- Security groups: ALB (80, 443 inbound from 0.0.0.0/0), EKS nodes (all from ALB SG),
+  RDS (5432 from EKS nodes SG only), Redis (6379 from EKS nodes SG only)
+- Tag all resources: Tenant={{ tenant_id }}, RunId={{ run_id }}, ManagedBy=terraform
+
+Rules:
+- Return ONLY the Terraform HCL (no markdown fences, no explanation).
+- Use terraform-aws-modules/vpc/aws module (version ~> 5.0).
+- Output all resource IDs as Terraform outputs.
+- Store state in S3: bucket=autofounder-tf-state, key={{ tenant_id }}/{{ run_id }}/networking.tfstate
+
+USER:
+Tenant ID: {{ tenant_id }}
+Run ID: {{ run_id }}
+Region: {{ aws_region }}
+Domain: {{ domain }}
+
+Generate main.tf, variables.tf, and outputs.tf as a single HCL block with file headers as comments.
+```
+
+### 5.2 `provision_compute` — Terraform EKS Plan
+
+```jinja2
+{# packages/agents/devops/prompts/provision_compute.j2 #}
+
+SYSTEM:
+You are a Kubernetes infrastructure engineer generating Terraform for AWS EKS.
+
+Mandatory constraints:
+- Kubernetes version: 1.30
+- Node group: t3.medium, min=2, max=10, desired=2, disk=50GB
+- Private subnets for EKS nodes (never public)
+- Enable OIDC provider for IRSA (IAM Roles for Service Accounts)
+- Enable EKS add-ons: coredns, kube-proxy, vpc-cni, aws-ebs-csi-driver
+- Install cert-manager (v1.14) and metrics-server via Helm after cluster creation
+- Tag: Tenant={{ tenant_id }}, RunId={{ run_id }}
+
+Security rules:
+- No public endpoint for EKS API server (private endpoint only)
+- Node security group: allow only from VPC CIDR
+- Enable envelope encryption for secrets using AWS KMS
+
+Rules:
+- Return ONLY Terraform HCL. Use terraform-aws-modules/eks/aws (version ~> 20.0).
+- State bucket: autofounder-tf-state, key: {{ tenant_id }}/{{ run_id }}/compute.tfstate
+- Reference networking outputs via terraform_remote_state data source.
+
+USER:
+Tenant ID: {{ tenant_id }}
+Run ID: {{ run_id }}
+Region: {{ aws_region }}
+VPC state key: {{ tenant_id }}/{{ run_id }}/networking.tfstate
+Services to deploy: {{ services | map(attribute='name') | join(', ') }}
+
+Generate main.tf, variables.tf, and outputs.tf.
+```
+
+### 5.3 `provision_data_layer` — Terraform RDS + ElastiCache + S3
+
+```jinja2
+{# packages/agents/devops/prompts/provision_data_layer.j2 #}
+
+SYSTEM:
+You are a database and storage infrastructure engineer generating Terraform for AWS.
+
+Provision all three resources in parallel within the same module:
+
+1. RDS PostgreSQL 16:
+   - Instance class: db.t3.micro (cost-optimised for seed stage)
+   - 20 GB gp3, multi-AZ: false
+   - Automated backups: 7 days retention
+   - Deletion protection: true
+   - DB name: {{ tenant_id | replace('-', '_') }}_prod
+   - Store credentials in Secrets Manager: {{ tenant_id }}/{{ run_id }}/rds-credentials
+   - Enable Performance Insights
+
+2. ElastiCache Redis 7.1:
+   - cache.t3.micro, 1 node (no cluster mode for seed)
+   - Encryption at rest and in transit: true
+   - Automatic failover: false (single node)
+
+3. S3 bucket:
+   - Name: autofounder-{{ tenant_id }}-{{ run_id[:8] }}
+   - Versioning: enabled
+   - Server-side encryption: AES256
+   - Block all public access: true
+   - Lifecycle: transition to IA after 30 days, Glacier after 90 days
+
+Rules:
+- All resources in private subnets only
+- Security groups from provision_networking module outputs
+- State: autofounder-tf-state/{{ tenant_id }}/{{ run_id }}/data-layer.tfstate
+
+USER:
+Tenant ID: {{ tenant_id }}
+Run ID: {{ run_id }}
+Region: {{ aws_region }}
+VPC state key: {{ tenant_id }}/{{ run_id }}/networking.tfstate
+Domain: {{ domain }}
+
+Generate main.tf, variables.tf, and outputs.tf.
+```
+
+### 5.4 `build_helm_charts` — Helm values.yaml Generation
+
+```jinja2
+{# packages/agents/devops/prompts/build_helm_charts.j2 #}
+
+SYSTEM:
+You are a Kubernetes engineer generating Helm chart values for a SaaS application.
+Generate a values.yaml for each service. Use the standard NestJS/Next.js/FastAPI Helm
+chart template from infra/helm/app-template.
+
+Rules:
+- Image pull policy: Always
+- liveness probe: GET {{ service.health_check_path }}, initialDelaySeconds=30, periodSeconds=15
+- readiness probe: GET {{ service.health_check_path }}, initialDelaySeconds=10, periodSeconds=5
+- Resources: requests and limits as provided
+- Environment variables sourced from Kubernetes Secret (not plain ConfigMap)
+- Secret name: {{ tenant_id }}-{{ service.name }}-secrets
+- HPA enabled: minReplicas={{ service.replicas_baseline }}, maxReplicas=10,
+  targetCPUUtilizationPercentage=70
+- Ingress: enabled, class=alb, host={{ service.name }}.{{ live_url }}, TLS via cert-manager
+- ServiceAccount with IRSA annotation for S3 access
+- PodDisruptionBudget: minAvailable=1
+- topologySpreadConstraints: spread across zones
+
+Return ONLY valid YAML. One values.yaml per service.
+
+USER:
+{% for service in services %}
+Service: {{ service.name }}
+Image: {{ service.image_uri }}
+Port: {{ service.port }}
+Health check: {{ service.health_check_path }}
+Replicas baseline: {{ service.replicas_baseline }}
+Resource requests: {{ service.resource_requests | tojson }}
+Resource limits: {{ service.resource_limits | tojson }}
+Secret refs: {{ service.env_secret_refs | join(', ') }}
+---
+{% endfor %}
+Live URL base: {{ live_url }}
+Namespace: {{ tenant_id }}
+```
+
+### 5.5 `configure_argocd` — ArgoCD Application Manifests
+
+```jinja2
+{# packages/agents/devops/prompts/configure_argocd.j2 #}
+
+SYSTEM:
+You are a GitOps engineer generating ArgoCD Application manifests in Kubernetes YAML.
+Each Application must:
+- Use automated sync policy with selfHeal=true and prune=true
+- Target namespace: {{ tenant_id }} (pre-create with CreateNamespace=true)
+- Source: the generated Helm chart in the tenant's GitHub repo
+- Health checks: use standard Kubernetes health assessment
+- Sync wave: data-layer-dependent services in wave 1, API services in wave 2, frontend in wave 3
+- Add finalizer: resources-finalizer.argocd.argoproj.io (safe delete)
+
+Return ONLY valid Kubernetes YAML (one document per Application separated by ---).
+
+USER:
+ArgoCD server: {{ argocd_server }}
+Repo URL: {{ repo_url }}
+Target revision: HEAD
+Services:
+{% for service in services %}
+- name: {{ service.name }}
+  chart_path: infra/helm/{{ service.name }}
+  namespace: {{ tenant_id }}
+{% endfor %}
+Tenant ID: {{ tenant_id }}
+Run ID: {{ run_id }}
+```
+
+### 5.6 `configure_monitoring` — CloudWatch + Prometheus Rules
+
+```jinja2
+{# packages/agents/devops/prompts/configure_monitoring.j2 #}
+
+SYSTEM:
+You are a site reliability engineer configuring observability for a Kubernetes SaaS app.
+Generate:
+1. A list of CloudWatch alarms (boto3 put_metric_alarm parameters as JSON)
+2. Prometheus scrape config additions (YAML)
+3. Grafana dashboard provisioning config (JSON)
+
+Mandatory alarms (CloudWatch):
+- EKS node CPU > 80% for 5 min → SNS alert
+- EKS node memory > 85% for 5 min → SNS alert
+- RDS CPU > 75% for 5 min → SNS alert
+- RDS FreeStorageSpace < 2 GB → SNS alert (Critical)
+- ALB 5XX rate > 1% for 2 min → SNS alert
+- ALB P99 latency > 1000ms for 2 min → SNS alert
+- ElastiCache cache hit rate < 80% for 10 min → SNS warning
+
+Prometheus scrape: add a ServiceMonitor for each app service (port: metrics, path: /metrics).
+CloudWatch log group: /autofounder/{{ tenant_id }}/{{ run_id }}, retention: 90 days.
+
+Return JSON with keys: "cloudwatch_alarms" (list), "prometheus_scrape_yaml" (string),
+"log_group_name" (string), "grafana_dashboard_url" (null — will be set post-deploy).
+
+USER:
+Tenant ID: {{ tenant_id }}
+Run ID: {{ run_id }}
+Region: {{ aws_region }}
+Services: {{ services | map(attribute='name') | join(', ') }}
+SNS topic ARN: {{ sns_topic_arn }}
+EKS cluster name: {{ eks_cluster.cluster_name }}
+```
+
+### 5.7 `configure_cicd` — GitHub Actions Workflow
+
+```jinja2
+{# packages/agents/devops/prompts/configure_cicd.j2 #}
+
+SYSTEM:
+You are a DevOps engineer generating a GitHub Actions workflow for continuous deployment.
+The workflow must:
+- Trigger on: push to main, and manual workflow_dispatch
+- Jobs: lint → test → build-and-push → deploy
+- Build: docker buildx, push to ECR, tag with git SHA
+- ECR login via OIDC (no long-lived credentials — use aws-actions/configure-aws-credentials@v4)
+- Deploy: update the image tag in the Helm values file and commit back to the repo
+  (ArgoCD detects the change and syncs automatically)
+- Notification: post to Slack on success and failure
+- Cache: use GitHub Actions cache for Docker layers and pnpm/pip dependencies
+
+Security requirements:
+- Never hardcode secrets — use GitHub Secrets and OIDC role assumption
+- Required secrets: AWS_ACCOUNT_ID, ECR_REPOSITORY, SLACK_WEBHOOK_URL
+- IAM role: arn:aws:iam::{{ aws_account_id }}:role/autofounder-github-actions-{{ tenant_id }}
+
+Return ONLY valid GitHub Actions YAML (no markdown fences).
+
+USER:
+Tenant ID: {{ tenant_id }}
+Run ID: {{ run_id }}
+AWS region: {{ aws_region }}
+AWS account ID: {{ aws_account_id }}
+ECR registry: {{ ecr_registry }}
+Services: {{ services | map(attribute='name') | join(', ') }}
+ArgoCD server: {{ argocd_server }}
+Repo URL: {{ repo_url }}
+Slack webhook secret name: SLACK_WEBHOOK_URL
+```
+
+### 5.8 `render_deploy_report` — Deployment Report
+
+```jinja2
+{# packages/agents/devops/prompts/render_deploy_report.j2 #}
+
+SYSTEM:
+You are a technical writer assembling a deployment completion report in Markdown.
+Every claim must reference actual data from the deployment state — do not invent values.
+Embed all relevant URLs. Use H2 sections. Target audience: Founder (non-technical summary)
+and Marketer Agent (live URL + brand config for GTM).
+
+USER:
+Tenant: {{ tenant_id }}
+Run ID: {{ run_id }}
+Idea: {{ idea_normalised }}
+Domain: {{ domain }}
+Deploy strategy: {{ deploy_strategy }}
+
+Live URL: {{ live_url }}
+TLS cert status: {{ tls_certificate.status }}
+
+Infrastructure:
+- EKS cluster: {{ eks_cluster.cluster_name }} ({{ eks_cluster.kubernetes_version }})
+- RDS endpoint: {{ rds_instance.endpoint }}
+- ElastiCache endpoint: {{ elasticache_cluster.endpoint }}
+- S3 bucket: {{ s3_bucket.bucket_name }}
+- Region: {{ aws_region }}
+
+Services deployed:
+{% for app in argocd_apps %}
+- {{ app.app_name }}: {{ app.health_status }}
+{% endfor %}
+
+Smoke tests:
+{% for t in smoke_test_results %}
+- {{ t.endpoint }}: HTTP {{ t.status_code }}, {{ t.latency_ms }}ms — {{ 'PASS' if t.passed else 'FAIL' }}
+{% endfor %}
+
+Monitoring:
+- CloudWatch alarms: {{ monitoring_config.cloudwatch_alarms | length }} configured
+- Log group: {{ monitoring_config.log_group_name }}
+- Grafana: {{ monitoring_config.grafana_dashboard_url or 'pending' }}
+
+CI/CD: {{ cicd_config.workflow_file_path }} pushed to {{ repo_url }}
+
+Structure the report with exactly these sections:
+## 1. Deployment Summary
+## 2. Live Application
+## 3. Infrastructure Inventory
+## 4. Service Health
+## 5. Observability & Alerts
+## 6. CI/CD Configuration
+## 7. Next Steps (hand-off to Marketer Agent)
+
+End with a machine-readable block for the Marketer Agent:
+```json
+{
+  "marketer_handoff": {
+    "run_id": "{{ run_id }}",
+    "tenant_id": "{{ tenant_id }}",
+    "live_url": "{{ live_url }}",
+    "idea_normalised": "{{ idea_normalised }}",
+    "domain": "{{ domain }}"
+  }
+}
+```
+```
+
+---
+
+## 6. Sequence Diagrams
+
+### 6.1 Happy-path — end-to-end deploy flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Founder
+    participant API    as NestJS API Gateway
+    participant Graph  as LangGraph Orchestrator
+    participant Ingest as ingest_input
+    participant Gate   as hitl_spend_gate
+    participant Redis  as Redis (session)
+    participant TF     as Terraform CLI
+    participant EKS    as AWS EKS
+    participant RDS    as AWS RDS
+    participant Cache  as AWS ElastiCache
+    participant SM     as AWS Secrets Manager
+    participant ECR    as AWS ECR
+    participant Helm   as Helm CLI
+    participant Argo   as ArgoCD
+    participant R53    as AWS Route53
+    participant CM     as cert-manager (k8s)
+    participant CW     as AWS CloudWatch
+    participant GH     as GitHub API
+    participant Smoke  as HTTP Health Checks
+    participant Mkt    as Marketer Agent
+
+    Mkt ->> API: gRPC CoderOutput { run_id, tenant_id, services[], repo_url }
+    API ->> Graph: invoke(DevOpsState)
+    Graph ->> Ingest: validate CoderOutput
+    Ingest -->> Graph: { services[], deploy_strategy, estimated_monthly_cost_usd }
+
+    Note over Graph,Gate: LangGraph interrupt_before="hitl_spend_gate"
+    Graph -->> API: SSE { status: "awaiting_spend_approval", estimated_cost_usd }
+    API -->> Founder: Dashboard shows cost estimate + Approve / Reject
+
+    Founder ->> API: POST /api/v1/runs/{run_id}/approve-spend { comment }
+    API ->> Redis: HSET architect:approval:{run_id} status=approved
+    API ->> Graph: resume(DevOpsState)
+
+    Graph ->> TF: terraform apply (networking module)
+    TF ->> TF: create VPC, subnets, NAT, SGs
+    TF -->> Graph: vpc_config { vpc_id, subnet_ids, sg_ids }
+
+    par Parallel infrastructure provisioning
+        Graph ->> TF: terraform apply (compute module)
+        TF ->> EKS: create cluster + node groups
+        EKS -->> TF: cluster_arn, endpoint, oidc_provider_arn
+        TF -->> Graph: eks_cluster (status=READY)
+
+        Graph ->> TF: terraform apply (data-layer module)
+        TF ->> RDS: create db.t3.micro PostgreSQL 16
+        RDS -->> TF: endpoint, port
+        TF ->> Cache: create cache.t3.micro Redis 7.1
+        Cache -->> TF: endpoint, port
+        TF ->> TF: create S3 bucket with lifecycle policy
+        TF -->> Graph: rds_instance, elasticache_cluster, s3_bucket
+    end
+
+    Graph ->> SM: create_secret({tenant_id}/{run_id}/db-password)
+    Graph ->> SM: create_secret({tenant_id}/{run_id}/redis-url)
+    SM -->> Graph: secret_arns[]
+
+    par Parallel: Helm charts + ArgoCD config
+        Graph ->> Helm: helm lint for each service chart
+        Helm -->> Graph: helm_charts[] (validated)
+
+        Graph ->> Graph: generate ArgoCD Application YAMLs
+        Graph -->> Graph: argocd_apps[]
+    end
+
+    Graph ->> Argo: POST /api/v1/applications (each app)
+    Argo -->> Graph: apps registered
+
+    Graph ->> Argo: POST /api/v1/applications/{app}/sync
+    Argo ->> EKS: kubectl apply (Deployment, Service, HPA, PDB)
+    EKS -->> Argo: pods Running
+    Argo -->> Graph: { health_status: Healthy }
+
+    Graph ->> R53: upsert A alias → ALB DNS
+    R53 -->> Graph: { change_id, status: INSYNC }
+
+    Graph ->> CM: kubectl apply (Certificate resource)
+    CM ->> CM: Let's Encrypt ACME challenge
+    CM -->> Graph: TLS certificate Issued
+
+    Graph ->> Graph: live_url = "https://{{ record_name }}"
+
+    par Parallel: monitoring + CI/CD
+        Graph ->> CW: put_metric_alarm × 7 alarms
+        CW -->> Graph: alarms_created
+
+        Graph ->> GH: PUT .github/workflows/deploy.yml
+        GH -->> Graph: { sha, success: true }
+    end
+
+    Graph ->> Smoke: GET {{ live_url }}/health × N services
+    Smoke -->> Graph: smoke_test_results (all passed, P99 < 100ms)
+
+    Graph ->> Graph: render_deploy_report
+    Graph -->> API: DevOpsState (complete)
+    API -->> Founder: 200 OK { run_id, live_url, deploy_report_url }
+    API --)  Mkt: emit(DevOpsOutput) via gRPC
+```
+
+### 6.2 Terraform apply failure — rollback and retry
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Graph as LangGraph Orchestrator
+    participant TF    as Terraform CLI
+    participant EH    as error_handler
+    participant State as DevOpsState
+    participant Slack as Slack Webhook
+
+    Graph ->> TF: terraform apply (compute module) [attempt 1]
+    TF -->> Graph: returncode=1, stderr="Error: timeout waiting for EKS cluster active"
+
+    Note over Graph: retry_count=1, sleep 30s
+    Graph ->> TF: terraform apply (compute module) [attempt 2]
+    TF -->> Graph: returncode=1, stderr="Error: RequestExpired"
+
+    Note over Graph: retry_count=2, sleep 60s
+    Graph ->> TF: terraform apply (compute module) [attempt 3]
+    TF -->> Graph: returncode=0, stdout="Apply complete! Resources: 12 added"
+
+    Graph ->> State: eks_cluster.status = READY, retry_count logged
+    State -->> Graph: infra_join → provision_secrets (continue)
+```
+
+### 6.3 Smoke test failure — deploy rollback
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Graph as LangGraph Orchestrator
+    participant Smoke as smoke_test
+    participant Argo  as ArgoCD
+    participant EH    as error_handler
+    participant Slack as Slack Webhook
+    participant API   as NestJS API Gateway
+
+    Graph ->> Smoke: GET /health (api-gateway service)
+    Smoke -->> Graph: { status_code: 503, latency_ms: 8200, passed: false }
+
+    Graph ->> EH: smoke_tests_passed = false → error_handler
+    EH ->> Argo: POST /api/v1/applications/{app}/rollback
+    Argo ->> Argo: rollback to previous revision
+    Argo -->> EH: rollback initiated
+
+    EH ->> Slack: POST alert { run_id, tenant_id, failed_endpoint, status_code }
+    EH -->> Graph: fatal_error = "Smoke test failed: api-gateway returned 503"
+
+    Graph -->> API: DevOpsState { fatal_error, deploy_status: FAILED }
+    API -->> API: emit "run.failed" SSE event
+```
+
+### 6.4 HITL spend gate — rejection flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Founder
+    participant API   as NestJS API Gateway
+    participant Graph as LangGraph Orchestrator
+    participant Gate  as hitl_spend_gate
+    participant EH    as error_handler
+    participant Redis as Redis (session)
+    participant Slack as Slack Webhook
+
+    Graph -->> API: SSE { status: "awaiting_spend_approval", cost_usd: 42.50 }
+    API -->> Founder: Dashboard — infra cost preview
+
+    Founder ->> API: POST /api/v1/runs/{run_id}/reject-spend { comment: "Cost too high" }
+    API ->> Redis: HSET devops:approval:{run_id} status=rejected comment="Cost too high"
+    API ->> Graph: resume(DevOpsState)
+
+    Graph ->> Gate: poll → ApprovalStatus.REJECTED
+    Gate -->> Graph: route → error_handler
+
+    Graph ->> EH: ApprovalRejected
+    EH ->> Slack: POST { run_id, rejection_reason: "Cost too high" }
+    EH -->> Graph: fatal_error = "Founder rejected infrastructure spend: Cost too high"
+
+    Graph -->> API: DevOpsState { fatal_error }
+    API -->> Founder: "Deployment cancelled. No AWS resources were created."
+```
+
+### 6.5 Blue/green deploy flow (when `deploy_strategy = blue_green`)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Graph as LangGraph Orchestrator
+    participant Argo  as ArgoCD
+    participant EKS   as AWS EKS
+    participant ALB   as AWS ALB (Target Groups)
+    participant Smoke as smoke_test
+
+    Note over Graph: deploy_strategy = blue_green
+
+    Graph ->> Argo: sync application (deploys to "green" target group)
+    Argo ->> EKS: create green Deployment (new version)
+    EKS -->> Argo: green pods Running
+
+    Graph ->> Smoke: GET {{ live_url }}/health (green pods via internal route)
+    Smoke -->> Graph: { passed: true, latency_ms: 45 }
+
+    Graph ->> ALB: modify listener rule — shift 100% traffic to green target group
+    ALB -->> Graph: traffic shifted
+
+    Graph ->> EKS: delete blue Deployment (old version)
+    EKS -->> Graph: cleanup complete
+
+    Graph -->> Graph: deploy_status = HEALTHY
+```
+
+---
+
+## 7. Error Handling Logic
+
+### 7.1 Error taxonomy
+
+| Error class | Examples | Strategy |
+|---|---|---|
+| `ValidationError` | CoderOutput missing services[] | Reject with `fatal_error`, do not provision |
+| `TerraformPlanError` | Syntax error in generated HCL | LLM self-corrects HCL once; if still invalid, escalate |
+| `TerraformApplyError` | EKS cluster timeout, quota exceeded | Retry 3× with 30 s / 60 s back-off; destroy partial resources on final failure |
+| `HelmLintError` | Invalid Helm values.yaml | LLM self-corrects values; retry |
+| `ArgoCDSyncFailed` | Image pull error, OOMKilled | ArgoCD rollback to previous revision; Slack alert |
+| `SmokeTestFailed` | Service returns 5xx after deploy | ArgoCD rollback; `fatal_error` set; no Marketer handoff |
+| `DNSPropagationTimeout` | Route53 change not INSYNC in 60 s | Retry poll 5× at 15 s intervals; continue (DNS eventually consistent) |
+| `TLSIssuanceTimeout` | cert-manager ACME challenge > 3 min | Log warning; continue with HTTP-only live URL; alert ops |
+| `SpendApprovalRejected` | Founder clicks Reject | No AWS resources created; fatal_error + Slack |
+| `SpendApprovalTimeout` | No decision in 10 min | Slack + email alert; fatal_error; no provisioning |
+| `GitHubRateLimit` | 403 on workflow push | Wait 60 s; retry; if exhausted log warning and continue |
+| `SLABreach` | End-to-end > 10 min (excl. HITL) | Emit CloudWatch SLA metric; continue; alert ops |
+
+### 7.2 Error handler node
+
+```python
+# packages/agents/devops/nodes/error_handler.py
+
+import asyncio
+import logging
+import os
+import subprocess
+from datetime import datetime, timezone
+
+import httpx
+
+from ..schema import DevOpsState, NodeStatus, ApprovalStatus, DeployStatus
+
+logger = logging.getLogger("devops.error_handler")
+
+SLACK_WEBHOOK = "SLACK_WEBHOOK_DEVOPS"
+
+
+async def error_handler(state: DevOpsState) -> dict:
+    """
+    Central error sink for the DevOps Agent.
+    On infrastructure failures, attempts Terraform destroy to avoid orphaned resources.
+    Always sets fatal_error and alerts ops.
+    """
+    failed_nodes = [
+        t for t in state.node_traces
+        if t.status == NodeStatus.FAILED and t.retry_count >= state.retry_policy.max_retries
+    ]
+
+    rejection = state.approval_status == ApprovalStatus.REJECTED
+    timeout   = state.approval_status == ApprovalStatus.TIMED_OUT
+
+    if rejection:
+        reason = f"Founder rejected infrastructure spend: {state.approval_comment or 'no comment'}"
+    elif timeout:
+        reason = "Infrastructure spend approval timed out after 10 minutes"
+    elif failed_nodes:
+        reason = "; ".join(f"{t.node}: {t.error}" for t in failed_nodes)
+        if _infrastructure_partially_created(state):
+            await _terraform_destroy_partial(state)
+    else:
+        reason = state.fatal_error or "Unknown error — check node_traces"
+
+    logger.error("DevOps agent fatal error [run=%s tenant=%s]: %s",
+                 state.run_id, state.tenant_id, reason)
+    await _post_slack_alert(state, reason)
+
+    return {
+        "fatal_error": reason,
+        "is_complete": False,
+        "deploy_status": DeployStatus.FAILED,
+    }
+
+
+def _infrastructure_partially_created(state: DevOpsState) -> bool:
+    return (
+        state.vpc_config is not None
+        or state.eks_cluster is not None
+        or state.rds_instance is not None
+    )
+
+
+async def _terraform_destroy_partial(state: DevOpsState) -> None:
+    """Best-effort Terraform destroy for any provisioned modules."""
+    modules = []
+    if state.eks_cluster is not None:
+        modules.append(("compute", f"infra/terraform/tenants/{state.tenant_id}/compute"))
+    if state.rds_instance is not None or state.elasticache_cluster is not None:
+        modules.append(("data-layer", f"infra/terraform/tenants/{state.tenant_id}/data-layer"))
+    if state.vpc_config is not None:
+        modules.append(("networking", f"infra/terraform/tenants/{state.tenant_id}/networking"))
+
+    for module_name, module_path in modules:
+        logger.warning("Destroying partial infra module: %s", module_name)
+        try:
+            result = subprocess.run(
+                ["terraform", "destroy", "-auto-approve", "-no-color", "-input=false"],
+                cwd=module_path,
+                capture_output=True, text=True, timeout=300,
+                env={**os.environ, "TF_IN_AUTOMATION": "true"},
+            )
+            if result.returncode != 0:
+                logger.error("Destroy failed for %s: %s", module_name, result.stderr[:500])
+        except Exception as exc:
+            logger.error("Destroy exception for %s: %s", module_name, exc)
+
+
+async def _post_slack_alert(state: DevOpsState, reason: str) -> None:
+    webhook_url = os.environ.get(SLACK_WEBHOOK)
+    if not webhook_url:
+        logger.warning("Slack webhook not configured — skipping DevOps alert")
+        return
+
+    payload = {
+        "text": (
+            f":rotating_light: *DevOps Agent Fatal Error*\n"
+            f"*Run ID*: `{state.run_id}`\n"
+            f"*Parent Run*: `{state.parent_run_id}`\n"
+            f"*Tenant*: `{state.tenant_id}`\n"
+            f"*Idea*: {state.idea_normalised[:80]}\n"
+            f"*Reason*: {reason}\n"
+            f"*Partial infra created*: {_infrastructure_partially_created(state)}\n"
+            f"*Time*: {datetime.now(timezone.utc).isoformat()}"
+        )
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            await client.post(webhook_url, json=payload, timeout=5)
+        except Exception as exc:
+            logger.error("Slack alert failed: %s", exc)
+```
+
+### 7.3 Node wrapper with retry logic
+
+```python
+# packages/agents/devops/utils/retry.py
+
+import asyncio
+import functools
+import logging
+from datetime import datetime, timezone
+from typing import Callable
+
+from ..schema import DevOpsState, NodeStatus, NodeTrace
+
+logger = logging.getLogger("devops.retry")
+
+
+def with_retry(node_name: str):
+    """
+    Decorator that wraps a node function with the graph's retry policy.
+    Updates NodeTrace in state on each attempt.
+    For Terraform nodes, captures terraform_output from the result dict.
+    """
+    def decorator(fn: Callable):
+        @functools.wraps(fn)
+        async def wrapper(state: DevOpsState) -> dict:
+            policy   = state.retry_policy
+            trace    = NodeTrace(node=node_name, status=NodeStatus.RUNNING,
+                                 started_at=datetime.now(timezone.utc))
+            last_exc = None
+
+            for attempt in range(policy.max_retries + 1):
+                trace.retry_count = attempt
+                try:
+                    result = await fn(state)
+                    trace.status       = NodeStatus.COMPLETED
+                    trace.completed_at = datetime.now(timezone.utc)
+                    if "terraform_output" in result:
+                        trace.terraform_output = result.pop("terraform_output")
+                    return {**result, "node_traces": state.node_traces + [trace]}
+                except Exception as exc:
+                    last_exc = exc
+                    logger.warning("Node %s attempt %d/%d failed: %s",
+                                   node_name, attempt + 1, policy.max_retries + 1, exc)
+                    if attempt < policy.max_retries:
+                        sleep_s = policy.backoff_seconds[min(attempt, len(policy.backoff_seconds) - 1)]
+                        await asyncio.sleep(sleep_s)
+
+            trace.status       = NodeStatus.FAILED
+            trace.error        = str(last_exc)
+            trace.completed_at = datetime.now(timezone.utc)
+            return {
+                "node_traces": state.node_traces + [trace],
+                "error_count": state.error_count + 1,
+            }
+
+        return wrapper
+    return decorator
+```
+
+### 7.4 HITL spend gate with timeout
+
+```python
+# packages/agents/devops/nodes/hitl_spend_gate.py
+
+import asyncio
+import logging
+import os
+from datetime import datetime, timedelta, timezone
+
+import redis.asyncio as aioredis
+
+from ..schema import DevOpsState, ApprovalStatus
+
+logger = logging.getLogger("devops.spend_gate")
+
+APPROVAL_POLL_INTERVAL_S = 30
+APPROVAL_TIMEOUT_S       = 600   # 10 minutes
+
+
+async def hitl_spend_gate(state: DevOpsState) -> dict:
+    """
+    Polls Redis for Founder approval of the infrastructure spend estimate.
+    The NestJS API writes the decision to Redis when the Founder clicks
+    Approve or Reject in the dashboard. LangGraph interrupt_before fires
+    before this node, surfacing the cost estimate in the UI.
+    """
+    redis_url    = os.environ["REDIS_URL"]
+    approval_key = f"devops:approval:{state.run_id}"
+    timeout_at   = datetime.now(timezone.utc) + timedelta(seconds=APPROVAL_TIMEOUT_S)
+
+    client = await aioredis.from_url(redis_url, decode_responses=True)
+    try:
+        while datetime.now(timezone.utc) < timeout_at:
+            decision = await client.hgetall(approval_key)
+            if decision:
+                status  = ApprovalStatus(decision.get("status", "pending"))
+                comment = decision.get("comment")
+                logger.info("Spend gate decision for run %s: %s", state.run_id, status)
+                return {
+                    "approval_status":    status,
+                    "approval_comment":   comment,
+                    "approval_timeout_at": timeout_at,
+                }
+            await asyncio.sleep(APPROVAL_POLL_INTERVAL_S)
+
+        logger.warning("Spend gate timed out for run %s", state.run_id)
+        return {"approval_status": ApprovalStatus.TIMED_OUT}
+    finally:
+        await client.aclose()
+```
+
+### 7.5 SLA breach monitoring
+
+```python
+# packages/agents/devops/utils/sla.py
+
+import asyncio
+import logging
+
+logger = logging.getLogger("devops.sla")
+
+NODE_SLA_SECONDS: dict[str, int] = {
+    "ingest_input":         15,
+    "provision_networking": 180,
+    "provision_compute":    240,
+    "provision_data_layer": 180,
+    "provision_secrets":    30,
+    "build_helm_charts":    120,
+    "configure_argocd":     60,
+    "deploy_application":   180,
+    "configure_dns_ssl":    60,
+    "configure_monitoring": 60,
+    "configure_cicd":       60,
+    "smoke_test":           30,
+    "render_deploy_report": 60,
+}
+
+TOTAL_SLA_SECONDS = 600   # 10 minutes (excludes async HITL gate)
+
+
+async def enforce_node_sla(node_name: str, coro):
+    """Wrap a node coroutine with a per-node SLA timeout."""
+    sla = NODE_SLA_SECONDS.get(node_name, 120)
+    try:
+        return await asyncio.wait_for(coro, timeout=sla)
+    except asyncio.TimeoutError:
+        logger.error("SLA BREACH: node=%s exceeded %ds — returning partial state", node_name, sla)
+        return {"error_count": 1}
+```
+
+### 7.6 Terraform state safety
+
+All Terraform state files are stored in S3 with DynamoDB locking to prevent concurrent applies for the same tenant:
+
+```hcl
+# infra/terraform/tenants/_shared/backend.tf
+
+terraform {
+  backend "s3" {
+    bucket         = "autofounder-tf-state"
+    key            = "${var.tenant_id}/${var.run_id}/${var.module_name}.tfstate"
+    region         = "ap-south-1"
+    encrypt        = true
+    kms_key_id     = "alias/autofounder-tf-state"
+    dynamodb_table = "autofounder-tf-locks"
+  }
+}
+```
+
+The DynamoDB lock prevents concurrent Terraform applies for the same tenant — a necessary guard when multiple agent retries or concurrent runs could otherwise corrupt state.
+
+---
+
+## 8. Output Contract
+
+The DevOps Agent emits the following to the Marketer Agent via gRPC upon successful completion (smoke tests passed).
+
+```protobuf
+// proto/devops_output.proto
+
+syntax = "proto3";
+package autofounder.devops.v1;
+
+message DevOpsOutput {
+  string run_id                  = 1;
+  string parent_run_id           = 2;    // Coder Agent run_id
+  string tenant_id               = 3;
+  string idea_normalised         = 4;
+  string domain                  = 5;
+
+  // Live environment
+  string live_url                = 6;    // e.g. "https://app.euron.one"
+  string deploy_strategy         = 7;    // "rolling" | "blue_green" | "canary"
+
+  // Infrastructure identifiers
+  string eks_cluster_name        = 8;
+  string rds_endpoint            = 9;
+  string aws_region              = 10;
+  string s3_bucket_name          = 11;
+
+  // TLS
+  string tls_cert_status         = 12;   // "Issued" | "Pending"
+
+  // CI/CD
+  string cicd_workflow_path      = 13;   // ".github/workflows/deploy.yml"
+  string repo_url                = 14;
+
+  // Smoke test summary
+  int32  smoke_tests_total       = 15;
+  int32  smoke_tests_passed      = 16;
+  float  smoke_test_p99_latency_ms = 17;
+
+  // Monitoring
+  string cloudwatch_log_group    = 18;
+  string grafana_dashboard_url   = 19;
+  int32  cloudwatch_alarms_count = 20;
+
+  // Deploy report
+  string deploy_report_s3_uri    = 21;   // s3://autofounder-artefacts/{tenant_id}/{run_id}/deploy-report.md
+
+  int64  completed_at_unix_ms    = 22;
+  int32  total_llm_tokens_used   = 23;
+}
+```
+
+**S3 artefact path convention**: `s3://autofounder-artefacts/{tenant_id}/{run_id}/` — never shared between tenants.
+
+**Routing rules after output**:
+- `tls_cert_status != "Issued"` → surface HTTP-only warning in Marketer Agent dashboard; do NOT block GTM
+- `smoke_tests_passed < smoke_tests_total` → this state is never reached (error_handler blocks it); included for defence in depth
+- `domain in ("FinTech", "HealthTech")` → Marketer Agent must cross-reference all generated copy against the compliance checklist before scheduling posts
+- On success → Marketer Agent receives `live_url` as the canonical landing page URL for all GTM assets
+
+---
+
+*Auto-Founder AI — DevOps Agent LLD v1.0 | May 2026*

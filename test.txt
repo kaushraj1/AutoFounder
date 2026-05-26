@@ -1,0 +1,24 @@
+## HLD
+Create a high-level design document for AutoFounder AI based on the CLAUDE.md in this repo. 
+Include system architecture diagrams using Mermaid, component interactions, data flow between the 7 agents, and the multi-tenant AWS infrastructure overview. 
+Save it to docs/architecture/HLD.md
+
+## LLD
+Read the CLAUDE.md file in the project root to understand the project architecture, tech stack, and conventions.
+
+Using that context, generate a single Low-Level Design (LLD) document for AutoFounder AI
+
+The LLD should include:
+- Component/module breakdown
+- Data models and schemas
+- API contracts or interfaces
+- Sequence diagrams (as text/ASCII)
+- Key design decisions and trade-offs
+- Dependencies and their interactions
+
+Save the output as `docs/architecture/lld.md`.
+
+
+## architecture.md
+Create an architecture diagram for AutoFounder AI in Mermaid. 
+Save it to docs/architecture.md
