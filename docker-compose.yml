@@ -1,20 +1,7 @@
+# Local dev: Supabase (postgres + pgvector + auth + storage + realtime) is managed by the
+# Supabase CLI — run `supabase start` to spin it up before starting other services.
+# This file only manages ancillary services not covered by Supabase CLI.
 services:
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-autofounder_ai}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-autofounder_ai_local}
-      POSTGRES_DB: ${POSTGRES_DB:-autofounder_ai}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - autofounder_ai_pg_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-autofounder_ai} -d ${POSTGRES_DB:-autofounder_ai}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -28,6 +15,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
 volumes:
-  autofounder_ai_pg_data:
   autofounder_ai_redis_data:

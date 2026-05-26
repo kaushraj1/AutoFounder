@@ -68,6 +68,7 @@ Each pillar is powered by a specialized AI agent and follows the same 5-stage lo
 
 ## Technology Stack
 
+
 | Layer | Primary Choice |
 |-------|---------------|
 | Frontend | Next.js 14 + React + Tailwind + TypeScript |
@@ -79,8 +80,8 @@ Each pillar is powered by a specialized AI agent and follows the same 5-stage lo
 | Message Queue | Confluent Kafka |
 | Object Storage | Supabase |
 | Container Orchestration | Docker |
-| CI/CD | GitHub Actions → ArgoCD |
-| LLMOps | LangSmith, Prometheus, Grafana |
+| CI/CD | GitHub Actions |
+| LLMOps | Prometheus, Grafana |
 
 ---
 

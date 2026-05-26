@@ -68,9 +68,9 @@ Targets: **99% faster, 99% cheaper, production-grade output**.
                                    │
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  5. DATA & KNOWLEDGE LAYER                                                │
-│     Raw Data Lake (S3) · Relational (PostgreSQL) · Vector (MongoDB       │
-│     Atlas / Pinecone / Milvus) · Graph (Neo4j / Neptune) · Object Store  │
-│     · Cache & Session (Redis / DynamoDB)                                 │
+│     Raw Data Lake (S3) · Relational + Vector (Supabase — PostgreSQL +    │
+│     pgvector + Storage) · Graph (Neo4j / Neptune) · Object Store ·       │
+│     Cache & Session (Redis / DynamoDB)                                   │
 │     ⇣ Unified Data Access Layer (APIs) ⇣                                 │
 └──────────────────────────────────────────────────────────────────────────┘
                                    │
@@ -156,8 +156,8 @@ ROI baseline (must remain truthful in generated marketing copy):
 | 1 | Input | Ingest multi-modal idea inputs | NestJS API GW, presigned S3 uploads, Whisper (audio), Tesseract/Vision |
 | 2 | Orchestration | Schedule, route, coordinate agents | LangGraph + AutoGen fallback, EventBridge, SQS/SNS |
 | 3 | Agents | Specialized autonomous workers | LangGraph nodes, FastAPI workers |
-| 4 | Models | Generate, embed, classify, vision | Claude Sonnet, GPT-4o/4o-mini, Bedrock, OpenAI Embeddings, Whisper, DALL-E 3/Midjourney |
-| 5 | Data & Knowledge | Persist all state and memory | PostgreSQL 16, MongoDB Atlas / Pinecone, Neo4j, S3, Redis |
+| 4 | Models | Generate, embed, classify, vision | Gemini 3.5 Flash (primary), Claude Sonnet, OpenAI Embeddings, Whisper, DALL-E 3/Midjourney |
+| 5 | Data & Knowledge | Persist all state and memory | Supabase (PostgreSQL + pgvector + Storage), Neo4j, S3, Redis |
 | 6 | Output & Experience | Deliver artifacts to founder | Next.js 14 Founder Portal, Monaco editor, WebSocket streams |
 | 7 | Service & Integration | Talk to 3rd parties | REST/GraphQL/gRPC, Zapier, n8n, Step Functions |
 | 8 | Guardrails | Filter inputs, outputs, actions | OPA, Llama Guard, Prompt Armor, custom validators |
@@ -236,7 +236,7 @@ interface Agent<TInput, TOutput> {
 
 ### 7.8 Pillar 5 — Deployment & Infrastructure
 
-- **Sub-workflows**: Containerization (multi-stage Dockerfile + compose), IaC (Terraform/CloudFormation/Pulumi/CDK), Cluster Provisioning (**ECS Fargate** + RDS + ElastiCache + S3), Domain & SSL (Route53 + ACM + Let's Encrypt), Secrets Management (AWS Secrets Manager + SSM Parameter Store), Monitoring Setup (CloudWatch + Prometheus + Grafana + Sentry + Datadog), CI/CD Pipeline, Rollback Plan (blue/green or canary, 1-click revert).
+- **Sub-workflows**: Containerization (multi-stage Dockerfile + compose), IaC (Terraform/CloudFormation/Pulumi/CDK), Cluster Provisioning (**ECS Fargate** + Supabase + ElastiCache + S3), Domain & SSL (Route53 + ACM + Let's Encrypt), Secrets Management (AWS Secrets Manager + SSM Parameter Store), Monitoring Setup (CloudWatch + Prometheus + Grafana + Sentry + Datadog), CI/CD Pipeline, Rollback Plan (blue/green or canary, 1-click revert).
 - **Deploy SLA**: < 10 min code → live.
 - **Uptime target**: 99.9%+.
 
@@ -300,8 +300,8 @@ interface Agent<TInput, TOutput> {
 |---|---|---|---|
 | Working / Scratch | In-process | Current step buffer | step |
 | Short-term (Session) | Redis Cluster | Active build state, agent message bus | 24 h sliding |
-| Episodic | PostgreSQL (`memory.episodes`) | Per-run trace, gates, decisions | 90 d default |
-| Semantic (Long-term) | MongoDB Atlas Vector / Pinecone / Milvus | Embeddings of patterns, prior MVPs, user prefs | unbounded (tenant-scoped) |
+| Episodic | Supabase PostgreSQL (`memory.episodes`) | Per-run trace, gates, decisions | 90 d default |
+| Semantic (Long-term) | Supabase pgvector | Embeddings of patterns, prior MVPs, user prefs | unbounded (tenant-scoped) |
 | Procedural | Prompt + Tool Registry (Postgres) + Feature Store | Reusable agent skills/playbooks | versioned |
 | Relational Knowledge | Neo4j / Amazon Neptune | Entity graphs (competitors ↔ markets ↔ personas) | unbounded |
 | Cold Archive | S3 (Raw Data Lake) | Compressed traces, RLHF datasets | 7 y (audit) |
@@ -488,10 +488,10 @@ sequenceDiagram
 | WAF / DDoS | AWS WAF + AWS Shield |
 | Load Balancing | Application Load Balancer (L7) |
 | Compute | **Amazon ECS on Fargate** (Next.js :3000, FastAPI :8000, Worker/Agent services) |
-| Relational | Amazon RDS (PostgreSQL 16, Multi-AZ) |
+| Relational + Vector | **Supabase** (PostgreSQL + pgvector + RLS; hosted, multi-AZ via Supabase platform) |
 | Cache | Amazon ElastiCache for Redis |
-| Object Storage | Amazon S3 (artifacts, assets, backups, raw data lake) |
-| Vector / Metadata | **MongoDB Atlas** (primary per blueprint) — alt: Pinecone / Milvus |
+| Object Storage | **Supabase Storage** (app artifacts, assets) + Amazon S3 (raw data lake, audit logs, RLHF datasets) |
+| App-tier Vector | **Supabase pgvector** (semantic memory, RAG) |
 | Container Registry | Amazon ECR (image scanning on) |
 | Secrets | AWS Secrets Manager + SSM Parameter Store |
 | IAM | AWS IAM (least-privilege, no `*:*`) |
@@ -514,8 +514,7 @@ sequenceDiagram
 
 | Role | Store | Notes |
 |---|---|---|
-| Relational | PostgreSQL 16 | **Schema-per-tenant** isolation; RLS as defense-in-depth |
-| Vector | MongoDB Atlas Vector Search (primary) / Pinecone / Milvus | Namespace per tenant |
+| Relational + Vector | **Supabase** (PostgreSQL + pgvector) | **Schema-per-tenant** isolation; RLS enforced; pgvector extension for semantic search |
 | Graph | Neo4j / Amazon Neptune | Competitor ↔ market ↔ persona graph |
 | Cache | Redis (ElastiCache) / DynamoDB (session catalog) | Hot session state |
 | Object | S3 | Tenant-prefixed paths (`s3://bucket/{tenant_id}/...`) |
@@ -623,7 +622,7 @@ Circuit breakers (Hystrix-style) on every external integration. All failures emi
 
 - **Stateless services** behind ALB; scale via ECS Service Auto Scaling (target tracking on CPU/RPS/SQS depth).
 - **Concurrent builds target**: 500 (per tenant tier caps).
-- **Database**: read replicas (RDS), connection pooling (PgBouncer), partitioning per tenant.
+- **Database**: Supabase read replicas, connection pooling (Supabase built-in / PgBouncer), partitioning per tenant.
 - **Vector store**: sharded by tenant; index warm-up on cold reads.
 - **Hot-path caching**: Redis for plan checkpoints, prompt cache, embedding cache.
 - **Load test baseline**: simulate Product Hunt spike (sudden burst traffic) before any SLA is signed off.
@@ -735,9 +734,9 @@ Use the **cheapest capable model** that meets the per-task quality SLO. The LLMO
 
 | Task class | Default model |
 |---|---|
-| Complex reasoning, architecture, self-healing, LLM-as-judge | Claude Sonnet (latest) |
-| Standard code gen, marketing copy | GPT-4o |
-| Simple CRUD, formatting, classification, intent parsing | GPT-4o-mini |
+| Complex reasoning, architecture, self-healing, LLM-as-judge | Gemini 3.5 Flash / Claude Sonnet (latest) |
+| Standard code gen, marketing copy | Gemini 3.5 Flash |
+| Simple CRUD, formatting, classification, intent parsing | Gemini 3.5 Flash (fast tier) |
 | Embeddings | `text-embedding-3-large` (general), `voyage-code-2` (code) |
 | Vision (diagram extraction, screenshot QA) | GPT-4o-vision / Claude Sonnet vision |
 | Speech / transcription | Whisper |
@@ -1003,7 +1002,7 @@ cd packages/eval && python run_evals.py --suite golden
 4. **Pillar 8 (Mobile App Generation)** — Phase 2 scope, not designed.
 5. **On-prem LLM** option for Enterprise tier — model registry supports it; ops playbook pending.
 6. **Graph DB choice**: Neo4j vs Amazon Neptune — pending benchmark.
-7. **Vector store primary**: MongoDB Atlas (per blueprint) vs Pinecone vs Milvus — confirm before GA.
+7. **Vector store**: **Resolved** — Supabase pgvector is the primary vector store (consolidates relational + vector into one platform).
 
 ---
 
@@ -1031,7 +1030,7 @@ The following architectural inconsistencies in the earlier `CLAUDE.md` are corre
 | Topic | Prior `CLAUDE.md` | Corrected (this doc) |
 |---|---|---|
 | Compute platform | AWS EKS (Kubernetes), Helm, ArgoCD | **Amazon ECS on Fargate**, AWS CodeDeploy blue/green |
-| Vector store | Qdrant | **MongoDB Atlas (primary)** / Pinecone / Milvus |
+| Vector store | Qdrant → MongoDB Atlas | **Supabase pgvector** (consolidates relational DB + vector search into one platform) |
 | Agent roster | 7 named agents (Strategist, Architect, Coder, Reviewer, DevOps, Marketer, LLMOps) | **7 specialized agents per blueprint** (Strategy & Ideation, Product Planner, Research, Engineering [composite], Marketing, Finance, Ops & Risk) + LLMOps as Layer-10 concern; sub-agents mapped explicitly |
 | Layers | Implicit | **Explicit 10-layer reference architecture** |
 | Memory | Redis + Qdrant | **6-tier memory model** (working, session, episodic, semantic, procedural, relational/graph, cold archive) |
