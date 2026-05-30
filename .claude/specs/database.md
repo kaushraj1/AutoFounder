@@ -227,5 +227,5 @@ All Redis keys are prefixed with `{organization_id}:` to enforce tenant isolatio
 ## Observability
 
 - Every migration run emits a structured log: `{"event": "migration", "revision": "...", "duration_ms": ...}`
-- Slow queries (> 200 ms) are logged at `WARN` level. `pg_stat_statements` is enabled in Cloud SQL.
+- Slow queries (> 200 ms) are logged at `WARN` level. `pg_stat_statements` is enabled in Supabase/PostgreSQL.
 - Connection pool metrics (active, idle, wait) are exported to Prometheus via the UDAL layer.
