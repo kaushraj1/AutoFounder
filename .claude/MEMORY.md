@@ -70,20 +70,38 @@ HITL gates required at: Pillar 1 (validation), Pillar 2 (architecture), Pillar 5
 ## Directory Layout
 
 ```
-autofounder-ai/
-├── backend/               FastAPI service (Python 3.12, uv)
-│   ├── src/autofounder-ai/   application source
-│   ├── pyproject.toml        uv + Ruff config
-│   └── Dockerfile
-├── frontend-web/          Next.js 14 Founder Portal (pnpm workspace)
-│   └── src/
-├── mobile-app/            Expo React Native (pnpm workspace)
-│   └── src/
-├── vscode-extension/      VS Code Extension (pnpm workspace)
-│   └── src/
-├── infra/                 Terraform modules (AWS) — not yet created
+autofounder-ai/                        (per CLAUDE.md §40 — authoritative)
+├── apps/
+│   ├── api/               FastAPI API Gateway (Python 3.12, uv)
+│   │   ├── src/
+│   │   ├── pyproject.toml
+│   │   └── Dockerfile
+│   ├── orchestrator/      LangGraph engine (Python 3.12)
+│   ├── ai-services/       FastAPI agent workers (Python 3.12)
+│   ├── web/               Next.js 14 Founder Portal (pnpm workspace)
+│   └── admin/             Next.js super-admin dashboard (pnpm workspace)
+│   # Realtime: Supabase Realtime (managed — no separate service)
+├── packages/
+│   ├── agents/            Agent implementations (Python)
+│   │   ├── strategy/
+│   │   ├── product_planner/
+│   │   ├── research/
+│   │   ├── engineering/   architect/ · coder/ · reviewer/ · devops/
+│   │   ├── marketing/
+│   │   ├── finance/
+│   │   ├── ops_risk/
+│   │   └── llmops/
+│   ├── guardrails/        6-stage guardrails pipeline (Python)
+│   ├── prompts/           Versioned Jinja2 prompt templates
+│   ├── tools/             MCP-style tool definitions
+│   ├── db/                UDAL + SQLAlchemy + Supabase migrations
+│   ├── shared/            Shared types, utils, constants
+│   └── eval/              Promptfoo + LangSmith golden sets
+├── infra/
+│   ├── terraform/         IaC for AWS (ECS, ElastiCache, S3, messaging, IAM…)
+│   └── codedeploy/        Blue/green deploy specs
 ├── docs/
-│   └── architecture/      HLD.md · LLD.md · architecture.md
+│   └── architecture/      HLD.md · LLD.md · architecture.md · Agents-Architecture/
 ├── scripts/
 │   ├── dev-setup.sh
 │   └── dev-setup.ps1
@@ -95,8 +113,7 @@ autofounder-ai/
 ├── Makefile               canonical task runner
 ├── turbo.json             Turborepo pipeline config
 ├── pnpm-workspace.yaml
-├── CLAUDE.md              full architecture reference
-└── TASKS.md               phase-by-phase task tracker (AF-001 … AF-078)
+└── CLAUDE.md              full architecture reference
 ```
 
 ---

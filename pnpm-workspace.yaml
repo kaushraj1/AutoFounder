@@ -1,4 +1,6 @@
 packages:
-  - "frontend-web"
+  - "apps/*"
+  - "packages/*"
+  - "website"
   - "mobile-app"
   - "vscode-extension"

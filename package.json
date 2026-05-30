@@ -5,9 +5,9 @@
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "turbo dev",
-    "lint": "turbo lint && uv run --directory backend ruff check src && uv run --directory backend ruff format --check src",
+    "lint": "turbo lint && uv run --directory apps/api ruff check src && uv run --directory apps/api ruff format --check src",
     "lint:js": "turbo lint",
-    "lint:backend": "uv run --directory backend ruff check src",
+    "lint:backend": "uv run --directory apps/api ruff check src",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

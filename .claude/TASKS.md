@@ -144,7 +144,7 @@
 
 | ID | Task | Branch | Status |
 |----|------|--------|--------|
-| AF-063 | Expo Router scaffold — TypeScript strict, Auth0 native SDK, secure token storage in `expo-secure-store`, shared API client from `packages/shared` | `feature/expo-setup` | ❌ Pending |
+| AF-063 | Expo Router scaffold — TypeScript strict, Supabase Auth (`@supabase/supabase-js` + `ExpoSecureStoreAdapter`), secure token storage in `expo-secure-store`, shared API client from `packages/shared` | `feature/expo-setup` | ❌ Pending |
 | AF-064 | Push notifications — Expo Push Notifications → SNS → realtime WebSocket service; deep-link on tap to relevant gate or run screen | `feature/push-notifications` | ❌ Pending |
 | AF-065 | Idea Intake screen — text input, voice record (Expo AV), file attach; submit to `POST /v1/ideas` | `feature/mobile-idea-intake` | ❌ Pending |
 | AF-066 | Run Dashboard screen — live run list with status badges and cost; pull-to-refresh; real-time WebSocket updates | `feature/mobile-run-dashboard` | ❌ Pending |
