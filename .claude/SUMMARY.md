@@ -40,6 +40,7 @@ AutoFounder AI is a **multi-tenant, agentic AI SaaS platform** that converts a s
 ## 3. Repository Root
 
 ```
+<<<<<<< HEAD
 AutoFounder-AI/CodeBase/
 │
 ├── .claude/                   Claude Code config, memory, tasks, and specs
@@ -56,11 +57,41 @@ AutoFounder-AI/CodeBase/
 ├── Makefile                   Canonical task runner
 ├── package.json               Root pnpm workspace + Turborepo config
 ├── pnpm-workspace.yaml        Declares: frontend, mobile-app, vscode-extension
+=======
+PROJECT-1-AutoFounder-AI/                (per CLAUDE.md §40 — authoritative)
+│
+├── .claude/                   Claude Code config, memory, tasks, and specs
+├── .github/                   GitHub Actions CI/CD workflows
+├── apps/
+│   ├── api/                   FastAPI API Gateway — Python 3.12 (scaffold)
+│   ├── orchestrator/          LangGraph engine — Python 3.12 (scaffold)
+│   ├── ai-services/           FastAPI agent workers — Python 3.12 (scaffold)
+│   ├── web/                   Next.js 14 Founder Portal (scaffold)
+│   └── admin/                 Next.js super-admin dashboard (scaffold)
+├── packages/
+│   ├── agents/                Agent implementations (Python)
+│   ├── guardrails/            6-stage guardrails pipeline
+│   ├── prompts/               Versioned Jinja2 prompt templates
+│   ├── tools/                 MCP tool definitions
+│   ├── db/                    UDAL + SQLAlchemy + Supabase migrations
+│   ├── shared/                Shared types, utils, constants
+│   └── eval/                  Promptfoo + LangSmith golden sets
+├── infra/
+│   ├── terraform/             IaC for AWS (ECS, ElastiCache, S3, messaging, IAM…)
+│   └── codedeploy/            Blue/green deploy specs
+├── docs/                      Architecture documentation
+├── scripts/                   Cross-platform setup scripts
+│
+├── Makefile                   Canonical task runner
+├── package.json               Root pnpm workspace + Turborepo config
+├── pnpm-workspace.yaml        Declares: apps/web, apps/admin, packages/shared, packages/eval
+>>>>>>> dev
 ├── turbo.json                 Turborepo task pipeline (dev, build, lint)
 ├── eslint.config.mjs          Shared ESLint v9 flat config for all JS/TS packages
 ├── docker-compose.yml         Redis 7 only (Supabase CLI handles DB/Auth/Storage/Realtime)
 ├── .env.example               Required env vars (Supabase + Gemini)
 ├── .gitignore
+<<<<<<< HEAD
 ├── README.md                  Product Requirements Document (PRD)
 └── projectstructure-steps.txt Setup steps log
 ```
@@ -69,6 +100,11 @@ AutoFounder-AI/CodeBase/
 
 > **Note**: `infra/` does not exist yet. All Terraform work is Phase 2 (AF-012–AF-024).
 
+=======
+└── README.md                  Product Requirements Document (PRD)
+```
+
+>>>>>>> dev
 ---
 
 ## 4. Directory Detail
@@ -89,6 +125,7 @@ All Claude Code context, conventions, and planning files.
 └── specs/
     ├── api-design.md     REST conventions, response envelope, error codes, pagination, WebSocket
     ├── database.md       PostgreSQL schema design, Redis key schema, Alembic rules
+<<<<<<< HEAD
     ├── deployment.md     ⚠️ STALE — references GCP Cloud Run; authoritative target is AWS ECS Fargate
     ├── integrations.md   ⚠️ STALE — references Auth0 + OpenAI + Anthropic; resolved: Supabase Auth + Gemini
     ├── mobile.md         Expo conventions, EAS profiles, push notifications, navigation
@@ -112,6 +149,28 @@ backend/
 │   └── placeholder_http_server.py   Minimal HTTP health-check server (returns "ok\n")
 ├── pyproject.toml          Dependencies + Ruff + Hatch build config
 ├── Dockerfile              python:3.12-slim; runs placeholder HTTP server on PORT=8080
+=======
+    ├── deployment.md     AWS ECS Fargate, Terraform modules, CI/CD pipeline, rollback
+    ├── integrations.md   Supabase Auth, Gemini, Stripe, SNS push, GitHub, research tools
+    ├── mobile.md         Expo conventions, Supabase Auth, EAS profiles, push notifications
+    └── stack.md          AWS + Terraform, Next.js 14, Supabase, Gemini — all decisions resolved
+```
+
+---
+
+### 4.2 `apps/api/` — FastAPI API Gateway (Python 3.12)
+
+**Status**: Scaffold — no application logic yet. Phase 3 (AF-025+) will build this out.
+
+```
+apps/api/
+├── src/                    Application source (to be built in Phase 3)
+├── docker/
+│   └── placeholder_http_server.py   Minimal HTTP health-check server (returns "ok\n")
+├── pyproject.toml          Dependencies + Ruff config (uv-managed)
+├── uv.lock
+├── Dockerfile              python:3.12-slim; placeholder HTTP server on PORT=8080
+>>>>>>> dev
 └── README.md
 ```
 
@@ -140,6 +199,7 @@ backend/
 
 ---
 
+<<<<<<< HEAD
 ### 4.3 `frontend/` — Next.js 14 Founder Portal (Placeholder)
 
 **pnpm package name**: `@autofounder-ai/frontend-web`  
@@ -150,6 +210,17 @@ frontend/
 ├── src/
 │   └── placeholder.ts    Empty placeholder
 ├── package.json          Scripts: dev (console.log placeholder), lint, format
+=======
+### 4.3 `apps/web/` — Next.js 14 Founder Portal (Scaffold)
+
+**Status**: TypeScript placeholder only. Full Next.js 14 implementation is Phase 4 (AF-051+).
+
+```
+apps/web/
+├── src/
+│   └── placeholder.ts    Empty placeholder
+├── package.json
+>>>>>>> dev
 └── tsconfig.json
 ```
 
@@ -162,7 +233,11 @@ frontend/
 - Launch Control Center (brand kit, social drafts, approve/edit gate)
 - LLMOps Dashboard (cost by model/pillar, drift scores, eval history)
 
+<<<<<<< HEAD
 **Planned tech**: Next.js 14 App Router · React 18 · Tailwind CSS · shadcn/ui · Zustand · React Query · Supabase Realtime (live token/step stream) · Supabase Auth (`@supabase/supabase-js` + `@supabase/ssr`)
+=======
+**Tech**: Next.js 14 App Router · React 18 · Tailwind CSS · shadcn/ui · Zustand · React Query · Supabase Realtime · Supabase Auth (`@supabase/supabase-js` + `@supabase/ssr`)
+>>>>>>> dev
 
 ---
 
@@ -307,8 +382,13 @@ scripts/
 | `build` | Depends on upstream `^build`; caches `dist/**` |
 | `lint` | Depends on upstream `^lint` |
 
+<<<<<<< HEAD
 **pnpm workspaces** (`pnpm-workspace.yaml`): `frontend`, `mobile-app`, `vscode-extension`.  
 `backend/` and `website/` are **not** pnpm workspaces — backend uses `uv`, website uses npm.
+=======
+**pnpm workspaces** (`pnpm-workspace.yaml`): `apps/web`, `apps/admin`, `packages/shared`, `packages/eval`.  
+Python services (`apps/api`, `apps/orchestrator`, `apps/ai-services`) use `uv` — not pnpm workspaces.
+>>>>>>> dev
 
 ### Makefile targets
 
@@ -439,12 +519,16 @@ All merges via PR; `make quality` + tests + security scan must pass.
 |----------|-------|---------------------|
 | `scripts/dev-setup.sh` | Says "PostgreSQL + Redis" for docker compose — now Redis only | `docker-compose.yml` |
 | `Makefile` | `make stack` comment says "Start local databases (PostgreSQL + Redis)" — now Redis only | `docker-compose.yml` |
+<<<<<<< HEAD
 | `.claude/specs/deployment.md` | Entire spec references GCP Cloud Run, not AWS ECS Fargate | `CLAUDE.md §17` |
 | `.claude/specs/integrations.md` | References Auth0 + OpenAI + Anthropic as primary | `CLAUDE.md §31` (Supabase Auth + Gemini) |
 | `.claude/specs/stack.md` | Lists GCP as cloud choice; primary LLM marked "pending" | `CLAUDE.md §48` |
 | `.claude/specs/mobile.md` | References Auth0 and `ws-client.ts` | `CLAUDE.md §14` (Supabase Auth + Realtime) |
 | `PLAN.md` / `PLAN_PHASE.md` | Both empty | — |
 | `test.txt` | Stray file at repo root | Can be deleted |
+=======
+| `PLAN.md` / `PLAN_PHASE.md` | Both empty | — |
+>>>>>>> dev
 
 ---
 

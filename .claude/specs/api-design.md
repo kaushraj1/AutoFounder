@@ -26,12 +26,21 @@ Local:       http://localhost:8000/v1
 ### Human users (Founder Portal, Admin, Mobile, VS Code Extension)
 
 ```
+<<<<<<< HEAD
 Authorization: Bearer <Auth0 JWT>
 ```
 
 - JWTs are short-lived (15 min). Frontend refreshes silently using the refresh token.
 - Every JWT must contain: `sub` (user ID), `org` (organization_id), `role`, `scopes`.
 - MFA is enforced for all human accounts via Auth0.
+=======
+Authorization: Bearer <Supabase JWT>
+```
+
+- JWTs are short-lived (15 min). Frontend refreshes silently via the Supabase Auth client.
+- Every JWT must contain: `sub` (user ID), `tenant_id` (tenant ID), `role`, `scopes`.
+- MFA is enforced for all human accounts via Supabase Auth.
+>>>>>>> dev
 
 ### Machine clients (API keys)
 
