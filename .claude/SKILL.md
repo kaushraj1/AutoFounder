@@ -151,4 +151,8 @@ When a task is complete, summarise:
 1. **Files changed** — list every file touched with a one-line description of the change
 2. **Commands to verify** — exact `make` / `pnpm` / `uv` commands the next agent or developer should run
 3. **Open items** — anything intentionally deferred, with the task ID it maps to in `TASKS.md`
+<<<<<<< HEAD
 4. **Follow-on tasks** — any new `AF-XXX` tasks that should be added to `TASKS.md` as a result of this work
+=======
+4. **Follow-on tasks** — any new `AF-XXX` tasks that should be added to `TASKS.md` as a result of this work
+>>>>>>> dev

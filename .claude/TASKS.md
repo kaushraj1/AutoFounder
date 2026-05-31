@@ -144,7 +144,11 @@
 
 | ID | Task | Branch | Status |
 |----|------|--------|--------|
+<<<<<<< HEAD
 | AF-063 | Expo Router scaffold — TypeScript strict, Auth0 native SDK, secure token storage in `expo-secure-store`, shared API client from `packages/shared` | `feature/expo-setup` | ❌ Pending |
+=======
+| AF-063 | Expo Router scaffold — TypeScript strict, Supabase Auth (`@supabase/supabase-js` + `ExpoSecureStoreAdapter`), secure token storage in `expo-secure-store`, shared API client from `packages/shared` | `feature/expo-setup` | ❌ Pending |
+>>>>>>> dev
 | AF-064 | Push notifications — Expo Push Notifications → SNS → realtime WebSocket service; deep-link on tap to relevant gate or run screen | `feature/push-notifications` | ❌ Pending |
 | AF-065 | Idea Intake screen — text input, voice record (Expo AV), file attach; submit to `POST /v1/ideas` | `feature/mobile-idea-intake` | ❌ Pending |
 | AF-066 | Run Dashboard screen — live run list with status badges and cost; pull-to-refresh; real-time WebSocket updates | `feature/mobile-run-dashboard` | ❌ Pending |
@@ -213,4 +217,8 @@ Phase 3 sub-phases: 3a (API + DB) → 3b (Orchestrator) → 3c (Agents) → 3d (
 | Date | Version | Author | Description |
 |------|---------|--------|-------------|
 | 2026-05-20 | 1.0.0 | Team | Initial TASKS.md — 74 tasks across 6 phases; Phase 1 marked complete from existing monorepo scaffold |
+<<<<<<< HEAD
 | 2026-05-26 | 1.1.0 | Team | Tech stack alignment: Supabase (PostgreSQL + pgvector + Realtime) replaces RDS + MongoDB Atlas + Go WebSocket; Gemini 3.5 Flash replaces Claude Sonnet / GPT-4o; Supabase Auth replaces Auth0; Confluent Kafka added as primary event bus; SQLAlchemy replaces Prisma |
+=======
+| 2026-05-26 | 1.1.0 | Team | Tech stack alignment: Supabase (PostgreSQL + pgvector + Realtime) replaces RDS + MongoDB Atlas + Go WebSocket; Gemini 3.5 Flash replaces Claude Sonnet / GPT-4o; Supabase Auth replaces Auth0; Confluent Kafka added as primary event bus; SQLAlchemy replaces Prisma |
+>>>>>>> dev

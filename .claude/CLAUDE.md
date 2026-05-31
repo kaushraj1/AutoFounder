@@ -1109,6 +1109,10 @@ The following architectural inconsistencies in the earlier `CLAUDE.md` are corre
 
 > The blueprint's **Master Pattern** holds: every new pillar = new agents + new templates + new connectors **plugged into the existing LangGraph orchestrator**. The platform itself does not need to be rebuilt to scale horizontally across pillars.
 
+<<<<<<< HEAD
 ---
 
 
+=======
+---
+>>>>>>> dev
