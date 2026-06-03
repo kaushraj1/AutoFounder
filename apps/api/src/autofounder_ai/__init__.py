@@ -1,1 +1,0 @@
-# AutoFounder AI backend package

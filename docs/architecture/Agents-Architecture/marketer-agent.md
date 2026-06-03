@@ -55,7 +55,7 @@ All content passes a **Hallucination Check** (cross-referenced against the Archi
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# packages/agents/marketer/schema.py
+# backend/app/agents/marketer/schema.py
 
 from __future__ import annotations
 
@@ -318,7 +318,7 @@ class MarketerState(BaseModel):
     # Identity
     run_id: UUID            = Field(default_factory=uuid4)
     parent_run_id: UUID     = Field(..., description="DevOps Agent run_id")
-    tenant_id: str          = Field(..., description="Validated from JWT claims")
+    organization_id: str    = Field(..., description="Validated from Supabase JWT claims")
 
     # Input from DevOps Agent
     live_url: str           = Field(..., description="Publicly accessible live MVP URL")
@@ -391,24 +391,24 @@ class MarketerState(BaseModel):
 | Node ID | Type | Description | Model |
 |---|---|---|---|
 | `ingest_input` | Sequential | Validate DevOps output, brand config, feature list | — (validation only) |
-| `analyse_brand` | Sequential | Brand voice, positioning statement, SEO keyword targets | Claude Sonnet |
-| `generate_landing_page` | Parallel branch | Full landing page copy (hero → FAQ → CTA) | GPT-4o |
-| `generate_seo_blogs` | Parallel branch | 3–5 long-form SEO blog drafts | GPT-4o |
-| `generate_product_hunt_kit` | Parallel branch | PH launch assets (tagline, description, first comment) | GPT-4o |
-| `generate_social_posts` | Parallel branch | X thread, LinkedIn post, HN post | GPT-4o |
-| `generate_email_sequences` | Parallel branch | Onboarding (5 emails) + reactivation (3 emails) | GPT-4o |
+| `analyse_brand` | Sequential | Brand voice, positioning statement, SEO keyword targets | Gemini 3.5 Flash |
+| `generate_landing_page` | Parallel branch | Full landing page copy (hero → FAQ → CTA) | Gemini 3.5 Flash |
+| `generate_seo_blogs` | Parallel branch | 3–5 long-form SEO blog drafts | Gemini 3.5 Flash |
+| `generate_product_hunt_kit` | Parallel branch | PH launch assets (tagline, description, first comment) | Gemini 3.5 Flash |
+| `generate_social_posts` | Parallel branch | X thread, LinkedIn post, HN post | Gemini 3.5 Flash |
+| `generate_email_sequences` | Parallel branch | Onboarding (5 emails) + reactivation (3 emails) | Gemini 3.5 Flash |
 | `generate_visual_assets` | Parallel branch | DALL-E 3 prompts + image generation | DALL-E 3 |
 | `parallel_join` | Barrier | Waits for all 6 parallel content nodes | — |
-| `hallucination_check` | Sequential | Cross-reference all copy against canonical feature list | Claude Sonnet |
+| `hallucination_check` | Sequential | Cross-reference all copy against canonical feature list | Gemini 3.5 Flash |
 | `launch_control_center` | HITL / Async | Founder reviews and approves drafts; 30 min timeout | — |
 | `schedule_posts` | Sequential | Push approved posts to Buffer / Typefully / Resend | — (API calls) |
-| `render_gtm_report` | Sequential | Assembles final GTM Markdown report | GPT-4o |
+| `render_gtm_report` | Sequential | Assembles final GTM Markdown report | Gemini 3.5 Flash |
 | `error_handler` | Error sink | Retries or escalates failed nodes | — |
 
 ### 3.2 Graph definition
 
 ```python
-# packages/agents/marketer/graph.py
+# backend/app/agents/marketer/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -564,7 +564,7 @@ def build_marketer_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# packages/agents/marketer/routers.py
+# backend/app/agents/marketer/routers.py
 
 def route_after_ingest(state: MarketerState) -> str:
     if state.fatal_error or not state.live_url:
@@ -672,7 +672,7 @@ flowchart TD
 ### 4.1 Tool definitions (LangChain-compatible)
 
 ```python
-# packages/agents/marketer/tools.py
+# backend/app/agents/marketer/tools.py
 
 import os
 import httpx
@@ -892,12 +892,12 @@ TOOL_REGISTRY: dict[str, list] = {
 
 ## 5. Prompt Templates
 
-All prompts use **GPT-4o** (copy writing, long-form content) or **Claude Sonnet** (reasoning, hallucination checking) per the model routing policy.
+All prompts use **Gemini 3.5 Flash** (copy writing, long-form content, reasoning, hallucination checking) per the model routing policy; Claude Sonnet is available only as a fallback.
 
 ### 5.1 `analyse_brand` — Brand Voice & Positioning
 
 ```jinja2
-{# packages/agents/marketer/prompts/analyse_brand.j2 #}
+{# backend/app/agents/marketer/prompts/analyse_brand.j2 #}
 
 SYSTEM:
 You are a brand strategist for a SaaS product launch. Analyse the idea, Lean Canvas,
@@ -933,7 +933,7 @@ Return:
 ### 5.2 `generate_landing_page` — Landing Page Copy
 
 ```jinja2
-{# packages/agents/marketer/prompts/generate_landing_page.j2 #}
+{# backend/app/agents/marketer/prompts/generate_landing_page.j2 #}
 
 SYSTEM:
 You are a conversion copywriter writing a SaaS landing page. Every claim must be
@@ -986,7 +986,7 @@ For the "faq" section: 4–6 Q&A pairs addressing common objections.
 ### 5.3 `generate_seo_blogs` — SEO Blog Drafts
 
 ```jinja2
-{# packages/agents/marketer/prompts/generate_seo_blogs.j2 #}
+{# backend/app/agents/marketer/prompts/generate_seo_blogs.j2 #}
 
 SYSTEM:
 You are an SEO content strategist and long-form writer. Write blog posts that rank
@@ -1029,7 +1029,7 @@ Post topics must cover: (1) problem-aware readers, (2) solution-aware readers,
 ### 5.4 `generate_product_hunt_kit` — Product Hunt Launch Assets
 
 ```jinja2
-{# packages/agents/marketer/prompts/generate_product_hunt_kit.j2 #}
+{# backend/app/agents/marketer/prompts/generate_product_hunt_kit.j2 #}
 
 SYSTEM:
 You are a Product Hunt launch specialist. Write copy that is concise, benefit-focused,
@@ -1068,7 +1068,7 @@ Return:
 ### 5.5 `generate_social_posts` — Social Media Copy
 
 ```jinja2
-{# packages/agents/marketer/prompts/generate_social_posts.j2 #}
+{# backend/app/agents/marketer/prompts/generate_social_posts.j2 #}
 
 SYSTEM:
 You are a social media copywriter. Write platform-native content — do NOT copy the
@@ -1115,7 +1115,7 @@ Return:
 ### 5.6 `generate_email_sequences` — Email Drip Campaigns
 
 ```jinja2
-{# packages/agents/marketer/prompts/generate_email_sequences.j2 #}
+{# backend/app/agents/marketer/prompts/generate_email_sequences.j2 #}
 
 SYSTEM:
 You are an email marketing specialist writing high-deliverability drip sequences.
@@ -1169,7 +1169,7 @@ Return a JSON array with two sequence objects:
 ### 5.7 `generate_visual_assets` — DALL-E 3 Brand Visuals
 
 ```jinja2
-{# packages/agents/marketer/prompts/generate_visual_assets.j2 #}
+{# backend/app/agents/marketer/prompts/generate_visual_assets.j2 #}
 
 SYSTEM:
 You are a brand designer writing DALL-E 3 prompts for SaaS product visuals.
@@ -1206,7 +1206,7 @@ For each asset call the generate_image tool and return:
 ### 5.8 `hallucination_check` — Feature Cross-Reference
 
 ```jinja2
-{# packages/agents/marketer/prompts/hallucination_check.j2 #}
+{# backend/app/agents/marketer/prompts/hallucination_check.j2 #}
 
 SYSTEM:
 You are a content accuracy auditor for a SaaS marketing team. Your job is to find
@@ -1259,7 +1259,7 @@ Return:
 ### 5.9 `render_gtm_report` — GTM Report
 
 ```jinja2
-{# packages/agents/marketer/prompts/render_gtm_report.j2 #}
+{# backend/app/agents/marketer/prompts/render_gtm_report.j2 #}
 
 SYSTEM:
 You are a technical writer assembling a Go-To-Market launch report in Markdown.
@@ -1267,7 +1267,7 @@ Summarise all generated assets, their approval status, and scheduled post times.
 Do not add new content decisions — only report what was created and approved.
 
 USER:
-Tenant: {{ tenant_id }}
+Organization: {{ organization_id }}
 Product: {{ brand_config.product_name }}
 Live URL: {{ live_url }}
 Domain: {{ domain }}
@@ -1302,8 +1302,8 @@ End with a machine-readable JSON block for the LLMOps Agent:
   "llmops_handoff": {
     "run_id": "{{ run_id }}",
     "parent_run_id": "{{ parent_run_id }}",
-    "tenant_id": "{{ tenant_id }}",
-    "gtm_report_s3_uri": "s3://autofounder-artefacts/{{ tenant_id }}/{{ run_id }}/gtm-report.md",
+    "organization_id": "{{ organization_id }}",
+    "gtm_report_s3_uri": "s3://autofounder-artefacts/{{ organization_id }}/{{ run_id }}/gtm-report.md",
     "hallucination_critical_count": {{ hallucination_report.critical_count if hallucination_report else 0 }},
     "content_approved_count": {{ approved_content_types | length }},
     "content_rejected_count": {{ rejected_content_types | length }}
@@ -1322,7 +1322,7 @@ End with a machine-readable JSON block for the LLMOps Agent:
 sequenceDiagram
     autonumber
     actor Founder
-    participant API    as NestJS API Gateway
+    participant API    as FastAPI API Gateway
     participant Graph  as LangGraph Orchestrator
     participant Ingest as ingest_input
     participant Brand  as analyse_brand
@@ -1341,7 +1341,7 @@ sequenceDiagram
     participant Rpt    as render_gtm_report
     participant LLMOps as LLMOps Agent
 
-    Founder ->> API: POST /api/v1/runs { live_url, brand_config, tenant_id }
+    Founder ->> API: POST /api/v1/runs { live_url, brand_config, organization_id }
     API ->> Graph: invoke(MarketerState)
     Graph ->> Ingest: validate DevOpsOutput + brand_config + feature_list
     Ingest -->> Graph: { live_url, idea_normalised, feature_list }
@@ -1404,8 +1404,8 @@ sequenceDiagram
     Res -->> Sched: { broadcast_id }
     Sched -->> Graph: scheduled_post_ids updated
 
-    Graph ->> S3: PUT {tenant_id}/{run_id}/gtm-report.md
-    Graph ->> S3: PUT {tenant_id}/{run_id}/landing-page-copy.json
+    Graph ->> S3: PUT {organization_id}/{run_id}/gtm-report.md
+    Graph ->> S3: PUT {organization_id}/{run_id}/landing-page-copy.json
     S3 -->> Graph: upload confirmed
 
     Graph ->> Rpt: render_gtm_report(state)
@@ -1451,7 +1451,7 @@ sequenceDiagram
 sequenceDiagram
     autonumber
     actor Founder
-    participant API   as NestJS API Gateway
+    participant API   as FastAPI API Gateway
     participant Graph as LangGraph Orchestrator
     participant LCC   as launch_control_center
     participant Sched as schedule_posts
@@ -1487,7 +1487,7 @@ sequenceDiagram
     participant State as MarketerState
     participant EH    as error_handler
     participant Slack as Slack Webhook
-    participant API   as NestJS API
+    participant API   as FastAPI API
 
     Par ->> DL: generate_image(og_image_prompt)
     DL -->> Par: 429 Rate Limited
@@ -1521,7 +1521,7 @@ sequenceDiagram
     participant Redis  as Redis (session)
     participant Slack  as Slack Webhook
     participant Email  as Resend (transactional)
-    participant API    as NestJS API
+    participant API    as FastAPI API
     participant Founder
 
     Note over LCC: Timer starts (approval_timeout_at = now + 30 min)
@@ -1532,7 +1532,7 @@ sequenceDiagram
     end
 
     Note over LCC: 30 min elapsed — timeout
-    LCC ->> Slack: POST { severity: "warning", run_id, tenant_id, message: "Launch approval timed out" }
+    LCC ->> Slack: POST { severity: "warning", run_id, organization_id, message: "Launch approval timed out" }
     LCC ->> Email: send transactional to founder: "Your GTM content awaits approval"
     LCC -->> Graph: approval_status = TIMED_OUT → route_after_approval → error_handler
 
@@ -1564,7 +1564,7 @@ sequenceDiagram
 ### 7.2 Error handler node
 
 ```python
-# packages/agents/marketer/nodes/error_handler.py
+# backend/app/agents/marketer/nodes/error_handler.py
 
 import logging
 import os
@@ -1631,7 +1631,7 @@ async def _post_slack_alert(state: MarketerState, reason: str) -> None:
             f":large_yellow_circle: *Marketer Agent Error*\n"
             f"*Run ID*: `{state.run_id}`\n"
             f"*Parent Run*: `{state.parent_run_id}`\n"
-            f"*Tenant*: `{state.tenant_id}`\n"
+            f"*Organization*: `{state.organization_id}`\n"
             f"*Product*: {state.brand_config.product_name}\n"
             f"*Live URL*: {state.live_url}\n"
             f"*Reason*: {reason}\n"
@@ -1648,7 +1648,7 @@ async def _post_slack_alert(state: MarketerState, reason: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# packages/agents/marketer/utils/retry.py
+# backend/app/agents/marketer/utils/retry.py
 
 import asyncio
 import functools
@@ -1706,7 +1706,7 @@ def with_retry(node_name: str):
 ### 7.4 LLM parse-error self-correction
 
 ```python
-# packages/agents/marketer/utils/llm_parse.py
+# backend/app/agents/marketer/utils/llm_parse.py
 
 import json
 import logging
@@ -1757,7 +1757,7 @@ async def parse_with_correction(
 ### 7.5 Launch Control Center with partial-approval support
 
 ```python
-# packages/agents/marketer/nodes/launch_control_center.py
+# backend/app/agents/marketer/nodes/launch_control_center.py
 
 import asyncio
 import logging
@@ -1817,7 +1817,7 @@ async def launch_control_center(state: MarketerState) -> dict:
 ### 7.6 SLA breach monitoring
 
 ```python
-# packages/agents/marketer/utils/sla.py
+# backend/app/agents/marketer/utils/sla.py
 
 import asyncio
 import logging
@@ -1865,17 +1865,17 @@ package autofounder.marketer.v1;
 message MarketerOutput {
   string run_id                        = 1;
   string parent_run_id                 = 2;   // DevOps Agent run_id
-  string tenant_id                     = 3;
+  string organization_id              = 3;
   string product_name                  = 4;
   string live_url                      = 5;
 
   // S3 URIs for all artefacts
-  string gtm_report_s3_uri             = 6;   // s3://{bucket}/{tenant_id}/{run_id}/gtm-report.md
-  string landing_page_copy_s3_uri      = 7;   // s3://{bucket}/{tenant_id}/{run_id}/landing-page-copy.json
-  string seo_blogs_s3_uri              = 8;   // s3://{bucket}/{tenant_id}/{run_id}/seo-blogs.json
-  string email_sequences_s3_uri        = 9;   // s3://{bucket}/{tenant_id}/{run_id}/email-sequences.json
-  string product_hunt_kit_s3_uri       = 10;  // s3://{bucket}/{tenant_id}/{run_id}/ph-kit.json
-  string visual_assets_s3_uri          = 11;  // s3://{bucket}/{tenant_id}/{run_id}/visual-assets.json
+  string gtm_report_s3_uri             = 6;   // s3://{bucket}/{organization_id}/{run_id}/gtm-report.md
+  string landing_page_copy_s3_uri      = 7;   // s3://{bucket}/{organization_id}/{run_id}/landing-page-copy.json
+  string seo_blogs_s3_uri              = 8;   // s3://{bucket}/{organization_id}/{run_id}/seo-blogs.json
+  string email_sequences_s3_uri        = 9;   // s3://{bucket}/{organization_id}/{run_id}/email-sequences.json
+  string product_hunt_kit_s3_uri       = 10;  // s3://{bucket}/{organization_id}/{run_id}/ph-kit.json
+  string visual_assets_s3_uri          = 11;  // s3://{bucket}/{organization_id}/{run_id}/visual-assets.json
 
   // Content approval summary
   repeated string approved_content_types = 12;
@@ -1897,7 +1897,7 @@ message MarketerOutput {
 }
 ```
 
-**S3 path convention**: All artefact paths use `s3://autofounder-artefacts/{tenant_id}/{run_id}/` prefix — never share paths between tenants.
+**S3 path convention**: All artefact paths use `s3://autofounder-artefacts/{organization_id}/{run_id}/` prefix — never share paths between tenants.
 
 **Routing rules after output**:
 - `hallucination_critical_count > 0` → LLMOps Agent flags run for RLHF logging; do NOT block pipeline

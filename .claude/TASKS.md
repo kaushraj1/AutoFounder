@@ -28,13 +28,13 @@
 | AF-001 | Init pnpm workspace (`pnpm-workspace.yaml`) + Turborepo (`turbo.json`) with `dev`, `lint`, `build` pipelines | `feature/monorepo-init` | ✅ Completed |
 | AF-002 | Root `package.json` — `turbo dev`, unified `lint`, `format:check` scripts wiring Ruff + ESLint | `feature/root-scripts` | ✅ Completed |
 | AF-003 | `docker-compose.yml` — Redis 7 only (AOF persistence) with named volumes; Supabase CLI manages PostgreSQL + pgvector + Auth + Storage + Realtime locally via `supabase start` | `feature/docker-compose-setup` | ✅ Completed |
-| AF-004 | Backend scaffold — `backend/` with `pyproject.toml`, `uv.lock`, Ruff + isort config, `src/` layout, `Dockerfile` | `feature/backend-scaffold` | ✅ Completed |
+| AF-004 | Backend scaffold — `backend/` with `pyproject.toml`, `uv.lock`, Ruff + mypy + pytest config, `app/` layout, Alembic, `Dockerfile` | `feature/backend-scaffold` | ✅ Completed |
 | AF-005 | Frontend scaffold — `frontend/` TypeScript + React placeholder, `tsconfig.json`, `package.json` | `feature/frontend-scaffold` | ✅ Completed |
 | AF-006 | Mobile scaffold — `mobile-app/` Expo + TypeScript placeholder, `tsconfig.json`, `package.json` | `feature/mobile-scaffold` | ✅ Completed |
 | AF-007 | VS Code Extension scaffold — `vscode-extension/` TypeScript placeholder, `tsconfig.json`, `package.json` | `feature/vscode-extension-scaffold` | ✅ Completed |
 | AF-008 | ESLint v9 flat config (`eslint.config.mjs`) + Prettier — shared rules across all JS/TS workspaces | `feature/lint-config` | ✅ Completed |
 | AF-009 | `Makefile` — `install`, `stack`, `stack-down`, `dev`, `backend-lint`, `js-lint`, `quality` targets | `feature/makefile-scripts` | ✅ Completed |
-| AF-010 | `scripts/dev-setup.sh` + `scripts/dev-setup.ps1` — cross-platform one-command local environment setup | `feature/dev-setup-scripts` | ✅ Completed |
+| AF-010 | `scripts/setup-dev.sh` + `scripts/setup-dev.ps1` — cross-platform one-command local environment setup | `feature/dev-setup-scripts` | ✅ Completed |
 | AF-011 | `.env.example` + `README.md` — environment variable documentation and project onboarding guide | `feature/env-and-readme` | ✅ Completed |
 
 ---
@@ -57,7 +57,7 @@
 | AF-020 | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | ❌ Pending |
 | AF-021 | Terraform module `ecr` — one ECR repository per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | ❌ Pending |
 | AF-022 | GitHub Actions workflows — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` with canary ramp; ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | ❌ Pending |
-| AF-023 | OpenTelemetry baseline — OTel SDK wired into backend (FastAPI), structured JSON logs with mandatory `trace_id · tenant_id · run_id · agent_id · model · env` fields, Fluent Bit → CloudWatch | `feature/observability-baseline` | ❌ Pending |
+| AF-023 | OpenTelemetry baseline — OTel SDK wired into backend (FastAPI), structured JSON logs with mandatory `trace_id · organization_id · run_id · agent_id · model · env` fields, Fluent Bit → CloudWatch | `feature/observability-baseline` | ❌ Pending |
 | AF-024 | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost attribution panel; LangSmith project created and wired | `feature/metrics-dashboards` | ❌ Pending |
 
 ---
@@ -73,9 +73,9 @@
 |----|------|--------|--------|
 | AF-025 | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | ❌ Pending |
 | AF-026 | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) and orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | ❌ Pending |
-| AF-027 | UDAL — `packages/db/` Python client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | ❌ Pending |
+| AF-027 | UDAL — `backend/app/db/` Python client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | ❌ Pending |
 | AF-028 | FastAPI app bootstrap — lifespan, dependency injection, global exception handler (structured `{code, message, requestId}` response), CORS | `feature/fastapi-app-setup` | ❌ Pending |
-| AF-029 | Auth middleware — Supabase JWT validation (SUPABASE_JWT_SECRET), OPA policy sidecar integration, `TenantContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | ❌ Pending |
+| AF-029 | Auth middleware — Supabase JWT validation (SUPABASE_JWT_SECRET), OPA policy sidecar integration, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | ❌ Pending |
 | AF-030 | REST API endpoints — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | ❌ Pending |
 | AF-031 | Supabase Realtime integration — subscribe to `step_events` table changes via Supabase Realtime (pg_notify); frontend uses `@supabase/supabase-js` Realtime channel; reconnect replay from `step_events` | `feature/realtime-integration` | ❌ Pending |
 | AF-032 | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | ❌ Pending |
@@ -144,11 +144,7 @@
 
 | ID | Task | Branch | Status |
 |----|------|--------|--------|
-<<<<<<< HEAD
-| AF-063 | Expo Router scaffold — TypeScript strict, Auth0 native SDK, secure token storage in `expo-secure-store`, shared API client from `packages/shared` | `feature/expo-setup` | ❌ Pending |
-=======
 | AF-063 | Expo Router scaffold — TypeScript strict, Supabase Auth (`@supabase/supabase-js` + `ExpoSecureStoreAdapter`), secure token storage in `expo-secure-store`, shared API client from `packages/shared` | `feature/expo-setup` | ❌ Pending |
->>>>>>> dev
 | AF-064 | Push notifications — Expo Push Notifications → SNS → realtime WebSocket service; deep-link on tap to relevant gate or run screen | `feature/push-notifications` | ❌ Pending |
 | AF-065 | Idea Intake screen — text input, voice record (Expo AV), file attach; submit to `POST /v1/ideas` | `feature/mobile-idea-intake` | ❌ Pending |
 | AF-066 | Run Dashboard screen — live run list with status badges and cost; pull-to-refresh; real-time WebSocket updates | `feature/mobile-run-dashboard` | ❌ Pending |
@@ -167,7 +163,7 @@
 
 | ID | Task | Branch | Status |
 |----|------|--------|--------|
-| AF-072 | Extension core — activation event, command palette scaffold, `vscode.ExtensionContext` lifecycle, Auth0 PKCE flow with token stored in `SecretStorage` | `feature/vscode-extension-core` | ❌ Pending |
+| AF-072 | Extension core — activation event, command palette scaffold, `vscode.ExtensionContext` lifecycle, Supabase Auth PKCE flow with token stored in `SecretStorage` | `feature/vscode-extension-core` | ❌ Pending |
 | AF-073 | Sidebar tree view — run list with status icons, pillar progress, live cost badge; refreshes via WebSocket subscription | `feature/vscode-sidebar` | ❌ Pending |
 | AF-074 | HITL gate notifications — VS Code notification banner on `gate.required` event; inline approve/reject action buttons | `feature/vscode-gate-notifications` | ❌ Pending |
 | AF-075 | Code generation commands — `AutoFounder: Generate Component`, `AutoFounder: Generate API Endpoint`; invokes Coder Agent, streams tokens into a new editor tab | `feature/vscode-code-gen` | ❌ Pending |
@@ -217,8 +213,4 @@ Phase 3 sub-phases: 3a (API + DB) → 3b (Orchestrator) → 3c (Agents) → 3d (
 | Date | Version | Author | Description |
 |------|---------|--------|-------------|
 | 2026-05-20 | 1.0.0 | Team | Initial TASKS.md — 74 tasks across 6 phases; Phase 1 marked complete from existing monorepo scaffold |
-<<<<<<< HEAD
 | 2026-05-26 | 1.1.0 | Team | Tech stack alignment: Supabase (PostgreSQL + pgvector + Realtime) replaces RDS + MongoDB Atlas + Go WebSocket; Gemini 3.5 Flash replaces Claude Sonnet / GPT-4o; Supabase Auth replaces Auth0; Confluent Kafka added as primary event bus; SQLAlchemy replaces Prisma |
-=======
-| 2026-05-26 | 1.1.0 | Team | Tech stack alignment: Supabase (PostgreSQL + pgvector + Realtime) replaces RDS + MongoDB Atlas + Go WebSocket; Gemini 3.5 Flash replaces Claude Sonnet / GPT-4o; Supabase Auth replaces Auth0; Confluent Kafka added as primary event bus; SQLAlchemy replaces Prisma |
->>>>>>> dev

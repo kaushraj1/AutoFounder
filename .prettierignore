@@ -1,0 +1,23 @@
+# Dependencies & lockfiles
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+uv.lock
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+coverage/
+.turbo/
+
+# Python backend & IaC (not formatted by Prettier)
+backend/
+infra/
+
+# Markdown is left to authors
+*.md
+
+# Local tooling config (machine-managed)
+.claude/settings.local.json

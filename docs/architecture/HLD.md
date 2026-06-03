@@ -300,7 +300,7 @@ sequenceDiagram
     participant OBS as Observability
 
     U->>FE: Submit idea text
-    FE->>GW: POST /v1/ideas (JWT + tenant_id)
+    FE->>GW: POST /v1/ideas (JWT + organization_id)
     GW->>ORCH: createRun(idea, tenant)
     ORCH->>OBS: emit run.started
 
@@ -411,7 +411,7 @@ graph TB
     REL -->|"entity graph lookups"| Agents
 ```
 
-**Tenant isolation**: all keys prefixed `tenant_id/`; Postgres schema-per-tenant; vector store namespace-per-tenant.
+**Tenant isolation**: all keys prefixed `organization_id/`; Postgres schema-per-tenant; vector store namespace-per-tenant.
 
 ---
 
@@ -421,13 +421,13 @@ graph TB
 
 ```mermaid
 graph LR
-    UDAL["Unified Data Access Layer\n(packages/db)\nEnforces tenant_id · Routes calls\nEmits lineage events"]
+    UDAL["Unified Data Access Layer\n(backend/app/db)\nEnforces organization_id · Routes calls\nEmits lineage events"]
 
-    UDAL -->|"udal.relational()"| PG["PostgreSQL 16\nRDS Multi-AZ\nSchema-per-tenant + RLS\nruns · artifacts · gates\nmemory.episodes · prompt_registry"]
+    UDAL -->|"udal.relational()"| PG["Supabase (PostgreSQL)\nManaged · Multi-AZ\nSchema-per-tenant + RLS\nruns · artifacts · gates\nmemory.episodes · prompt_registry"]
     UDAL -->|"udal.vector()"| VEC["Supabase pgvector\nPGVECTOR extension\nvector(768) HNSW index\nSchema-per-tenant\n7 collections"]
     UDAL -->|"udal.graph()"| GRAPH["Neo4j / Amazon Neptune\nCompetitor ↔ Market\n↔ Persona entity graph"]
     UDAL -->|"cache"| REDIS["Redis (ElastiCache)\nSession state\nPlan checkpoints\nEmbedding cache"]
-    UDAL -->|"udal.object()"| S3["Supabase Storage\nArtifacts · Assets\nRLHF datasets\nbucket/{tenant_id}/..."]
+    UDAL -->|"udal.object()"| S3["Supabase Storage\nArtifacts · Assets\nRLHF datasets\nbucket/{organization_id}/..."]
 ```
 
 ### 8.2 RAG Pipeline
@@ -448,9 +448,9 @@ flowchart LR
 ### 8.3 Core PostgreSQL Schemas
 
 ```
-tenant_<uuid>.runs           — pillar, status, plan DAG (JSONB), created_at
-tenant_<uuid>.artifacts      — run_id, kind, uri, metadata (JSONB)
-tenant_<uuid>.gates          — run_id, kind, state, decided_by, decided_at
+org_<uuid>.runs              — pillar, status, plan DAG (JSONB), created_at
+org_<uuid>.artifacts         — run_id, kind, uri, metadata (JSONB)
+org_<uuid>.gates             — run_id, kind, state, decided_by, decided_at
 orchestrator.checkpoints     — LangGraph DAG checkpoints
 orchestrator.runs            — serialized plan DAGs
 memory.episodes              — per-run traces, decisions, gate outcomes
@@ -470,10 +470,10 @@ graph TB
     MOBILE[Mobile / Webhooks] -->|"REST HTTPS"| GW
     ADMIN[Admin Dashboard] -->|"REST HTTPS"| GW
 
-    GW["FastAPI API Gateway\napps/api :8000\nAuth · Tenancy · Rate-limits\nJWT validation"]
+    GW["FastAPI API Gateway\nbackend :8000\nAuth · Tenancy · Rate-limits\nJWT validation"]
 
-    GW -->|"gRPC"| ORCH[LangGraph Orchestrator\napps/orchestrator]
-    GW -->|"gRPC"| AI[FastAPI Agent Workers\napps/ai-services]
+    GW -->|"gRPC"| ORCH[LangGraph Orchestrator\nbackend/app/orchestrator]
+    GW -->|"gRPC"| AI[FastAPI Agent Workers\nbackend/app/workers]
     GW -->|"WebSocket /v1/runs/{id}/stream"| RT[Supabase Realtime\nManaged WebSocket]
 
     ORCH -->|"gRPC"| AI
@@ -490,10 +490,10 @@ graph TB
 | `GET` | `/v1/runs/{id}/artifacts` | List artifacts (canvas, repo, live URL…) |
 | `GET` | `/v1/runs/{id}/stream` | WebSocket — live token + step events |
 | `POST` | `/v1/tenants/{id}/keys` | Rotate tenant API keys |
-| `GET` | `/v1/llmops/cost?tenant_id=…` | Per-tenant cost telemetry |
+| `GET` | `/v1/llmops/cost?organization_id=…` | Per-tenant cost telemetry |
 | `POST` | `/v1/feedback` | Accept/reject signal for RLHF |
 
-All new endpoints require an OpenAPI 3.1 entry in `apps/api/openapi.yaml`. Breaking changes use `/v2/` namespacing.
+All new endpoints require an OpenAPI 3.1 entry in `backend/openapi.yaml`. Breaking changes use `/v2/` namespacing.
 
 ---
 
@@ -539,15 +539,14 @@ graph TB
         end
 
         subgraph PRIVATE_APP["Private App Subnets (AZ-a, AZ-b)"]
-            ECS_WEB["ECS Fargate\napps/web :3000\nFounder Portal"]
-            ECS_API["ECS Fargate\napps/api :8000\nFastAPI API GW"]
-            ECS_AI["ECS Fargate\napps/ai-services :8000\nFastAPI Agent Workers"]
-            ECS_ORCH["ECS Fargate\napps/orchestrator\nLangGraph Engine"]
+            ECS_WEB["ECS Fargate\nfrontend :3000\nFounder Portal"]
+            ECS_API["ECS Fargate\nbackend :8000\nFastAPI API GW"]
+            ECS_AI["ECS Fargate\nbackend/app/workers :8000\nFastAPI Agent Workers"]
+            ECS_ORCH["ECS Fargate\nbackend/app/orchestrator\nLangGraph Engine"]
             ECS_RT["Supabase Realtime\nManaged WebSocket\npg_notify broadcast"]
         end
 
         subgraph PRIVATE_DATA["Private Data Subnets (AZ-a, AZ-b)"]
-            RDS["RDS PostgreSQL 16\nMulti-AZ Primary + Replica"]
             REDIS["ElastiCache Redis\nMulti-AZ Cluster"]
         end
 
@@ -600,20 +599,20 @@ Note: Supabase Realtime is a managed service — no ECS task needed.
 ```mermaid
 graph TB
     subgraph TenantA["Tenant A"]
-        TA_JWT["JWT\ntenant_id=A"]
-        TA_SCHEMA["PG Schema\ntenant_A"]
-        TA_NS["Vector Namespace\ntenant_A"]
+        TA_JWT["JWT\norganization_id=A"]
+        TA_SCHEMA["PG Schema\norg_A"]
+        TA_NS["Vector Namespace\norg_A"]
         TA_S3["S3 Prefix\ns3://bucket/A/..."]
     end
 
     subgraph TenantB["Tenant B"]
-        TB_JWT["JWT\ntenant_id=B"]
-        TB_SCHEMA["PG Schema\ntenant_B"]
-        TB_NS["Vector Namespace\ntenant_B"]
+        TB_JWT["JWT\norganization_id=B"]
+        TB_SCHEMA["PG Schema\norg_B"]
+        TB_NS["Vector Namespace\norg_B"]
         TB_S3["S3 Prefix\ns3://bucket/B/..."]
     end
 
-    UDAL["UDAL\nResolves tenant_id from JWT\nRoutes + enforces isolation\nEmits lineage events"]
+    UDAL["UDAL\nResolves organization_id from JWT\nRoutes + enforces isolation\nEmits lineage events"]
 
     TA_JWT --> UDAL
     TB_JWT --> UDAL
@@ -652,7 +651,7 @@ graph TB
     end
 
     subgraph Signals["Telemetry Signals"]
-        LOGS["Structured Logs\n{tenant_id, pillar, agent_id,\nmodel, run_id, env}"]
+        LOGS["Structured Logs\n{organization_id, pillar, agent_id,\nmodel, run_id, env}"]
         METRICS["Metrics\nRED + USE method"]
         TRACES["Distributed Traces\nW3C traceparent end-to-end"]
         LLM_TRACES["LLM Traces\nprompts, completions, scores"]
@@ -678,7 +677,7 @@ graph TB
     LLM_TRACES --> TL
 ```
 
-**Mandatory tags on every signal**: `tenant_id` · `pillar` · `agent_id` · `model` · `run_id` · `env`
+**Mandatory tags on every signal**: `organization_id` · `pillar` · `agent_id` · `model` · `run_id` · `env`
 
 ---
 
@@ -726,8 +725,8 @@ graph TB
     end
 
     subgraph Auth["Authentication & Authorization"]
-        AUTH0[Auth0\nOAuth 2.0 + SAML 2.0\nMFA enforced]
-        JWT2[Short-lived JWTs\n15 min + refresh tokens\nclaims: tenant_id · role · scopes]
+        AUTH0[Supabase Auth\nOAuth 2.0 + SAML 2.0\nMFA enforced]
+        JWT2[Short-lived JWTs\n15 min + refresh tokens\nclaims: organization_id · role · scopes]
         OPA2[OPA Policy Engine\nRBAC + ABAC\nPolicy-as-code]
         MTLS[mTLS + signed JWTs\nService-to-service identity\nSPIFFE-style]
     end
@@ -794,10 +793,10 @@ graph LR
     end
 
     subgraph DB["Database Scaling"]
-        PG_PRIMARY["RDS Primary"]
+        PG_PRIMARY["Supabase Primary"]
         PG_RR["Read Replicas\n(read-heavy workloads)"]
-        PGBOUNCER["PgBouncer\nConnection pooling"]
-        PG_PART["Partition by tenant_id\nfor large tables"]
+        PGBOUNCER["Supabase Pooler / PgBouncer\nConnection pooling"]
+        PG_PART["Partition by organization_id\nfor large tables"]
         PG_PRIMARY --> PG_RR
         PG_PRIMARY --> PGBOUNCER
     end
@@ -823,7 +822,7 @@ graph LR
 | Decision | Choice | Rationale |
 |---|---|---|
 | **Orchestration** | LangGraph (primary) + AutoGen (fallback) | Stateful DAGs with deterministic checkpoints; AutoGen for free-form multi-agent patterns |
-| **Compute** | Amazon ECS on Fargate | Serverless containers, no cluster management, per-task isolation; Kubernetes deferred to v2 |
+| **Compute** | Amazon ECS on Fargate | Serverless containers, no cluster management, per-task isolation; CodeDeploy blue/green for zero-downtime releases |
 | **Vector store** | Supabase pgvector | Eliminates separate vector DB; uses pgvector extension with vector(768) for gemini-embedding-2; HNSW index; schema-per-tenant |
 | **Graph DB** | Neo4j / Amazon Neptune | TBD — pending benchmark on competitor ↔ market ↔ persona query patterns |
 | **Agent isolation** | Tenant-scoped UDAL (mandatory) | Agents can never issue direct DB calls; prevents cross-tenant data leakage |

@@ -40,71 +40,36 @@ AutoFounder AI is a **multi-tenant, agentic AI SaaS platform** that converts a s
 ## 3. Repository Root
 
 ```
-<<<<<<< HEAD
-AutoFounder-AI/CodeBase/
-│
-├── .claude/                   Claude Code config, memory, tasks, and specs
-├── .github/                   GitHub Actions CI/CD workflows
-├── backend/                   FastAPI service — Python 3.12 (placeholder)
-├── frontend/                  Next.js 14 Founder Portal (placeholder)
-├── mobile-app/                Expo React Native app (placeholder)
-├── vscode-extension/          VS Code Extension (placeholder)
-├── website/                   Marketing landing page — React + Vite (LIVE on Vercel)
-├── docs/                      Architecture documentation
-├── scripts/                   Cross-platform setup scripts
-├── infra/                     (not yet created) — Terraform AWS modules planned
-│
-├── Makefile                   Canonical task runner
-├── package.json               Root pnpm workspace + Turborepo config
-├── pnpm-workspace.yaml        Declares: frontend, mobile-app, vscode-extension
-=======
 PROJECT-1-AutoFounder-AI/                (per CLAUDE.md §40 — authoritative)
 │
 ├── .claude/                   Claude Code config, memory, tasks, and specs
 ├── .github/                   GitHub Actions CI/CD workflows
-├── apps/
-│   ├── api/                   FastAPI API Gateway — Python 3.12 (scaffold)
-│   ├── orchestrator/          LangGraph engine — Python 3.12 (scaffold)
-│   ├── ai-services/           FastAPI agent workers — Python 3.12 (scaffold)
-│   ├── web/                   Next.js 14 Founder Portal (scaffold)
-│   └── admin/                 Next.js super-admin dashboard (scaffold)
-├── packages/
-│   ├── agents/                Agent implementations (Python)
-│   ├── guardrails/            6-stage guardrails pipeline
-│   ├── prompts/               Versioned Jinja2 prompt templates
-│   ├── tools/                 MCP tool definitions
-│   ├── db/                    UDAL + SQLAlchemy + Supabase migrations
-│   ├── shared/                Shared types, utils, constants
-│   └── eval/                  Promptfoo + LangSmith golden sets
+├── backend/       Consolidated FastAPI backend — Python 3.12 (api + orchestrator + agents + workers)
+│   ├── app/                   api/v1, core, db (UDAL), models, schemas, services, agents, orchestrator, guardrails, workers
+│   ├── alembic/               Database migrations
+│   └── tests/
+├── frontend/  Next.js 14 Founder Portal + super-admin `/admin` route group (scaffold)
+├── mobile-app/    Expo React Native (scaffold)
 ├── infra/
 │   ├── terraform/             IaC for AWS (ECS, ElastiCache, S3, messaging, IAM…)
 │   └── codedeploy/            Blue/green deploy specs
+├── packages/
+│   ├── shared/                Shared TypeScript types
+│   └── api-client/            Typed backend client (OpenAPI-generated Phase 2)
 ├── docs/                      Architecture documentation
 ├── scripts/                   Cross-platform setup scripts
 │
 ├── Makefile                   Canonical task runner
 ├── package.json               Root pnpm workspace + Turborepo config
-├── pnpm-workspace.yaml        Declares: apps/web, apps/admin, packages/shared, packages/eval
->>>>>>> dev
+├── pnpm-workspace.yaml        Declares: frontend, mobile-app, backend, packages/*
 ├── turbo.json                 Turborepo task pipeline (dev, build, lint)
 ├── eslint.config.mjs          Shared ESLint v9 flat config for all JS/TS packages
 ├── docker-compose.yml         Redis 7 only (Supabase CLI handles DB/Auth/Storage/Realtime)
 ├── .env.example               Required env vars (Supabase + Gemini)
 ├── .gitignore
-<<<<<<< HEAD
-├── README.md                  Product Requirements Document (PRD)
-└── projectstructure-steps.txt Setup steps log
-```
-
-> **Note**: `website/` is NOT a pnpm workspace package — it has its own `package-lock.yaml` and `node_modules/`, managed independently with `npm`. It is not listed in `pnpm-workspace.yaml`.
-
-> **Note**: `infra/` does not exist yet. All Terraform work is Phase 2 (AF-012–AF-024).
-
-=======
 └── README.md                  Product Requirements Document (PRD)
 ```
 
->>>>>>> dev
 ---
 
 ## 4. Directory Detail
@@ -120,36 +85,11 @@ All Claude Code context, conventions, and planning files.
 ├── TASKS.md          Phase-by-phase task tracker (AF-001 – AF-078)
 ├── SKILL.md          Dev skill: when to activate, conventions, checklists
 ├── SUMMARY.md        ← this file
-├── PLAN.md           (empty)
-├── PLAN_PHASE.md     (empty)
+├── PLAN.md           Strategic master plan (vision, roadmap, milestones)
+├── PLAN_PHASE.md     Active-phase execution plan (P1 — Validation Engine)
 └── specs/
     ├── api-design.md     REST conventions, response envelope, error codes, pagination, WebSocket
     ├── database.md       PostgreSQL schema design, Redis key schema, Alembic rules
-<<<<<<< HEAD
-    ├── deployment.md     ⚠️ STALE — references GCP Cloud Run; authoritative target is AWS ECS Fargate
-    ├── integrations.md   ⚠️ STALE — references Auth0 + OpenAI + Anthropic; resolved: Supabase Auth + Gemini
-    ├── mobile.md         Expo conventions, EAS profiles, push notifications, navigation
-    └── stack.md          ⚠️ STALE — lists GCP as cloud; resolved: AWS + Terraform per CLAUDE.md
-```
-
-**Stale specs warning**: `specs/deployment.md`, `specs/integrations.md`, and `specs/stack.md` were written before the tech-stack consolidation. `CLAUDE.md` overrides them on all conflicting points. Do not rely on these for infrastructure, auth, or LLM provider decisions.
-
----
-
-### 4.2 `backend/` — FastAPI Service (Python 3.12)
-
-**Status**: Scaffold/placeholder — no application logic yet. Phase 3 (AF-025+) will build this out.
-
-```
-backend/
-├── src/
-│   └── codepilot/          ⚠️ Package named 'codepilot' (placeholder name; will be renamed)
-│       └── __init__.py     version = "0.0.0" + docstring
-├── docker/
-│   └── placeholder_http_server.py   Minimal HTTP health-check server (returns "ok\n")
-├── pyproject.toml          Dependencies + Ruff + Hatch build config
-├── Dockerfile              python:3.12-slim; runs placeholder HTTP server on PORT=8080
-=======
     ├── deployment.md     AWS ECS Fargate, Terraform modules, CI/CD pipeline, rollback
     ├── integrations.md   Supabase Auth, Gemini, Stripe, SNS push, GitHub, research tools
     ├── mobile.md         Expo conventions, Supabase Auth, EAS profiles, push notifications
@@ -158,19 +98,27 @@ backend/
 
 ---
 
-### 4.2 `apps/api/` — FastAPI API Gateway (Python 3.12)
+### 4.2 `backend/` — Consolidated FastAPI Backend (Python 3.12)
 
-**Status**: Scaffold — no application logic yet. Phase 3 (AF-025+) will build this out.
+**Status**: Runnable skeleton — `/health`, `/v1/ideas`, `/v1/runs` (in-memory store), Alembic 0001 migration, pytest suite (7 tests). Agent/orchestrator logic is stubbed (Sprint 1). Merges the former `apps/api` + `apps/orchestrator` + `apps/ai-services`.
 
 ```
-apps/api/
-├── src/                    Application source (to be built in Phase 3)
-├── docker/
-│   └── placeholder_http_server.py   Minimal HTTP health-check server (returns "ok\n")
-├── pyproject.toml          Dependencies + Ruff config (uv-managed)
+backend/
+├── app/
+│   ├── main.py             FastAPI app factory + /health
+│   ├── api/v1/             health, ideas, runs routers
+│   ├── core/               config, logging, security
+│   ├── db/                 UDAL + async SQLAlchemy session/base
+│   ├── models/  schemas/  services/
+│   ├── agents/             base contract + strategy / research / product_planner
+│   ├── orchestrator/       LangGraph engine (stub)
+│   ├── guardrails/         6-stage pipeline (stub)
+│   └── workers/            queue consumers (stub)
+├── alembic/                migrations (0001 initial: runs/artifacts/gates)
+├── tests/                  pytest (health + run_service + api)
+├── pyproject.toml          deps + Ruff/mypy/pytest config (uv-managed)
 ├── uv.lock
-├── Dockerfile              python:3.12-slim; placeholder HTTP server on PORT=8080
->>>>>>> dev
+├── Dockerfile              multi-stage uv build, non-root, uvicorn app.main:app :8000
 └── README.md
 ```
 
@@ -195,32 +143,19 @@ apps/api/
 **Python**: `>=3.12`  
 **Package manager**: `uv` (`uv sync --all-groups`)
 
-**Dockerfile note**: Currently runs a placeholder Python HTTP server. Dockerfile comment says role is determined via `AUTOFOUNDER-AI_ROLE` env var — api / orchestrator / worker will share the same image.
+**Dockerfile note**: Multi-stage build with `uv`; runs `uvicorn app.main:app` on port 8000 as a non-root user, with a container `HEALTHCHECK` hitting `/health`.
 
 ---
 
-<<<<<<< HEAD
-### 4.3 `frontend/` — Next.js 14 Founder Portal (Placeholder)
+### 4.3 `frontend/` — Next.js 14 Founder Portal (Scaffold)
 
-**pnpm package name**: `@autofounder-ai/frontend-web`  
 **Status**: TypeScript placeholder only. Full Next.js 14 implementation is Phase 4 (AF-051+).
 
 ```
 frontend/
 ├── src/
 │   └── placeholder.ts    Empty placeholder
-├── package.json          Scripts: dev (console.log placeholder), lint, format
-=======
-### 4.3 `apps/web/` — Next.js 14 Founder Portal (Scaffold)
-
-**Status**: TypeScript placeholder only. Full Next.js 14 implementation is Phase 4 (AF-051+).
-
-```
-apps/web/
-├── src/
-│   └── placeholder.ts    Empty placeholder
 ├── package.json
->>>>>>> dev
 └── tsconfig.json
 ```
 
@@ -233,11 +168,7 @@ apps/web/
 - Launch Control Center (brand kit, social drafts, approve/edit gate)
 - LLMOps Dashboard (cost by model/pillar, drift scores, eval history)
 
-<<<<<<< HEAD
-**Planned tech**: Next.js 14 App Router · React 18 · Tailwind CSS · shadcn/ui · Zustand · React Query · Supabase Realtime (live token/step stream) · Supabase Auth (`@supabase/supabase-js` + `@supabase/ssr`)
-=======
 **Tech**: Next.js 14 App Router · React 18 · Tailwind CSS · shadcn/ui · Zustand · React Query · Supabase Realtime · Supabase Auth (`@supabase/supabase-js` + `@supabase/ssr`)
->>>>>>> dev
 
 ---
 
@@ -354,11 +285,11 @@ Full CI/CD pipeline (lint + typecheck + tests + security scans + ECR push + AWS 
 
 ```
 scripts/
-├── dev-setup.sh     Bash — checks pnpm + uv, copies .env.example, pnpm install, uv sync, docker compose up
-└── dev-setup.ps1    PowerShell equivalent for Windows
+├── setup-dev.sh             Bash — copies .env files, pnpm install, uv sync, docker compose up
+├── setup-dev.ps1            PowerShell equivalent for Windows
+├── deploy-backend-dev.sh    Build + push backend image to AWS ECR (dev)
+└── deploy-backend-dev.ps1   PowerShell equivalent for Windows
 ```
-
-> **Note**: `dev-setup.sh` still mentions "PostgreSQL + Redis started (docker compose)" — stale. Docker Compose now runs Redis only; Supabase CLI (`supabase start`) handles the database stack.
 
 ---
 
@@ -382,19 +313,14 @@ scripts/
 | `build` | Depends on upstream `^build`; caches `dist/**` |
 | `lint` | Depends on upstream `^lint` |
 
-<<<<<<< HEAD
-**pnpm workspaces** (`pnpm-workspace.yaml`): `frontend`, `mobile-app`, `vscode-extension`.  
-`backend/` and `website/` are **not** pnpm workspaces — backend uses `uv`, website uses npm.
-=======
-**pnpm workspaces** (`pnpm-workspace.yaml`): `apps/web`, `apps/admin`, `packages/shared`, `packages/eval`.  
-Python services (`apps/api`, `apps/orchestrator`, `apps/ai-services`) use `uv` — not pnpm workspaces.
->>>>>>> dev
+**pnpm workspaces** (`pnpm-workspace.yaml`): `frontend`, `mobile-app`, `backend`, `packages/*`.  
+The consolidated Python backend (`backend`) is managed by `uv`; its `package.json` delegates lint/typecheck/test to uv via Turborepo.
 
 ### Makefile targets
 
 | Target | Command |
 |--------|---------|
-| `make install` | `pnpm install` + `cd backend && uv sync --all-groups` |
+| `make install` | `pnpm install` + `uv sync --all-groups` |
 | `make stack` | `docker compose up -d` (Redis only) |
 | `make stack-down` | `docker compose down` |
 | `make dev` | `pnpm dev` → `turbo dev` |
@@ -457,13 +383,13 @@ All other secrets (Stripe, Resend, GitHub App, LangSmith, Sentry) go into AWS Se
 | Cache | Redis 7 — ElastiCache (prod) / Docker Compose (local) |
 | Graph | Neo4j / Amazon Neptune (competitor ↔ market ↔ persona) |
 | Object storage | Supabase Storage (app artifacts) + S3 (RLHF data lake, 7-yr audit) |
-| Data access | UDAL (`packages/db`) — agents must never touch DB drivers directly |
+| Data access | UDAL (`backend/app/db`) — agents must never touch DB drivers directly |
 
 ### Infrastructure
 | Concern | Choice |
 |---------|--------|
 | Cloud | AWS (ECS Fargate, multi-AZ VPC) |
-| IaC | Terraform (planned, `infra/` not yet created) |
+| IaC | Terraform (planned, scaffolded in `infra/`) |
 | Deploy strategy | GitHub Actions → AWS CodeDeploy (ECS blue/green) |
 | Local dev DB | Supabase CLI (`supabase start`) |
 | Container registry | Amazon ECR |
@@ -490,8 +416,8 @@ make stack            # docker compose up -d
 # 5. Run all frontend workspaces (dev mode)
 make dev              # turbo dev
 
-# 6. Run backend (once FastAPI is scaffolded in Phase 3)
-cd backend && uv run uvicorn autofounder_ai.main:app --reload --port 8000
+# 6. Run the consolidated backend
+cd backend && uv run uvicorn app.main:app --reload --port 8000
 
 # 7. Quality gate before any PR
 make quality          # backend ruff + js eslint — must pass
@@ -519,16 +445,6 @@ All merges via PR; `make quality` + tests + security scan must pass.
 |----------|-------|---------------------|
 | `scripts/dev-setup.sh` | Says "PostgreSQL + Redis" for docker compose — now Redis only | `docker-compose.yml` |
 | `Makefile` | `make stack` comment says "Start local databases (PostgreSQL + Redis)" — now Redis only | `docker-compose.yml` |
-<<<<<<< HEAD
-| `.claude/specs/deployment.md` | Entire spec references GCP Cloud Run, not AWS ECS Fargate | `CLAUDE.md §17` |
-| `.claude/specs/integrations.md` | References Auth0 + OpenAI + Anthropic as primary | `CLAUDE.md §31` (Supabase Auth + Gemini) |
-| `.claude/specs/stack.md` | Lists GCP as cloud choice; primary LLM marked "pending" | `CLAUDE.md §48` |
-| `.claude/specs/mobile.md` | References Auth0 and `ws-client.ts` | `CLAUDE.md §14` (Supabase Auth + Realtime) |
-| `PLAN.md` / `PLAN_PHASE.md` | Both empty | — |
-| `test.txt` | Stray file at repo root | Can be deleted |
-=======
-| `PLAN.md` / `PLAN_PHASE.md` | Both empty | — |
->>>>>>> dev
 
 ---
 

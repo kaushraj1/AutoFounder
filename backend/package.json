@@ -1,0 +1,12 @@
+{
+  "name": "@autofounder-ai/backend",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Consolidated FastAPI backend (Python; npm scripts delegate to uv via turbo)",
+  "scripts": {
+    "lint": "uv run ruff check app tests && uv run ruff format --check app tests",
+    "typecheck": "uv run mypy app",
+    "test": "uv run pytest",
+    "dev": "uv run uvicorn app.main:app --reload --port 8000"
+  }
+}
