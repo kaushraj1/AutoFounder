@@ -47,7 +47,7 @@ Each pillar is powered by a specialized AI agent and follows the same 5-stage lo
 | 2. Architecture & Tech Stack Design | Architect | DB schema, OpenAPI specs, cost forecasting | 2 weeks → 2 hrs |
 | 3. Autonomous Code Generation | Coder | Full-stack Next.js + FastAPI, auth, payments | 3–6 months → 7 days |
 | 4. Testing & Self-Healing | Reviewer | Lint, unit/integration tests, security scan, auto-fix | Manual → automated |
-| 5. Deployment & Infrastructure | DevOps | Terraform IaC, EKS, DNS/SSL, CI/CD | 1 week → 10 min |
+| 5. Deployment & Infrastructure | DevOps | Terraform IaC, ECS Fargate, DNS/SSL, CI/CD | 1 week → 10 min |
 | 6. Marketing & Launch Automation | Marketer | Brand kit, SEO, Product Hunt, X thread, HN post | 2–3 weeks → 2 hrs |
 | 7. Growth, LLMOps & Continuous Learning | LLMOps | Feedback loops, prompt optimization, model routing | Ongoing |
 
@@ -82,6 +82,45 @@ Each pillar is powered by a specialized AI agent and follows the same 5-stage lo
 | Container Orchestration | Docker |
 | CI/CD | GitHub Actions |
 | LLMOps | Prometheus, Grafana |
+
+---
+
+## Repository Layout
+
+A monorepo: **pnpm + Turborepo** orchestrate JS/TS; **uv** manages the Python backend.
+
+| Path | Package | Purpose |
+|------|---------|---------|
+| `AUTOFOUNDER-BACKEND` | `@autofounder-ai/backend` | Consolidated FastAPI backend — API gateway + LangGraph orchestrator + agent workers (Python; uv) |
+| `AUTOFOUNDER-FRONTEND-WEB` | `@autofounder-ai/frontend-web` | Next.js 14 Founder Portal |
+| `AUTOFOUNDER-ADMIN` | `@autofounder-ai/admin` | Next.js super-admin dashboard |
+| `AUTOFOUNDER-MOBILE-APP` | `@autofounder-ai/mobile-app` | Expo (React Native) app |
+| `AUTOFOUNDER-INFRA` | — | Terraform + CodeDeploy specs (AWS ECS Fargate) |
+| `packages/shared` | `@autofounder-ai/shared-types` | Shared TypeScript types |
+| `packages/api-client` | `@autofounder-ai/api-client` | Typed backend client (OpenAPI-generated in Phase 2) |
+
+> Phase 1 builds out `AUTOFOUNDER-BACKEND` (the Validation Engine). The web / admin / mobile apps are scaffolded placeholders until their roadmap phase. The backend is a **modular monolith** — its internal modules can be split into separate services in Phase 4 when scale demands it.
+
+---
+
+## Local Development
+
+**Prerequisites:** Node 20+, pnpm 9, Docker, [uv](https://docs.astral.sh/uv/), Supabase CLI.
+
+```bash
+# One-command setup (creates .env files, installs deps, starts Redis)
+bash scripts/setup-dev.sh        # macOS / Linux
+pwsh scripts/setup-dev.ps1       # Windows
+
+# Run the backend
+cd AUTOFOUNDER-BACKEND
+uv run alembic upgrade head
+uv run uvicorn app.main:app --reload --port 8000
+#   → http://localhost:8000/health   ·   http://localhost:8000/docs
+
+# Quality gates (mirrors CI)
+make quality                     # backend: ruff + mypy + pytest, then JS lint
+```
 
 ---
 
@@ -149,7 +188,7 @@ Each pillar is powered by a specialized AI agent and follows the same 5-stage lo
 
 ## Phase 1 Scope
 
-**In scope**: 7 specialized agents, Next.js + FastAPI/NestJS stack, PostgreSQL/Supabase, GitHub Actions CI/CD, AWS EKS deployment, SEO content generation, social launch sequences.
+**In scope**: 7 specialized agents, Next.js + FastAPI stack, PostgreSQL/Supabase, GitHub Actions CI/CD, AWS ECS Fargate deployment, SEO content generation, social launch sequences.
 
 **Out of scope**: Native mobile apps, hardware integrations, high-frequency trading software, regulated medical software.
 
