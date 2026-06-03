@@ -1,4 +1,4 @@
-chang# CLAUDE.md — AutoFounder AI
+# CLAUDE.md — AutoFounder AI
 
 > This file provides project context, architecture guidance, and conventions for Claude Code agents working on the AutoFounder AI platform. Read this before writing any code, modifying any agent, or making infrastructure changes.
 
