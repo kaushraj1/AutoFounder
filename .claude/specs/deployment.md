@@ -58,13 +58,12 @@
 
 | Service | Source | Port | Min tasks (prod) | CPU / RAM |
 |---------|--------|------|-----------------|-----------|
-| `backend` | `AUTOFOUNDER-BACKEND/` | 8000 | 2 (multi-AZ) | 1024 / 2048 |
-| `web` | `AUTOFOUNDER-FRONTEND-WEB/` | 3000 | 2 (multi-AZ) | 512 / 1024 |
-| `admin` | `AUTOFOUNDER-ADMIN/` | 3001 | 1 | 256 / 512 |
+| `backend` | `backend/` | 8000 | 2 (multi-AZ) | 1024 / 2048 |
+| `web` | `frontend/` | 3000 | 2 (multi-AZ) | 512 / 1024 |
 
 > **Phase 1 (consolidated backend):** the API gateway, LangGraph orchestrator, and agent workers
 > ship as internal modules of one `backend` service
-> (`AUTOFOUNDER-BACKEND/app/{api,orchestrator,workers}`). They are split into dedicated
+> (`backend/app/{api,orchestrator,workers}`). They are split into dedicated
 > `orchestrator` / `ai-services` ECS services in Phase 4 if scale requires.
 
 **Gateway**: ALB (L7) → HTTPS listeners → target groups per ECS service.
@@ -93,7 +92,7 @@ ECS Service Auto Scaling — target tracking on:
 ### Repository layout
 
 ```
-AUTOFOUNDER-INFRA/
+infra/
 ├── terraform/
 │   ├── modules/
 │   │   ├── networking/      VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints
@@ -134,7 +133,7 @@ Bucket has versioning enabled and a 90-day object version retention lifecycle po
 
 ```
 1. Branch: feature/AF-XXX-terraform-description
-2. Edit module under AUTOFOUNDER-INFRA/terraform/modules/ or AUTOFOUNDER-INFRA/terraform/env/
+2. Edit module under infra/terraform/modules/ or infra/terraform/env/
 3. terraform fmt && terraform validate
 4. terraform plan -var-file=env/staging.tfvars  → attach output to PR
 5. PR review — at least one approval required for production changes
@@ -276,18 +275,17 @@ supabase start
 make stack            # docker compose up -d
 
 # Run the consolidated backend (API + orchestrator + agent workers)
-cd AUTOFOUNDER-BACKEND && uv run uvicorn app.main:app --reload --port 8000
+cd backend && uv run uvicorn app.main:app --reload --port 8000
 
 # Run frontend
-pnpm --filter @autofounder-ai/frontend-web dev   # Next.js Founder Portal  :3000
-pnpm --filter @autofounder-ai/admin dev          # Admin dashboard          :3001
+pnpm --filter @autofounder-ai/frontend dev   # Next.js Founder Portal (+ /admin route group)  :3000
 
 # Apply DB migrations
-cd AUTOFOUNDER-BACKEND && uv run alembic upgrade head
+cd backend && uv run alembic upgrade head
 
 # Quality gate (run before every PR)
 make quality          # backend ruff + mypy + pytest, then JS lint
 
 # Infra plan
-cd AUTOFOUNDER-INFRA/terraform && terraform plan -var-file=env/staging.tfvars
+cd infra/terraform && terraform plan -var-file=env/staging.tfvars
 ```

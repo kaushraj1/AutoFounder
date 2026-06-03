@@ -1,9 +1,0 @@
-{
-  "name": "@autofounder-ai/admin",
-  "private": true,
-  "version": "0.0.0",
-  "description": "Super-admin dashboard (Next.js) — scaffolded in a later phase",
-  "scripts": {
-    "dev": "node -e \"console.log('admin: Next.js scaffold in a later phase — placeholder dev');\""
-  }
-}

@@ -28,19 +28,19 @@ If any of these files contradict each other, `CLAUDE.md` is authoritative.
 
 Activate this skill for any of the following:
 
-- **FastAPI routes** — adding or modifying endpoints in `AUTOFOUNDER-BACKEND/app/`
+- **FastAPI routes** — adding or modifying endpoints in `backend/app/`
 - **LangGraph nodes / agents** — any file under the agent layer (Strategy, Architect, Coder, Reviewer,
   DevOps, Marketing, LLMOps and sub-agents)
-- **React components** — new UI in `AUTOFOUNDER-FRONTEND-WEB/src/` (Founder Portal surfaces or admin)
+- **React components** — new UI in `frontend/src/` (Founder Portal surfaces or admin)
 - **Vite config changes** — `vite.config.ts`, aliasing, env handling, bundle splits
-- **PostgreSQL migrations** — Alembic revision files in `AUTOFOUNDER-BACKEND/alembic/`
+- **PostgreSQL migrations** — Alembic revision files in `backend/alembic/`
 - **Redis key design** — new cache keys, TTL policy, or pub/sub channels
-- **Terraform modules** — anything under `AUTOFOUNDER-INFRA/` targeting AWS resources
-- **Expo screens or hooks** — `AUTOFOUNDER-MOBILE-APP/src/` screens, navigation, or native integrations
+- **Terraform modules** — anything under `infra/` targeting AWS resources
+- **Expo screens or hooks** — `mobile-app/src/` screens, navigation, or native integrations
 - **VS Code extension** — commands, webviews, tree providers in `vscode-extension/src/`
 - **Guardrails pipeline** — any of the 6 stages, OPA policies, audit log writes
 - **Prompt templates** — Jinja2 templates in the prompt registry
-- **UDAL / data layer** — `AUTOFOUNDER-BACKEND/app/db/` Python UDAL clients
+- **UDAL / data layer** — `backend/app/db/` Python UDAL clients
 - **CI/CD workflows** — `.github/workflows/` changes affecting build, test, or deploy
 
 ---
@@ -54,12 +54,12 @@ that calls an endpoint that doesn't exist yet).
 
 ### 2 — Multi-Tenant Safety
 Every database query must go through the UDAL with a resolved `organization_id`. Direct use of SQLAlchemy
-sessions, `psycopg`, or any DB driver outside `AUTOFOUNDER-BACKEND/app/db/` is **forbidden**. Every new route must
+sessions, `psycopg`, or any DB driver outside `backend/app/db/` is **forbidden**. Every new route must
 extract `organization_id` from the verified JWT before touching data.
 
 ### 3 — AWS-First Infrastructure
 Default to managed AWS services (ECS Fargate, ElastiCache, Supabase for DB/vector/storage, Confluent Kafka, ECR, Secrets Manager, S3).
-Do not introduce GCP or Azure SDK dependencies. Terraform modules go in `AUTOFOUNDER-INFRA/terraform/modules/<service>/`.
+Do not introduce GCP or Azure SDK dependencies. Terraform modules go in `infra/terraform/modules/<service>/`.
 Every new AWS resource needs a corresponding IAM binding with least-privilege roles (no wildcard `*:*`).
 
 ### 4 — Observability Is Not Optional
@@ -84,19 +84,19 @@ password, or connection string committed to the repo.
 
 ### New REST Endpoint (FastAPI)
 
-- [ ] Route added to the correct router in `AUTOFOUNDER-BACKEND/app/api/v1/`
+- [ ] Route added to the correct router in `backend/app/api/v1/`
 - [ ] Request and response shapes defined as Pydantic v2 models with `model_config = ConfigDict(strict=True)`
 - [ ] `organization_id` extracted from JWT dependency before any UDAL call
 - [ ] UDAL used for all DB reads/writes — no raw driver calls
 - [ ] Happy-path and error cases return the standard envelope `{data, error, requestId}`
 - [ ] Route registered in OpenAPI 3.1 spec (`openapi.yaml`) — description, tags, request/response schemas
-- [ ] Unit test in `AUTOFOUNDER-BACKEND/tests/` covering happy path + auth failure + 404
+- [ ] Unit test in `backend/tests/` covering happy path + auth failure + 404
 - [ ] Structured log line emitted (at minimum `INFO` with `organization_id`, `route`, `duration_ms`)
 - [ ] `make quality` passes locally before opening PR
 
-### New React Component (AUTOFOUNDER-FRONTEND-WEB)
+### New React Component (frontend)
 
-- [ ] Component file in `AUTOFOUNDER-FRONTEND-WEB/src/components/<Surface>/` — PascalCase filename, named export
+- [ ] Component file in `frontend/src/components/<Surface>/` — PascalCase filename, named export
 - [ ] Props typed with a dedicated `interface <Name>Props` — no `any`
 - [ ] Data fetching via React Query (`useQuery` / `useMutation`) — no raw `fetch` in components
 - [ ] Real-time data merged from WebSocket hook (`useRun` / `useGate`) where applicable
@@ -104,11 +104,11 @@ password, or connection string committed to the repo.
 - [ ] Tailwind classes only — no inline styles, no `style={{}}` except for dynamic values
 - [ ] `shadcn/ui` primitives used for buttons, inputs, modals — no custom re-implementations
 - [ ] Component is accessible: ARIA labels on interactive elements, keyboard navigable
-- [ ] `pnpm lint` passes in `AUTOFOUNDER-FRONTEND-WEB/`
+- [ ] `pnpm lint` passes in `frontend/`
 
 ### New Database Migration (Alembic)
 
-- [ ] Generate with `uv run alembic revision --autogenerate -m "<short description>"` in `AUTOFOUNDER-BACKEND/`
+- [ ] Generate with `uv run alembic revision --autogenerate -m "<short description>"` in `backend/`
 - [ ] Review auto-generated file — remove any destructive ops (`DROP TABLE`, `DROP COLUMN`) not explicitly intended
 - [ ] `upgrade()` and `downgrade()` both implemented and tested locally
 - [ ] New table: `organization_id` column present with an index; RLS policy added as defense-in-depth
@@ -119,14 +119,14 @@ password, or connection string committed to the repo.
 
 ### New Terraform Module (AWS)
 
-- [ ] Module directory: `AUTOFOUNDER-INFRA/terraform/modules/<service>/` with `main.tf`, `variables.tf`, `outputs.tf`
+- [ ] Module directory: `infra/terraform/modules/<service>/` with `main.tf`, `variables.tf`, `outputs.tf`
 - [ ] All resource names include `${var.environment}` and `${var.aws_region}` — no hard-coded names
 - [ ] IAM policies follow least-privilege: use specific actions, never wildcard `*:*`
 - [ ] Sensitive outputs (connection strings, keys) marked `sensitive = true`
 - [ ] `terraform fmt` and `terraform validate` pass
 - [ ] `terraform plan` output reviewed and attached to PR description
 - [ ] Secrets stored in AWS Secrets Manager (not SSM for sensitive values); referenced by ARN in task definitions
-- [ ] Module consumed in `AUTOFOUNDER-INFRA/terraform/env/staging/main.tf` and `AUTOFOUNDER-INFRA/terraform/env/production/main.tf` with separate `.tfvars` files
+- [ ] Module consumed in `infra/terraform/env/staging/main.tf` and `infra/terraform/env/production/main.tf` with separate `.tfvars` files
 
 ---
 

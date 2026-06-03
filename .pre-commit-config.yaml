@@ -20,10 +20,10 @@ repos:
       - id: ruff
         name: ruff (backend lint)
         args: ["--fix"]
-        files: ^AUTOFOUNDER-BACKEND/(app|tests)/
+        files: ^backend/(app|tests)/
       - id: ruff-format
         name: ruff-format (backend)
-        files: ^AUTOFOUNDER-BACKEND/(app|tests)/
+        files: ^backend/(app|tests)/
 
   # Frontend/config: Prettier
   - repo: https://github.com/pre-commit/mirrors-prettier
@@ -31,4 +31,4 @@ repos:
     hooks:
       - id: prettier
         files: \.(ts|tsx|js|jsx|json|css|ya?ml)$
-        exclude: ^(AUTOFOUNDER-BACKEND/|pnpm-lock\.yaml$)
+        exclude: ^(backend/|pnpm-lock\.yaml$)

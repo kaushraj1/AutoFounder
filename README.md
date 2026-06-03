@@ -91,15 +91,14 @@ A monorepo: **pnpm + Turborepo** orchestrate JS/TS; **uv** manages the Python ba
 
 | Path | Package | Purpose |
 |------|---------|---------|
-| `AUTOFOUNDER-BACKEND` | `@autofounder-ai/backend` | Consolidated FastAPI backend — API gateway + LangGraph orchestrator + agent workers (Python; uv) |
-| `AUTOFOUNDER-FRONTEND-WEB` | `@autofounder-ai/frontend-web` | Next.js 14 Founder Portal |
-| `AUTOFOUNDER-ADMIN` | `@autofounder-ai/admin` | Next.js super-admin dashboard |
-| `AUTOFOUNDER-MOBILE-APP` | `@autofounder-ai/mobile-app` | Expo (React Native) app |
-| `AUTOFOUNDER-INFRA` | — | Terraform + CodeDeploy specs (AWS ECS Fargate) |
+| `backend` | `@autofounder-ai/backend` | Consolidated FastAPI backend — API gateway + LangGraph orchestrator + agent workers (Python; uv) |
+| `frontend` | `@autofounder-ai/frontend` | Next.js 14 Founder Portal — **includes the super-admin area** as an `/admin` route group (App Router), guarded by admin role |
+| `mobile-app` | `@autofounder-ai/mobile-app` | Expo (React Native) app |
+| `infra` | — | Terraform + CodeDeploy specs (AWS ECS Fargate) |
 | `packages/shared` | `@autofounder-ai/shared-types` | Shared TypeScript types |
 | `packages/api-client` | `@autofounder-ai/api-client` | Typed backend client (OpenAPI-generated in Phase 2) |
 
-> Phase 1 builds out `AUTOFOUNDER-BACKEND` (the Validation Engine). The web / admin / mobile apps are scaffolded placeholders until their roadmap phase. The backend is a **modular monolith** — its internal modules can be split into separate services in Phase 4 when scale demands it.
+> Phase 1 builds out `backend` (the Validation Engine). The web / mobile apps are scaffolded placeholders until their roadmap phase; the super-admin surface ships **inside** `frontend` as an `/admin` route group rather than a separate app. The backend is a **modular monolith** — its internal modules can be split into separate services in Phase 4 when scale demands it.
 
 ---
 
@@ -113,7 +112,7 @@ bash scripts/setup-dev.sh        # macOS / Linux
 pwsh scripts/setup-dev.ps1       # Windows
 
 # Run the backend
-cd AUTOFOUNDER-BACKEND
+cd backend
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload --port 8000
 #   → http://localhost:8000/health   ·   http://localhost:8000/docs

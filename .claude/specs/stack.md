@@ -187,24 +187,24 @@ operational overhead.
 | **Supabase Storage** | App artifacts, generated assets, brand kits — accessed by agents and frontend |
 | **Amazon S3** | Raw data lake, RLHF datasets, audit logs (7-yr S3 Object Lock), prompt-template immutable archives |
 
-### Monorepo — pnpm + Turborepo (UPPERCASE dirs)
+### Monorepo — pnpm + Turborepo (lowercase dirs)
 
 **Workspace members** (from `pnpm-workspace.yaml`):
-- `AUTOFOUNDER-FRONTEND-WEB` (`@autofounder-ai/frontend-web`)
-- `AUTOFOUNDER-ADMIN` (`@autofounder-ai/admin`)
-- `AUTOFOUNDER-MOBILE-APP` (`@autofounder-ai/mobile-app`)
-- `AUTOFOUNDER-BACKEND` (`@autofounder-ai/backend`)
+- `frontend` (`@autofounder-ai/frontend`) — includes the super-admin `/admin` route group
+- `mobile-app` (`@autofounder-ai/mobile-app`)
+- `backend` (`@autofounder-ai/backend`)
 - `packages/shared`, `packages/api-client`
 
 The backend is a **consolidated FastAPI service** (modular monolith): the API gateway, LangGraph
-orchestrator, and agent workers live as internal modules under `AUTOFOUNDER-BACKEND/app/`
+orchestrator, and agent workers live as internal modules under `backend/app/`
 (`api/`, `orchestrator/`, `agents/`, `workers/`, …), to be extracted into separate services in
 Phase 4 if scale requires. It is managed by `uv`; its `package.json` delegates lint/typecheck/test
 to uv so Turborepo can orchestrate JS/TS and Python tasks uniformly. Long-running Python commands
 also run via the `Makefile`.
 
-> Convention follows the org reference repo (PROJECT-3-AgentOps-Commander): UPPERCASE top-level
-> app dirs, one consolidated backend, `packages/*` for shared TypeScript only.
+> Convention: **lowercase** top-level app dirs (a deliberate deviation from the org reference repo
+> PROJECT-3-AgentOps-Commander, which uses UPPERCASE), one consolidated backend, `packages/*` for
+> shared TypeScript only.
 
 ---
 

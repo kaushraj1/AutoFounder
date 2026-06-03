@@ -4,7 +4,7 @@
 > **Date**: 2026-05-30 · **Target**: 10 pilot clients  
 > **Canonical authority**: `.claude/CLAUDE.md` overrides everything else (stack.md has stale GCP refs — ignore those)
 >
-> ⚠️ **PATHS IN THIS DOC ARE ILLUSTRATIVE/HISTORICAL.** This is the granular S0–S4 build-sequence companion to `.claude/PLAN.md` (master). The **authoritative** structure (see `.claude/CLAUDE.md` §40) is **one consolidated backend `AUTOFOUNDER-BACKEND/app/`** (api · orchestrator · agents · workers · db · guardrails · models · prompts · tools · core) + `AUTOFOUNDER-FRONTEND-WEB/` + `AUTOFOUNDER-ADMIN/` + `AUTOFOUNDER-MOBILE-APP/` + `AUTOFOUNDER-INFRA/` + `packages/{shared,api-client}` (TypeScript-only). Read every `backend/src/autofounder_ai/` below as **`AUTOFOUNDER-BACKEND/app/`**, `frontend/` as **`AUTOFOUNDER-FRONTEND-WEB/`**, and `infra/` as **`AUTOFOUNDER-INFRA/`**. The earlier 3-service split (api + orchestrator + ai-services) is now a single modular-monolith backend (split in Phase 4 if scale needs it). Canonical tenant key **`organization_id`**; auth **Supabase Auth**. Current plan: **`.claude/PLAN.md`** (master), **`.claude/PLAN_PHASE.md`** (active phase), **`.claude/TASKS.md`** (tasks).
+> ⚠️ **PATHS IN THIS DOC ARE ILLUSTRATIVE/HISTORICAL.** This is the granular S0–S4 build-sequence companion to `.claude/PLAN.md` (master). The **authoritative** structure (see `.claude/CLAUDE.md` §40) is **one consolidated backend `backend/app/`** (api · orchestrator · agents · workers · db · guardrails · models · prompts · tools · core) + `frontend/` + `admin/` + `mobile-app/` + `infra/` + `packages/{shared,api-client}` (TypeScript-only). Read every `backend/src/autofounder_ai/` below as **`backend/app/`**, `frontend/` as **`frontend/`**, and `infra/` as **`infra/`**. The earlier 3-service split (api + orchestrator + ai-services) is now a single modular-monolith backend (split in Phase 4 if scale needs it). Canonical tenant key **`organization_id`**; auth **Supabase Auth**. Current plan: **`.claude/PLAN.md`** (master), **`.claude/PLAN_PHASE.md`** (active phase), **`.claude/TASKS.md`** (tasks).
 
 ---
 
@@ -16,11 +16,11 @@
 | Kafka | Confluent Cloud provisioned (`pkc-l7pr2.ap-south-1`) — creds in .env.example |
 | Redis | docker-compose ready, not started |
 | Backend | Python/uv scaffolded in `backend/`; only a placeholder HTTP server, no FastAPI routes |
-| Frontend | TS placeholder in `frontend/`; package name `@autofounder-ai/frontend-web` |
+| Frontend | TS placeholder in `frontend/`; package name `@autofounder-ai/frontend` |
 | Website | Vite/React landing page in `website/` — has actual code, keep as-is |
 | Mobile | Expo placeholder in `mobile-app/` |
 | VSCode Extension | TS placeholder in `vscode-extension/` |
-| pnpm workspace | `pnpm-workspace.yaml` lists wrong path `frontend-web` (folder is `frontend/`) — broken |
+| pnpm workspace | `pnpm-workspace.yaml` lists wrong path `frontend` (folder is `frontend/`) — broken |
 | DB schemas | Fully designed in `.claude/specs/database.md` — not yet applied to Supabase |
 | Docs | HLD, LLD, architecture.md, per-agent docs written |
 | CI/CD | `deploy-frontend.yml` exists; no backend CI yet |
@@ -29,7 +29,7 @@
 
 ## Directory Layout (Locked — No Reorganization)
 
-> ⚠️ **HISTORICAL TREE.** The authoritative tree is in `.claude/CLAUDE.md` §40 and `.claude/SUMMARY.md` §3: one consolidated **`AUTOFOUNDER-BACKEND/app/`** + `AUTOFOUNDER-FRONTEND-WEB/` + `AUTOFOUNDER-ADMIN/` + `AUTOFOUNDER-MOBILE-APP/` + `AUTOFOUNDER-INFRA/` + `packages/{shared,api-client}`. The `backend/`-rooted tree below is retained for historical context only.
+> ⚠️ **HISTORICAL TREE.** The authoritative tree is in `.claude/CLAUDE.md` §40 and `.claude/SUMMARY.md` §3: one consolidated **`backend/app/`** + `frontend/` (with super-admin `/admin` route group) + `mobile-app/` + `infra/` + `packages/{shared,api-client}`. The `backend/`-rooted tree below is retained for historical context only.
 
 ```
 autofounder-ai/
@@ -52,7 +52,7 @@ autofounder-ai/
 │   ├── tests/
 │   ├── Dockerfile
 │   └── pyproject.toml
-├── frontend/                     # Next.js 14 Founder Portal (@autofounder-ai/frontend-web)
+├── frontend/                     # Next.js 14 Founder Portal (@autofounder-ai/frontend)
 │   ├── src/
 │   │   ├── app/                  # Next.js App Router
 │   │   ├── components/
@@ -113,7 +113,7 @@ Layer 9  (Compliance — minimal)      ← ninth: audit log, GDPR stubs
 **Goal**: Dev environment works end-to-end; data layer live; first API health-check returns 200.
 
 #### S0.1 — Fix Workspace Config (immediate)
-- [x] Fix `pnpm-workspace.yaml`: change `frontend-web` → `frontend` (folder name mismatch)
+- [x] Fix `pnpm-workspace.yaml`: change `frontend` → `frontend` (folder name mismatch)
 - [x] Fix `backend/pyproject.toml`: `packages = ["src/autofounder_ai"]` (hyphen → underscore)
 - [ ] Create `backend/src/autofounder_ai/__init__.py` (empty — marks Python package)
 - [ ] Create `packages/` dir with `packages/shared-types/` placeholder
@@ -336,7 +336,7 @@ Layer 9  (Compliance — minimal)      ← ninth: audit log, GDPR stubs
 ## File Creation Order (exact sequence for backend)
 
 ```
-AUTOFOUNDER-BACKEND/app/          (historical: shown as backend/src/autofounder_ai/)
+backend/app/          (historical: shown as backend/src/autofounder_ai/)
 │
 ├── __init__.py
 ├── core/
@@ -402,15 +402,15 @@ AUTOFOUNDER-BACKEND/app/          (historical: shown as backend/src/autofounder_
 | Decision | Locked Choice |
 |---|---|
 | Compute | AWS ECS Fargate (NOT GCP Cloud Run — stack.md is stale) |
-| Folder layout | `AUTOFOUNDER-BACKEND` + `AUTOFOUNDER-FRONTEND-WEB` + `AUTOFOUNDER-ADMIN` + `AUTOFOUNDER-MOBILE-APP` + `AUTOFOUNDER-INFRA` + `packages/{shared,api-client}` (UPPERCASE dirs) |
-| Backend structure | One consolidated `AUTOFOUNDER-BACKEND/app/` (api · orchestrator · agents · workers); split in Phase 4 if needed |
+| Folder layout | `backend` + `frontend` (incl. `/admin` route group) + `mobile-app` + `infra` + `packages/{shared,api-client}` (lowercase dirs) |
+| Backend structure | One consolidated `backend/app/` (api · orchestrator · agents · workers); split in Phase 4 if needed |
 | LLM Primary | Gemini 3.5 Flash via LiteLLM |
 | Embeddings | `gemini-embedding-2` |
 | Vector store | Supabase pgvector |
 | Tenant isolation | Schema-per-org + RLS |
 | Agent framework | LangGraph (stateful DAG) |
 | Backend | FastAPI + Python 3.12 + uv |
-| Frontend | Next.js 14 + Tailwind + shadcn/ui (in `AUTOFOUNDER-FRONTEND-WEB/`) |
+| Frontend | Next.js 14 + Tailwind + shadcn/ui (in `frontend/`) |
 | Message bus | Confluent Kafka + EventBridge + SQS |
 | DB access | UDAL only — no direct SQLAlchemy in agents |
 | Auth | Supabase Auth |

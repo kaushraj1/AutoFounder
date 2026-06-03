@@ -12,7 +12,7 @@ $region = if ($env:AWS_REGION_PRIMARY) { $env:AWS_REGION_PRIMARY } else { "ap-so
 $image = "$($env:AWS_ECR_REGISTRY)/autofounder-ai-backend:dev"
 
 Write-Host "==> Building $image"
-docker build -t $image AUTOFOUNDER-BACKEND
+docker build -t $image backend
 
 Write-Host "==> Logging in to ECR ($region)"
 aws ecr get-login-password --region $region | docker login --username AWS --password-stdin $env:AWS_ECR_REGISTRY

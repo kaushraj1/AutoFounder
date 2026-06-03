@@ -1,5 +1,5 @@
 {
-  "name": "@autofounder-ai/frontend-web",
+  "name": "@autofounder-ai/frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,8 +10,8 @@
     "typescript-eslint": "^8.22.0"
   },
   "scripts": {
-    "dev": "node -e \"console.log('frontend-web: app shell in Phase P9 — placeholder dev');\"",
-    "build": "node -e \"console.log('frontend-web: no production build until Phase P9');\"",
+    "dev": "node -e \"console.log('frontend: app shell in Phase P9 — placeholder dev');\"",
+    "build": "node -e \"console.log('frontend: no production build until Phase P9');\"",
     "lint": "eslint .",
     "format": "prettier --write ."
   }

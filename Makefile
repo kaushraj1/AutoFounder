@@ -3,7 +3,7 @@
 # Install JS workspaces (pnpm) and backend Python deps (uv)
 install:
 	pnpm install
-	cd AUTOFOUNDER-BACKEND && uv sync
+	cd backend && uv sync
 
 # Start local ancillary services (Redis). Run `supabase start` separately for Postgres + pgvector.
 stack:
@@ -16,18 +16,18 @@ dev:
 	pnpm dev
 
 backend-lint:
-	cd AUTOFOUNDER-BACKEND && uv run ruff check app tests
-	cd AUTOFOUNDER-BACKEND && uv run ruff format --check app tests
+	cd backend && uv run ruff check app tests
+	cd backend && uv run ruff format --check app tests
 
 backend-format:
-	cd AUTOFOUNDER-BACKEND && uv run ruff format app tests
-	cd AUTOFOUNDER-BACKEND && uv run ruff check --fix app tests
+	cd backend && uv run ruff format app tests
+	cd backend && uv run ruff check --fix app tests
 
 backend-typecheck:
-	cd AUTOFOUNDER-BACKEND && uv run mypy app
+	cd backend && uv run mypy app
 
 backend-test:
-	cd AUTOFOUNDER-BACKEND && uv run pytest
+	cd backend && uv run pytest
 
 js-lint:
 	pnpm lint

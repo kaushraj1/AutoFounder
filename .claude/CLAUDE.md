@@ -405,7 +405,7 @@ sequenceDiagram
 
 ### 12.3 Contracts
 
-- Every new endpoint **must** have an OpenAPI 3.1 entry checked into `AUTOFOUNDER-BACKEND/openapi.yaml`.
+- Every new endpoint **must** have an OpenAPI 3.1 entry checked into `backend/openapi.yaml`.
 - Breaking changes follow `v2/` namespacing; never break v1.
 
 ---
@@ -414,14 +414,13 @@ sequenceDiagram
 
 | Service | Lang | Responsibility |
 |---|---|---|
-| `AUTOFOUNDER-BACKEND` | FastAPI (Python 3.12) | **Consolidated backend** — API gateway, auth, tenancy, rate-limits + LangGraph orchestrator + agent workers. Internal modules: `app/api`, `app/orchestrator`, `app/agents`, `app/workers`, `app/services` |
+| `backend` | FastAPI (Python 3.12) | **Consolidated backend** — API gateway, auth, tenancy, rate-limits + LangGraph orchestrator + agent workers. Internal modules: `app/api`, `app/orchestrator`, `app/agents`, `app/workers`, `app/services` |
 | Supabase Realtime | Managed | WebSocket fan-out (agent log streaming, DB change events) |
-| `AUTOFOUNDER-ADMIN` | Next.js | Super-admin dashboard |
-| `AUTOFOUNDER-FRONTEND-WEB` | Next.js 14 | Founder Portal |
+| `frontend` | Next.js 14 | Founder Portal — includes the super-admin area as a role-guarded `/admin` route group (App Router), **not** a separate app |
 
 > The API gateway, orchestrator, and agent workers were three separate services in the original
 > design (`apps/api`, `apps/orchestrator`, `apps/ai-services`). Phase 1 consolidates them into one
-> deployable **modular monolith** (`AUTOFOUNDER-BACKEND`), to be split back into separate ECS
+> deployable **modular monolith** (`backend`), to be split back into separate ECS
 > services in Phase 4 if scale requires.
 
 ---
@@ -537,7 +536,7 @@ sequenceDiagram
 
 ### 19.2 Unified Data Access Layer (UDAL)
 
-A thin internal library (`AUTOFOUNDER-BACKEND/app/db`) that:
+A thin internal library (`backend/app/db`) that:
 
 - Resolves the calling identity → `organization_id`.
 - Routes the call to the correct store.
@@ -865,7 +864,7 @@ Delivery channels (Layer 7): Web App, Mobile, Email, Slack, MS Teams, public API
 
 ```
 autofounder-ai/
-├── AUTOFOUNDER-BACKEND/          # FastAPI — consolidated backend (Python; uv)
+├── backend/          # FastAPI — consolidated backend (Python; uv)
 │   ├── app/
 │   │   ├── api/v1/               # REST routes (health, ideas, runs)
 │   │   ├── core/                # config, logging, security
@@ -877,10 +876,9 @@ autofounder-ai/
 │   │   └── workers/             # queue consumers
 │   ├── alembic/                 # database migrations
 │   └── tests/
-├── AUTOFOUNDER-FRONTEND-WEB/     # Next.js 14 — Founder Portal
-├── AUTOFOUNDER-ADMIN/            # Next.js — Super-admin dashboard
-├── AUTOFOUNDER-MOBILE-APP/       # Expo (React Native)
-├── AUTOFOUNDER-INFRA/            # Terraform + CodeDeploy (AWS ECS Fargate)
+├── frontend/     # Next.js 14 — Founder Portal (+ super-admin `/admin` route group, role-guarded)
+├── mobile-app/       # Expo (React Native)
+├── infra/            # Terraform + CodeDeploy (AWS ECS Fargate)
 │   ├── terraform/
 │   └── codedeploy/
 ├── packages/
@@ -892,7 +890,7 @@ autofounder-ai/
 ```
 
 > **Structure note:** All Python agent / guardrail / tool / prompt / eval code lives under
-> `AUTOFOUNDER-BACKEND/app/`. `packages/` is **TypeScript-only** (`shared`, `api-client`).
+> `backend/app/`. `packages/` is **TypeScript-only** (`shared`, `api-client`).
 > The original `apps/` + per-domain `packages/*` (agents, guardrails, prompts, tools, db, eval)
 > layout is retired — see [stack.md](specs/stack.md) and PROJECT-3 convention.
 
@@ -927,26 +925,26 @@ autofounder-ai/
 ```bash
 # Install
 pnpm install                                        # JS workspaces
-cd AUTOFOUNDER-BACKEND && uv sync                   # Python backend deps
+cd backend && uv sync                   # Python backend deps
 
 # Local Supabase (postgres + pgvector + auth + storage + realtime)
 supabase start
 
 # Run services locally
-pnpm --filter @autofounder-ai/frontend-web dev      # Next.js Founder Portal
-cd AUTOFOUNDER-BACKEND && uv run uvicorn app.main:app --reload --port 8000
+pnpm --filter @autofounder-ai/frontend dev      # Next.js Founder Portal
+cd backend && uv run uvicorn app.main:app --reload --port 8000
 
 # Docker (ancillary services: Redis)
 docker compose up -d
 
 # Quality gates
 make quality                                        # backend ruff+mypy+pytest, then JS lint
-cd AUTOFOUNDER-BACKEND && uv run pytest              # backend tests only
+cd backend && uv run pytest              # backend tests only
 
 # Infra
-cd AUTOFOUNDER-INFRA/terraform && terraform plan -var-file=env/staging.tfvars
+cd infra/terraform && terraform plan -var-file=env/staging.tfvars
 
-# Evals (Phase 2+) — golden sets live under AUTOFOUNDER-BACKEND once implemented
+# Evals (Phase 2+) — golden sets live under backend once implemented
 ```
 
 ---

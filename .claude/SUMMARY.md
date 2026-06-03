@@ -44,14 +44,13 @@ PROJECT-1-AutoFounder-AI/                (per CLAUDE.md §40 — authoritative)
 │
 ├── .claude/                   Claude Code config, memory, tasks, and specs
 ├── .github/                   GitHub Actions CI/CD workflows
-├── AUTOFOUNDER-BACKEND/       Consolidated FastAPI backend — Python 3.12 (api + orchestrator + agents + workers)
+├── backend/       Consolidated FastAPI backend — Python 3.12 (api + orchestrator + agents + workers)
 │   ├── app/                   api/v1, core, db (UDAL), models, schemas, services, agents, orchestrator, guardrails, workers
 │   ├── alembic/               Database migrations
 │   └── tests/
-├── AUTOFOUNDER-FRONTEND-WEB/  Next.js 14 Founder Portal (scaffold)
-├── AUTOFOUNDER-ADMIN/         Next.js super-admin dashboard (scaffold)
-├── AUTOFOUNDER-MOBILE-APP/    Expo React Native (scaffold)
-├── AUTOFOUNDER-INFRA/
+├── frontend/  Next.js 14 Founder Portal + super-admin `/admin` route group (scaffold)
+├── mobile-app/    Expo React Native (scaffold)
+├── infra/
 │   ├── terraform/             IaC for AWS (ECS, ElastiCache, S3, messaging, IAM…)
 │   └── codedeploy/            Blue/green deploy specs
 ├── packages/
@@ -62,7 +61,7 @@ PROJECT-1-AutoFounder-AI/                (per CLAUDE.md §40 — authoritative)
 │
 ├── Makefile                   Canonical task runner
 ├── package.json               Root pnpm workspace + Turborepo config
-├── pnpm-workspace.yaml        Declares: AUTOFOUNDER-FRONTEND-WEB, AUTOFOUNDER-ADMIN, AUTOFOUNDER-MOBILE-APP, AUTOFOUNDER-BACKEND, packages/*
+├── pnpm-workspace.yaml        Declares: frontend, mobile-app, backend, packages/*
 ├── turbo.json                 Turborepo task pipeline (dev, build, lint)
 ├── eslint.config.mjs          Shared ESLint v9 flat config for all JS/TS packages
 ├── docker-compose.yml         Redis 7 only (Supabase CLI handles DB/Auth/Storage/Realtime)
@@ -99,12 +98,12 @@ All Claude Code context, conventions, and planning files.
 
 ---
 
-### 4.2 `AUTOFOUNDER-BACKEND/` — Consolidated FastAPI Backend (Python 3.12)
+### 4.2 `backend/` — Consolidated FastAPI Backend (Python 3.12)
 
 **Status**: Runnable skeleton — `/health`, `/v1/ideas`, `/v1/runs` (in-memory store), Alembic 0001 migration, pytest suite (7 tests). Agent/orchestrator logic is stubbed (Sprint 1). Merges the former `apps/api` + `apps/orchestrator` + `apps/ai-services`.
 
 ```
-AUTOFOUNDER-BACKEND/
+backend/
 ├── app/
 │   ├── main.py             FastAPI app factory + /health
 │   ├── api/v1/             health, ideas, runs routers
@@ -148,12 +147,12 @@ AUTOFOUNDER-BACKEND/
 
 ---
 
-### 4.3 `AUTOFOUNDER-FRONTEND-WEB/` — Next.js 14 Founder Portal (Scaffold)
+### 4.3 `frontend/` — Next.js 14 Founder Portal (Scaffold)
 
 **Status**: TypeScript placeholder only. Full Next.js 14 implementation is Phase 4 (AF-051+).
 
 ```
-AUTOFOUNDER-FRONTEND-WEB/
+frontend/
 ├── src/
 │   └── placeholder.ts    Empty placeholder
 ├── package.json
@@ -173,13 +172,13 @@ AUTOFOUNDER-FRONTEND-WEB/
 
 ---
 
-### 4.4 `AUTOFOUNDER-MOBILE-APP/` — Expo React Native (Placeholder)
+### 4.4 `mobile-app/` — Expo React Native (Placeholder)
 
 **pnpm package name**: `@autofounder-ai/mobile-app`  
 **Status**: TypeScript placeholder only. Phase 5 (AF-063+).
 
 ```
-AUTOFOUNDER-MOBILE-APP/
+mobile-app/
 ├── src/
 │   └── placeholder.ts
 ├── package.json          Scripts: dev (console.log placeholder), lint, format
@@ -314,8 +313,8 @@ scripts/
 | `build` | Depends on upstream `^build`; caches `dist/**` |
 | `lint` | Depends on upstream `^lint` |
 
-**pnpm workspaces** (`pnpm-workspace.yaml`): `AUTOFOUNDER-FRONTEND-WEB`, `AUTOFOUNDER-ADMIN`, `AUTOFOUNDER-MOBILE-APP`, `AUTOFOUNDER-BACKEND`, `packages/*`.  
-The consolidated Python backend (`AUTOFOUNDER-BACKEND`) is managed by `uv`; its `package.json` delegates lint/typecheck/test to uv via Turborepo.
+**pnpm workspaces** (`pnpm-workspace.yaml`): `frontend`, `mobile-app`, `backend`, `packages/*`.  
+The consolidated Python backend (`backend`) is managed by `uv`; its `package.json` delegates lint/typecheck/test to uv via Turborepo.
 
 ### Makefile targets
 
@@ -384,13 +383,13 @@ All other secrets (Stripe, Resend, GitHub App, LangSmith, Sentry) go into AWS Se
 | Cache | Redis 7 — ElastiCache (prod) / Docker Compose (local) |
 | Graph | Neo4j / Amazon Neptune (competitor ↔ market ↔ persona) |
 | Object storage | Supabase Storage (app artifacts) + S3 (RLHF data lake, 7-yr audit) |
-| Data access | UDAL (`AUTOFOUNDER-BACKEND/app/db`) — agents must never touch DB drivers directly |
+| Data access | UDAL (`backend/app/db`) — agents must never touch DB drivers directly |
 
 ### Infrastructure
 | Concern | Choice |
 |---------|--------|
 | Cloud | AWS (ECS Fargate, multi-AZ VPC) |
-| IaC | Terraform (planned, scaffolded in `AUTOFOUNDER-INFRA/`) |
+| IaC | Terraform (planned, scaffolded in `infra/`) |
 | Deploy strategy | GitHub Actions → AWS CodeDeploy (ECS blue/green) |
 | Local dev DB | Supabase CLI (`supabase start`) |
 | Container registry | Amazon ECR |
@@ -418,7 +417,7 @@ make stack            # docker compose up -d
 make dev              # turbo dev
 
 # 6. Run the consolidated backend
-cd AUTOFOUNDER-BACKEND && uv run uvicorn app.main:app --reload --port 8000
+cd backend && uv run uvicorn app.main:app --reload --port 8000
 
 # 7. Quality gate before any PR
 make quality          # backend ruff + js eslint — must pass

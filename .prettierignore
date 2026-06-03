@@ -13,8 +13,8 @@ coverage/
 .turbo/
 
 # Python backend & IaC (not formatted by Prettier)
-AUTOFOUNDER-BACKEND/
-AUTOFOUNDER-INFRA/
+backend/
+infra/
 
 # Markdown is left to authors
 *.md

@@ -71,7 +71,7 @@ HITL gates required at: Pillar 1 (validation), Pillar 2 (architecture), Pillar 5
 
 ```
 autofounder-ai/                        (per CLAUDE.md §40 — authoritative)
-├── AUTOFOUNDER-BACKEND/   Consolidated FastAPI backend (Python 3.12, uv)
+├── backend/   Consolidated FastAPI backend (Python 3.12, uv)
 │   ├── app/              api/v1 · core · db (UDAL) · models · schemas · services · agents · orchestrator · guardrails · workers
 │   ├── alembic/          database migrations
 │   ├── tests/
@@ -79,10 +79,9 @@ autofounder-ai/                        (per CLAUDE.md §40 — authoritative)
 │   └── Dockerfile
 │   # api gateway + orchestrator + agent workers consolidated (split in Phase 4 if needed)
 │   # Realtime: Supabase Realtime (managed — no separate service)
-├── AUTOFOUNDER-FRONTEND-WEB/  Next.js 14 Founder Portal (pnpm workspace)
-├── AUTOFOUNDER-ADMIN/         Next.js super-admin dashboard (pnpm workspace)
-├── AUTOFOUNDER-MOBILE-APP/    Expo React Native (pnpm workspace)
-├── AUTOFOUNDER-INFRA/
+├── frontend/  Next.js 14 Founder Portal + super-admin `/admin` route group (pnpm workspace)
+├── mobile-app/    Expo React Native (pnpm workspace)
+├── infra/
 │   ├── terraform/         IaC for AWS (ECS, ElastiCache, S3, messaging, IAM…)
 │   └── codedeploy/        Blue/green deploy specs
 ├── packages/
@@ -139,7 +138,7 @@ make js-lint          # pnpm lint  →  turbo lint
 make js-format        # pnpm format  →  prettier --write .
 
 # Run backend tests
-cd AUTOFOUNDER-BACKEND && uv run pytest
+cd backend && uv run pytest
 
 # Turbo tasks directly
 pnpm dev              # all workspaces in parallel

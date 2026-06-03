@@ -1,6 +1,5 @@
 packages:
-  - "AUTOFOUNDER-FRONTEND-WEB"
-  - "AUTOFOUNDER-ADMIN"
-  - "AUTOFOUNDER-MOBILE-APP"
-  - "AUTOFOUNDER-BACKEND"
+  - "frontend"
+  - "mobile-app"
+  - "backend"
   - "packages/*"

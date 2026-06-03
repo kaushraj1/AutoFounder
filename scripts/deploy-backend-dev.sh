@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.."
 IMAGE="${AWS_ECR_REGISTRY}/autofounder-ai-backend:dev"
 
 echo "==> Building ${IMAGE}"
-docker build -t "${IMAGE}" AUTOFOUNDER-BACKEND
+docker build -t "${IMAGE}" backend
 
 echo "==> Logging in to ECR (${AWS_REGION_PRIMARY})"
 aws ecr get-login-password --region "${AWS_REGION_PRIMARY}" \

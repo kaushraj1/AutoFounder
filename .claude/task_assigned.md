@@ -80,9 +80,9 @@ Think of the project like building a house. You can't paint a room (build your a
 | AF-001 | Team | Init pnpm workspace (`pnpm-workspace.yaml`) + Turborepo (`turbo.json`) with `dev`, `lint`, `build` pipelines | `feature/monorepo-init` | ✅ |
 | AF-002 | Team | Root `package.json` — `turbo dev`, unified `lint`, `format:check` scripts wiring Ruff + ESLint | `feature/root-scripts` | ✅ |
 | AF-003 | Team | `docker-compose.yml` — Redis 7 (AOF persistence) with named volumes; Supabase CLI manages PostgreSQL + pgvector + Auth + Storage + Realtime locally via `supabase start` | `feature/docker-compose-setup` | ✅ |
-| AF-004 | Team | Backend scaffold — `AUTOFOUNDER-BACKEND/` with `pyproject.toml`, `uv.lock`, Ruff + mypy + pytest, `app/` layout, Alembic, `Dockerfile` | `feature/backend-scaffold` | ✅ |
-| AF-005 | Team | Frontend scaffold — `AUTOFOUNDER-FRONTEND-WEB/` TypeScript + React placeholder, `tsconfig.json`, `package.json` | `feature/frontend-scaffold` | ✅ |
-| AF-006 | Team | Mobile scaffold — `AUTOFOUNDER-MOBILE-APP/` Expo + TypeScript placeholder | `feature/mobile-scaffold` | ✅ |
+| AF-004 | Team | Backend scaffold — `backend/` with `pyproject.toml`, `uv.lock`, Ruff + mypy + pytest, `app/` layout, Alembic, `Dockerfile` | `feature/backend-scaffold` | ✅ |
+| AF-005 | Team | Frontend scaffold — `frontend/` TypeScript + React placeholder, `tsconfig.json`, `package.json` | `feature/frontend-scaffold` | ✅ |
+| AF-006 | Team | Mobile scaffold — `mobile-app/` Expo + TypeScript placeholder | `feature/mobile-scaffold` | ✅ |
 | AF-007 | Team | VS Code Extension scaffold — `vscode-extension/` TypeScript placeholder | `feature/vscode-extension-scaffold` | ✅ |
 | AF-008 | Team | ESLint v9 flat config (`eslint.config.mjs`) + Prettier — shared rules across all JS/TS workspaces | `feature/lint-config` | ✅ |
 | AF-009 | Team | `Makefile` — `install`, `stack`, `stack-down`, `dev`, `backend-lint`, `js-lint`, `quality` targets | `feature/makefile-scripts` | ✅ |
@@ -119,7 +119,7 @@ Think of the project like building a house. You can't paint a room (build your a
 |----|-------|------|--------|------------|:----:|:----:|
 | AF-025 | Asit | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟡 | ❌ |
 | AF-026 | Asit | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟡 | ❌ |
-| AF-027 | Asit | **⭐ UDAL** — `AUTOFOUNDER-BACKEND/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ❌ |
+| AF-027 | Asit | **⭐ UDAL** — `backend/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ❌ |
 | AF-028 | Asit | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ❌ |
 | AF-029 | Asit | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🔴 | ❌ |
 | AF-030 | Asit | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🔴 | ❌ |
@@ -244,7 +244,7 @@ _Phase 3a — Core API & Data Layer_
 |----|-------|------|--------|------------|:----:|:----:|
 | AF-025 | Asit | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟡 | ❌ |
 | AF-026 | Asit | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟡 | ❌ |
-| AF-027 | Asit | **⭐ UDAL** — `AUTOFOUNDER-BACKEND/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ❌ |
+| AF-027 | Asit | **⭐ UDAL** — `backend/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ❌ |
 | AF-028 | Asit | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ❌ |
 | AF-029 | Asit | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🔴 | ❌ |
 | AF-030 | Asit | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🔴 | ❌ |

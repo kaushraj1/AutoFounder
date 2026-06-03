@@ -28,9 +28,9 @@
 | AF-001 | Init pnpm workspace (`pnpm-workspace.yaml`) + Turborepo (`turbo.json`) with `dev`, `lint`, `build` pipelines | `feature/monorepo-init` | ✅ Completed |
 | AF-002 | Root `package.json` — `turbo dev`, unified `lint`, `format:check` scripts wiring Ruff + ESLint | `feature/root-scripts` | ✅ Completed |
 | AF-003 | `docker-compose.yml` — Redis 7 only (AOF persistence) with named volumes; Supabase CLI manages PostgreSQL + pgvector + Auth + Storage + Realtime locally via `supabase start` | `feature/docker-compose-setup` | ✅ Completed |
-| AF-004 | Backend scaffold — `AUTOFOUNDER-BACKEND/` with `pyproject.toml`, `uv.lock`, Ruff + mypy + pytest config, `app/` layout, Alembic, `Dockerfile` | `feature/backend-scaffold` | ✅ Completed |
-| AF-005 | Frontend scaffold — `AUTOFOUNDER-FRONTEND-WEB/` TypeScript + React placeholder, `tsconfig.json`, `package.json` | `feature/frontend-scaffold` | ✅ Completed |
-| AF-006 | Mobile scaffold — `AUTOFOUNDER-MOBILE-APP/` Expo + TypeScript placeholder, `tsconfig.json`, `package.json` | `feature/mobile-scaffold` | ✅ Completed |
+| AF-004 | Backend scaffold — `backend/` with `pyproject.toml`, `uv.lock`, Ruff + mypy + pytest config, `app/` layout, Alembic, `Dockerfile` | `feature/backend-scaffold` | ✅ Completed |
+| AF-005 | Frontend scaffold — `frontend/` TypeScript + React placeholder, `tsconfig.json`, `package.json` | `feature/frontend-scaffold` | ✅ Completed |
+| AF-006 | Mobile scaffold — `mobile-app/` Expo + TypeScript placeholder, `tsconfig.json`, `package.json` | `feature/mobile-scaffold` | ✅ Completed |
 | AF-007 | VS Code Extension scaffold — `vscode-extension/` TypeScript placeholder, `tsconfig.json`, `package.json` | `feature/vscode-extension-scaffold` | ✅ Completed |
 | AF-008 | ESLint v9 flat config (`eslint.config.mjs`) + Prettier — shared rules across all JS/TS workspaces | `feature/lint-config` | ✅ Completed |
 | AF-009 | `Makefile` — `install`, `stack`, `stack-down`, `dev`, `backend-lint`, `js-lint`, `quality` targets | `feature/makefile-scripts` | ✅ Completed |
@@ -73,7 +73,7 @@
 |----|------|--------|--------|
 | AF-025 | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | ❌ Pending |
 | AF-026 | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) and orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | ❌ Pending |
-| AF-027 | UDAL — `AUTOFOUNDER-BACKEND/app/db/` Python client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | ❌ Pending |
+| AF-027 | UDAL — `backend/app/db/` Python client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | ❌ Pending |
 | AF-028 | FastAPI app bootstrap — lifespan, dependency injection, global exception handler (structured `{code, message, requestId}` response), CORS | `feature/fastapi-app-setup` | ❌ Pending |
 | AF-029 | Auth middleware — Supabase JWT validation (SUPABASE_JWT_SECRET), OPA policy sidecar integration, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | ❌ Pending |
 | AF-030 | REST API endpoints — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | ❌ Pending |

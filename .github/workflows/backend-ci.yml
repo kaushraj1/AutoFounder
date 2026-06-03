@@ -4,16 +4,16 @@ on:
   push:
     branches: [main]
     paths:
-      - "AUTOFOUNDER-BACKEND/**"
+      - "backend/**"
       - ".github/workflows/backend-ci.yml"
   pull_request:
     paths:
-      - "AUTOFOUNDER-BACKEND/**"
+      - "backend/**"
       - ".github/workflows/backend-ci.yml"
 
 defaults:
   run:
-    working-directory: AUTOFOUNDER-BACKEND
+    working-directory: backend
 
 jobs:
   quality:

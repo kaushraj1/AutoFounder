@@ -99,7 +99,7 @@ subscription receipts, launch confirmation.
 ### Rules
 
 - All emails sent through `POST https://api.resend.com/emails`.
-- Templates are versioned React Email components in `AUTOFOUNDER-BACKEND/app/emails/`.
+- Templates are versioned React Email components in `backend/app/emails/`.
 - From address: `noreply@mail.autofounder.ai` (verified domain in Resend).
 - Unsubscribe header required on all non-transactional emails.
 - **Never** send email without founder opt-in. Transactional emails (gate alerts, receipts) are

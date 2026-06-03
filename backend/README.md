@@ -1,4 +1,4 @@
-# AUTOFOUNDER-BACKEND
+# backend
 
 The consolidated FastAPI backend for AutoFounder AI — API gateway, LangGraph orchestrator, and
 agent workers in a single deployable service (a "modular monolith"). Internal modules are kept

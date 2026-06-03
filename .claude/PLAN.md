@@ -88,7 +88,7 @@ There are **two independent ways** the work is phased. Keeping them distinct avo
 
 1. **Bottom-up**: infra/data → core platform → agents → UI. Never build UI for an agent that doesn't exist.
 2. **Vertical slices**: ship one complete slice (migration → UDAL → route → hook → component) — no half-open layers.
-3. **UDAL mandatory**: agents never touch the DB directly — always through `AUTOFOUNDER-BACKEND/app/db` UDAL with a resolved `organization_id`.
+3. **UDAL mandatory**: agents never touch the DB directly — always through `backend/app/db` UDAL with a resolved `organization_id`.
 4. **Tenant isolation from row 0**: schema-per-tenant + RLS before the first tenant row is written.
 5. **Every agent call is wrapped** by the 6-stage guardrails pipeline (even a minimal version) before shipping.
 6. **Working software over docs**: every sprint ends with something runnable.

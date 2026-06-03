@@ -8,9 +8,9 @@ Write-Host "==> AutoFounder AI dev setup"
 
 # 1. Environment files (never overwrite an existing one)
 if (-not (Test-Path ".env")) { Copy-Item ".env.example" ".env"; Write-Host "created .env" }
-if (-not (Test-Path "AUTOFOUNDER-BACKEND/.env")) {
-    Copy-Item "AUTOFOUNDER-BACKEND/.env.example" "AUTOFOUNDER-BACKEND/.env"
-    Write-Host "created AUTOFOUNDER-BACKEND/.env"
+if (-not (Test-Path "backend/.env")) {
+    Copy-Item "backend/.env.example" "backend/.env"
+    Write-Host "created backend/.env"
 }
 
 # 2. JS workspaces
@@ -19,7 +19,7 @@ pnpm install
 
 # 3. Backend (Python via uv)
 Write-Host "==> backend deps (uv)"
-Push-Location "AUTOFOUNDER-BACKEND"
+Push-Location "backend"
 uv python install 3.12
 uv sync
 Pop-Location
@@ -32,4 +32,4 @@ Write-Host ""
 Write-Host "Done. Next:"
 Write-Host "  - 'supabase start'   (Postgres + pgvector + auth + storage)"
 Write-Host "  - 'make dev'         (run the apps)"
-Write-Host "  - backend only: cd AUTOFOUNDER-BACKEND; uv run uvicorn app.main:app --reload"
+Write-Host "  - backend only: cd backend; uv run uvicorn app.main:app --reload"
