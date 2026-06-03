@@ -24,7 +24,7 @@
 The Architect Agent is the second stage of the Auto-Founder AI pipeline. It receives a validated `StrategistOutput` via gRPC and autonomously produces:
 
 - An **OpenAPI 3.1 specification** (full REST + WebSocket contract)
-- An **Entity-Relationship Diagram** (ERD) + Prisma schema
+- An **Entity-Relationship Diagram** (ERD) + SQLAlchemy models (+ Alembic migration)
 - A **Tech Stack Recommendation** with rationale
 - An **AWS Cost Forecast** (monthly + per-MVP COGS)
 - An **Auth Strategy** (OAuth 2.0, SAML 2.0, JWT, MFA flows)
@@ -41,7 +41,7 @@ Ideas scored `reject` by the Strategist Agent are never forwarded here. Ideas sc
 |---|---|---|
 | Ingest + validate Strategist output | `ingest_input` | < 15 s |
 | Functional + non-functional requirements extraction | `extract_requirements` | < 2 min |
-| DB schema design (ERD + Prisma) | `design_db_schema` | < 8 min |
+| DB schema design (ERD + SQLAlchemy models + Alembic) | `design_db_schema` | < 8 min |
 | API contract generation (OpenAPI 3.1) | `design_api_contract` | < 8 min |
 | Tech stack selection + rationale | `select_tech_stack` | < 5 min |
 | Auth strategy design | `plan_auth_strategy` | < 3 min |
@@ -57,7 +57,7 @@ Ideas scored `reject` by the Strategist Agent are never forwarded here. Ideas sc
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/architect/schema.py
+# backend/app/agents/architect/schema.py
 
 from __future__ import annotations
 
@@ -150,7 +150,8 @@ class DBEntity(BaseModel):
 
 class DBSchema(BaseModel):
     entities: list[DBEntity]
-    prisma_schema: str             = Field(..., description="Full Prisma schema file content")
+    sqlalchemy_models: str         = Field(..., description="Full SQLAlchemy models module content")
+    alembic_migration: str         = Field(..., description="Initial Alembic migration (upgrade/downgrade)")
     erd_mermaid: str               = Field(..., description="ERD as Mermaid erDiagram block")
     multi_tenancy_strategy: str    = "schema_per_tenant"  # always schema-per-tenant per CLAUDE.md
 
@@ -212,7 +213,7 @@ class AuthFlow(BaseModel):
 
 class AuthStrategy(BaseModel):
     flows: list[AuthFlow]
-    provider: str          = "Auth0"
+    provider: str          = "Supabase Auth"
     rbac_roles: list[str]
     session_storage: str   = "Redis"
     jwt_algorithm: str     = "RS256"
@@ -230,7 +231,7 @@ class Microservice(BaseModel):
     exposes_apis: list[str]          # API path prefixes
     communicates_with: list[str]     # other service names
     communication_protocol: str      # "gRPC" | "REST" | "Kafka event"
-    deployment_unit: str             # "EKS pod" | "Lambda" | "ECS task"
+    deployment_unit: str             # "ECS task" | "Lambda"
     scaling_trigger: str             # e.g. "CPU > 70%" | "queue depth > 100"
 
 
@@ -238,8 +239,8 @@ class MicroserviceMap(BaseModel):
     pattern: ServicePattern
     services: list[Microservice]
     dependency_mermaid: str          = Field(..., description="Mermaid graph of service dependencies")
-    api_gateway: str                 = "NestJS API Gateway"
-    message_bus: str                 = "Apache Kafka"
+    api_gateway: str                 = "FastAPI API Gateway"
+    message_bus: str                 = "Confluent Kafka"
 
 
 # ---------------------------------------------------------------------------
@@ -247,9 +248,9 @@ class MicroserviceMap(BaseModel):
 # ---------------------------------------------------------------------------
 
 class AWSServiceCost(BaseModel):
-    service: str        # e.g. "EKS", "RDS PostgreSQL", "ElastiCache Redis"
+    service: str        # e.g. "ECS Fargate", "Supabase (PostgreSQL)", "ElastiCache Redis"
     monthly_usd: float
-    assumptions: str    # e.g. "2 × t3.medium nodes, 20GB RDS storage"
+    assumptions: str    # e.g. "2 × 0.5 vCPU/1GB Fargate tasks, Supabase Pro tier"
 
 
 class AWSCostForecast(BaseModel):
@@ -272,13 +273,13 @@ class ScalingRule(BaseModel):
     service: str
     metric: str          # "cpu_utilisation" | "requests_per_second" | "queue_depth"
     threshold: str       # e.g. "> 70% for 2 min"
-    action: str          # e.g. "scale out +2 pods"
+    action: str          # e.g. "scale out +2 tasks"
     cooldown_s: int      = 120
 
 
 class ScalingPlan(BaseModel):
-    baseline_pods: dict[str, int]    # service_name → initial pod count
-    max_pods: dict[str, int]
+    baseline_tasks: dict[str, int]   # service_name → initial ECS task count
+    max_tasks: dict[str, int]
     rules: list[ScalingRule]
     load_test_target: str            = "Product Hunt spike (sudden burst 500 concurrent users)"
     cdn_strategy: str | None        = None
@@ -336,7 +337,7 @@ class ArchitectState(BaseModel):
     # Identity
     run_id: UUID            = Field(default_factory=uuid4)
     parent_run_id: UUID     = Field(..., description="Strategist Agent run_id")
-    tenant_id: str          = Field(..., description="Validated from JWT claims")
+    organization_id: str    = Field(..., description="Validated from Supabase JWT claims")
 
     # Input from Strategist Agent (deserialized from gRPC StrategistOutput)
     idea_normalised: str
@@ -401,24 +402,24 @@ class ArchitectState(BaseModel):
 | Node ID | Type | Description | Model |
 |---|---|---|---|
 | `ingest_input` | Sequential | Deserialise + validate StrategistOutput from gRPC | — (validation only) |
-| `extract_requirements` | Sequential | Derive FRs + NFRs from idea + Lean Canvas | Claude Sonnet |
-| `design_db_schema` | Parallel branch | ERD + Prisma schema generation | Claude Sonnet |
-| `design_api_contract` | Parallel branch | OpenAPI 3.1 YAML generation | Claude Sonnet |
-| `select_tech_stack` | Parallel branch | Stack recommendation with rationale | Claude Sonnet |
-| `plan_auth_strategy` | Parallel branch | Auth flows, RBAC, token policy | Claude Sonnet |
+| `extract_requirements` | Sequential | Derive FRs + NFRs from idea + Lean Canvas | Gemini 3.5 Flash |
+| `design_db_schema` | Parallel branch | ERD + SQLAlchemy models + Alembic migration generation | Gemini 3.5 Flash |
+| `design_api_contract` | Parallel branch | OpenAPI 3.1 YAML generation | Gemini 3.5 Flash |
+| `select_tech_stack` | Parallel branch | Stack recommendation with rationale | Gemini 3.5 Flash |
+| `plan_auth_strategy` | Parallel branch | Auth flows, RBAC, token policy | Gemini 3.5 Flash |
 | `parallel_join` | Barrier | Waits for all 4 parallel design nodes | — |
-| `define_microservice_boundaries` | Sequential | Service decomposition + dependency graph | Claude Sonnet |
-| `forecast_aws_costs` | Sequential | Per-service AWS Pricing API lookup + COGS calc | GPT-4o |
-| `plan_scaling` | Sequential | HPA rules, pod baseline, load-test target | GPT-4o |
-| `llm_judge_review` | Sequential | Second LLM scores all artefacts (0–100) | Claude Sonnet |
+| `define_microservice_boundaries` | Sequential | Service decomposition + dependency graph | Gemini 3.5 Flash |
+| `forecast_aws_costs` | Sequential | Per-service AWS Pricing API lookup + COGS calc | Gemini 3.5 Flash |
+| `plan_scaling` | Sequential | ECS auto-scaling rules, task baseline, load-test target | Gemini 3.5 Flash |
+| `llm_judge_review` | Sequential | Second LLM scores all artefacts (0–100) | Gemini 3.5 Flash |
 | `founder_approval_gate` | HITL / Async | Blocks until Founder approves or 15 min timeout | — |
-| `render_architecture_doc` | Sequential | Assembles final Markdown architecture document | GPT-4o |
+| `render_architecture_doc` | Sequential | Assembles final Markdown architecture document | Gemini 3.5 Flash |
 | `error_handler` | Error sink | Retries or escalates failed nodes | — |
 
 ### 3.2 Graph definition
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/architect/graph.py
+# backend/app/agents/architect/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -565,7 +566,7 @@ def build_architect_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# AUTOFOUNDER-BACKEND/app/agents/architect/routers.py
+# backend/app/agents/architect/routers.py
 
 def route_after_ingest(state: ArchitectState) -> str:
     if state.fatal_error:
@@ -671,7 +672,7 @@ flowchart TD
 ### 4.1 Tool definitions (LangChain-compatible)
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/architect/tools.py
+# backend/app/agents/architect/tools.py
 
 import os
 import httpx
@@ -695,7 +696,7 @@ tavily_search = TavilySearchResults(
 # -- AWS Pricing API (cost forecasting) ------------------------------------
 
 class AWSPriceInput(BaseModel):
-    service_code: str  = Field(..., description="e.g. 'AmazonEC2', 'AmazonRDS', 'AmazonElastiCache'")
+    service_code: str  = Field(..., description="e.g. 'AmazonEC2', 'AmazonECS', 'AmazonElastiCache'")
     filters: list[dict] = Field(
         ...,
         description="List of {'Field': str, 'Value': str, 'Type': 'TERM_MATCH'} filter dicts"
@@ -758,20 +759,26 @@ lint_openapi = StructuredTool.from_function(
 )
 
 
-# -- Prisma Schema Linter --------------------------------------------------
+# -- SQLAlchemy / Alembic Validator ----------------------------------------
 
-class PrismaLintInput(BaseModel):
-    schema_content: str = Field(..., description="Prisma schema file content")
+class SQLAlchemyLintInput(BaseModel):
+    models_content: str = Field(..., description="SQLAlchemy models module content")
 
 
-def _lint_prisma(schema_content: str) -> dict:
+def _lint_sqlalchemy(models_content: str) -> dict:
     import subprocess, tempfile, os
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".prisma", delete=False) as f:
-        f.write(schema_content)
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write(models_content)
         tmp_path = f.name
     try:
+        # Compile-check the models module, then let Alembic confirm the metadata
+        # is importable and migration-ready (alembic check / autogenerate dry-run).
         result = subprocess.run(
-            ["npx", "prisma", "validate", "--schema", tmp_path],
+            ["python", "-c",
+             f"import importlib.util, sys; "
+             f"spec = importlib.util.spec_from_file_location('models', '{tmp_path}'); "
+             f"mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod); "
+             f"assert hasattr(mod, 'Base'), 'models module must expose a SQLAlchemy declarative Base'"],
             capture_output=True, text=True, timeout=30,
         )
         return {
@@ -780,16 +787,16 @@ def _lint_prisma(schema_content: str) -> dict:
             "stderr": result.stderr[:1000],
         }
     except subprocess.TimeoutExpired:
-        return {"valid": False, "errors": ["prisma validate timed out"]}
+        return {"valid": False, "errors": ["SQLAlchemy/Alembic validation timed out"]}
     finally:
         os.unlink(tmp_path)
 
 
-lint_prisma = StructuredTool.from_function(
-    func=_lint_prisma,
-    name="lint_prisma",
-    description="Run `prisma validate` on a Prisma schema and return errors.",
-    args_schema=PrismaLintInput,
+lint_sqlalchemy = StructuredTool.from_function(
+    func=_lint_sqlalchemy,
+    name="lint_sqlalchemy",
+    description="Validate a SQLAlchemy models module (import + Alembic metadata check) and return errors.",
+    args_schema=SQLAlchemyLintInput,
 )
 
 
@@ -824,7 +831,7 @@ validate_mermaid = StructuredTool.from_function(
 TOOL_REGISTRY: dict[str, list] = {
     "ingest_input":                  [],                    # validation only
     "extract_requirements":          [tavily_search],        # FR/NFR research
-    "design_db_schema":              [lint_prisma, validate_mermaid],
+    "design_db_schema":              [lint_sqlalchemy, validate_mermaid],
     "design_api_contract":           [lint_openapi],
     "select_tech_stack":             [tavily_search],
     "plan_auth_strategy":            [tavily_search],
@@ -844,19 +851,19 @@ TOOL_REGISTRY: dict[str, list] = {
 | Tavily | 20 s | 60 req/min via token bucket | Skip (LLM uses prior knowledge) |
 | AWS Pricing API | 20 s | Public, no auth required | Hardcoded tier estimates |
 | `lint_openapi` | 10 s | Local process, unlimited | Skip lint, log warning |
-| `lint_prisma` | 30 s | Local process, unlimited | Skip lint, log warning |
+| `lint_sqlalchemy` | 30 s | Local process, unlimited | Skip lint, log warning |
 | `validate_mermaid` | 15 s | Local process, unlimited | Skip validation |
 
 ---
 
 ## 5. Prompt Templates
 
-All prompts use **Claude Sonnet** (architecture reasoning) or **GPT-4o** (structured data, cost math, doc assembly) per the model routing policy.
+All prompts use **Gemini 3.5 Flash** (architecture reasoning, structured data, cost math, doc assembly) per the model routing policy; Claude Sonnet is available only as a fallback.
 
 ### 5.1 `extract_requirements` — Requirements Extraction
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/extract_requirements.j2 #}
+{# backend/app/agents/architect/prompts/extract_requirements.j2 #}
 
 SYSTEM:
 You are a senior software architect extracting requirements for a SaaS product.
@@ -907,20 +914,21 @@ admin panel, billing, and any domain-specific features evident from the Lean Can
 ### 5.2 `design_db_schema` — Database Schema Design
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/design_db_schema.j2 #}
+{# backend/app/agents/architect/prompts/design_db_schema.j2 #}
 
 SYSTEM:
-You are a principal database engineer designing a production PostgreSQL schema.
+You are a principal database engineer designing a production Supabase (PostgreSQL) schema.
 The platform is multi-tenant using schema-per-tenant isolation (never share schemas).
-All tables must include: id (UUID PK), tenant_id (FK), created_at, updated_at.
+All tables must include: id (UUID PK), organization_id (FK), created_at, updated_at.
 Enable Row Level Security (RLS) on all user-facing tables.
 Every foreign key must have an index. Use snake_case for all names.
 
 Rules:
 - Return ONLY valid JSON, no markdown fences.
-- Emit a complete Prisma schema (as a string) — valid syntax, datasource + generator blocks included.
+- Emit a complete SQLAlchemy models module (as a string) — valid syntax, declarative Base + table mappings.
+- Emit an initial Alembic migration (as a string) — upgrade() + downgrade() reflecting the models.
 - Emit an ERD as a Mermaid erDiagram block (as a string).
-- Do NOT use Prisma relations that conflict with schema-per-tenant (avoid cross-schema FKs).
+- Do NOT use relations that conflict with schema-per-tenant (avoid cross-schema FKs).
 
 USER:
 Idea: {{ idea_normalised }}
@@ -939,8 +947,9 @@ Return:
       "rls_enabled": bool
     }
   ],
-  "prisma_schema": string,   // full schema.prisma file content
-  "erd_mermaid": string,     // Mermaid erDiagram block
+  "sqlalchemy_models": string,   // full SQLAlchemy models module content
+  "alembic_migration": string,   // initial Alembic migration (upgrade/downgrade)
+  "erd_mermaid": string,         // Mermaid erDiagram block
   "multi_tenancy_strategy": "schema_per_tenant"
 }
 
@@ -953,13 +962,13 @@ Design constraints:
 ### 5.3 `design_api_contract` — OpenAPI 3.1 Specification
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/design_api_contract.j2 #}
+{# backend/app/agents/architect/prompts/design_api_contract.j2 #}
 
 SYSTEM:
 You are a senior API designer. Generate a complete OpenAPI 3.1 specification for
-a multi-tenant SaaS REST API served by NestJS. Every route must:
+a multi-tenant SaaS REST API served by FastAPI. Every route must:
 - Require Bearer JWT auth (except /auth/* routes)
-- Include x-tenant-id header validation
+- Include x-organization-id header validation
 - Have standardised error schemas (RFC 7807 Problem Details)
 - Include rate limit headers (X-RateLimit-Limit, X-RateLimit-Remaining)
 
@@ -996,23 +1005,23 @@ Return:
 ### 5.4 `select_tech_stack` — Technology Stack Selection
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/select_tech_stack.j2 #}
+{# backend/app/agents/architect/prompts/select_tech_stack.j2 #}
 
 SYSTEM:
 You are a staff engineer selecting a production tech stack. Apply the model routing policy:
 use the cheapest capable technology. Prefer open-source, battle-tested, and
-team-scalable choices. Do not gold-plate: a startup does not need Kubernetes Day 1
-if Docker Compose satisfies the SLA.
+team-scalable choices. Do not gold-plate: a startup does not need a sprawling
+microservice fleet Day 1 if a modular monolith satisfies the SLA.
 
 Mandatory constraints from platform architecture:
 - Frontend: Next.js 14 (App Router) + Tailwind CSS + shadcn/ui
-- Backend/API Gateway: NestJS (Node.js)
-- AI/Orchestration: LangGraph + Anthropic Claude
-- Database (relational): PostgreSQL 16 (schema-per-tenant)
+- Backend/API Gateway: FastAPI (Python 3.12)
+- AI/Orchestration: LangGraph + Gemini 3.5 Flash
+- Database (relational + vector): Supabase (PostgreSQL 16 + pgvector, schema-per-tenant)
 - Cache: Redis Cluster
-- Object storage: AWS S3
-- Auth: Auth0
-- CI/CD: GitHub Actions → ArgoCD → EKS
+- Object storage: Supabase Storage (app tier) + AWS S3 (data lake / audit)
+- Auth: Supabase Auth
+- CI/CD: GitHub Actions → AWS CodeDeploy (blue/green) → ECS Fargate
 - These are fixed — do not propose alternatives for them.
 
 USER:
@@ -1044,11 +1053,11 @@ Return:
 ### 5.5 `plan_auth_strategy` — Authentication & Authorisation Strategy
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/plan_auth_strategy.j2 #}
+{# backend/app/agents/architect/prompts/plan_auth_strategy.j2 #}
 
 SYSTEM:
 You are a security architect designing the auth system for a multi-tenant SaaS platform.
-The platform uses Auth0 as the identity provider. All flows must satisfy:
+The platform uses Supabase Auth as the identity provider. All flows must satisfy:
 - OAuth 2.0 + PKCE for browser-based flows
 - SAML 2.0 for Enterprise SSO (Enterprise tier only)
 - MFA enforcement for all users (TOTP via Authenticator apps)
@@ -1078,7 +1087,7 @@ Return:
       "mfa_required": bool
     }
   ],
-  "provider": "Auth0",
+  "provider": "Supabase Auth",
   "rbac_roles": [string],
   "session_storage": "Redis",
   "jwt_algorithm": "RS256",
@@ -1089,12 +1098,12 @@ Return:
 ### 5.6 `define_microservice_boundaries` — Service Decomposition
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/define_microservice_boundaries.j2 #}
+{# backend/app/agents/architect/prompts/define_microservice_boundaries.j2 #}
 
 SYSTEM:
 You are a distributed systems architect decomposing a SaaS app into services.
 Apply the overall_pattern selected by the tech stack node. If it is "modular_monolith",
-define logical modules within the NestJS monolith — not separate deployments.
+define logical modules within the FastAPI monolith — not separate deployments.
 If "microservices", each service must have a single responsibility, own its data,
 and communicate via gRPC (sync) or Kafka events (async).
 
@@ -1120,20 +1129,20 @@ Return:
       "exposes_apis": [string],
       "communicates_with": [string],
       "communication_protocol": "gRPC" | "REST" | "Kafka event",
-      "deployment_unit": "EKS pod" | "Lambda" | "ECS task",
+      "deployment_unit": "ECS task" | "Lambda",
       "scaling_trigger": string
     }
   ],
   "dependency_mermaid": string,
-  "api_gateway": "NestJS API Gateway",
-  "message_bus": "Apache Kafka"
+  "api_gateway": "FastAPI API Gateway",
+  "message_bus": "Confluent Kafka"
 }
 ```
 
 ### 5.7 `forecast_aws_costs` — AWS Cost Forecasting
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/forecast_aws_costs.j2 #}
+{# backend/app/agents/architect/prompts/forecast_aws_costs.j2 #}
 
 SYSTEM:
 You are a FinOps engineer estimating AWS costs for a seed-stage SaaS startup.
@@ -1141,8 +1150,8 @@ Use the AWS Pricing API tool to look up real on-demand pricing. Assume ap-south-
 Apply the COGS target: < ₹500 per MVP build (≈ $6 USD at 1 USD = 83 INR).
 
 Cost assumptions for baseline (adjust per services count):
-- EKS: 2–3 × t3.medium worker nodes (shared across services)
-- RDS PostgreSQL: db.t3.micro, 20 GB gp3, multi-AZ disabled (cost-optimise for seed)
+- ECS Fargate: 2–3 tasks × 0.5 vCPU / 1 GB (shared across services)
+- Supabase (PostgreSQL): Pro tier, 8 GB storage, multi-AZ via Supabase platform
 - ElastiCache Redis: cache.t3.micro, 1 node
 - S3: 50 GB storage + 10K GET requests/day
 - ALB: 1 load balancer + 10 LCUs
@@ -1178,16 +1187,16 @@ If cost_within_target is false, append a "cost_optimisation_suggestions" key wit
 ### 5.8 `plan_scaling` — Scaling Plan
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/plan_scaling.j2 #}
+{# backend/app/agents/architect/prompts/plan_scaling.j2 #}
 
 SYSTEM:
-You are a platform engineer designing the auto-scaling configuration for a SaaS on AWS EKS.
-Use Kubernetes Horizontal Pod Autoscaler (HPA) rules. The load test baseline is a
+You are a platform engineer designing the auto-scaling configuration for a SaaS on Amazon ECS Fargate.
+Use ECS Service Auto Scaling (target-tracking / step-scaling) rules. The load test baseline is a
 Product Hunt spike: sudden burst to 500 concurrent users with P99 latency < 100ms.
 
 Rules:
-- Baseline pod count should serve normal traffic (< 50 concurrent users) at minimum cost.
-- Max pod count must absorb the spike without SLA breach.
+- Baseline task count should serve normal traffic (< 50 concurrent users) at minimum cost.
+- Max task count must absorb the spike without SLA breach.
 - Cooldown periods prevent flapping (min 120 s).
 
 USER:
@@ -1197,8 +1206,8 @@ AWS cost forecast: {{ aws_cost_forecast | tojson }}
 
 Return:
 {
-  "baseline_pods": { "<service_name>": int },
-  "max_pods": { "<service_name>": int },
+  "baseline_tasks": { "<service_name>": int },
+  "max_tasks": { "<service_name>": int },
   "rules": [
     {
       "service": string,
@@ -1216,7 +1225,7 @@ Return:
 ### 5.9 `llm_judge_review` — LLM-as-Judge Quality Gate
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/llm_judge_review.j2 #}
+{# backend/app/agents/architect/prompts/llm_judge_review.j2 #}
 
 SYSTEM:
 You are an independent principal architect reviewing architecture artefacts for a SaaS platform.
@@ -1230,7 +1239,7 @@ Scoring rubric:
 - completeness (0–100): Does it cover all functional requirements? Any major gaps?
 
 Deduct points for:
-- Missing tenant_id isolation in DB schema (-20)
+- Missing organization_id isolation in DB schema (-20)
 - No audit log table (-15)
 - HTTP routes missing auth (-20 each)
 - Circular microservice dependencies (-10 each)
@@ -1239,7 +1248,7 @@ Deduct points for:
 
 USER:
 DB schema entities: {{ db_schema.entities | map(attribute='name') | join(', ') }}
-Prisma schema excerpt (first 500 chars): {{ db_schema.prisma_schema[:500] }}
+SQLAlchemy models excerpt (first 500 chars): {{ db_schema.sqlalchemy_models[:500] }}
 API endpoint count: {{ api_contract.endpoints | length }}
 Unauthenticated routes: {{ api_contract.endpoints | selectattr('auth_required', 'eq', false) | map(attribute='path') | join(', ') or 'none' }}
 Tech stack pattern: {{ tech_stack.overall_pattern }}
@@ -1270,7 +1279,7 @@ Return:
 ### 5.10 `render_architecture_doc` — Architecture Document
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/render_architecture_doc.j2 #}
+{# backend/app/agents/architect/prompts/render_architecture_doc.j2 #}
 
 SYSTEM:
 You are a technical writer assembling a complete architecture document in Markdown.
@@ -1279,7 +1288,7 @@ Embed all Mermaid diagrams inline. Use H2 sections with clear anchors.
 Target audience: Coder Agent (automated) and Founder (human review).
 
 USER:
-Tenant: {{ tenant_id }}
+Tenant: {{ organization_id }}
 Idea: {{ idea_normalised }}
 Domain: {{ domain }}
 Viability band: {{ viability_band }}
@@ -1288,7 +1297,8 @@ NFRs: {{ non_functional_requirements | tojson }}
 
 DB schema (entities): {{ db_schema.entities | map(attribute='name') | join(', ') }}
 ERD (Mermaid): {{ db_schema.erd_mermaid }}
-Prisma schema (full): {{ db_schema.prisma_schema }}
+SQLAlchemy models (full): {{ db_schema.sqlalchemy_models }}
+Alembic migration (full): {{ db_schema.alembic_migration }}
 
 API contract (endpoint count): {{ api_contract.endpoints | length }}
 OpenAPI YAML: {{ api_contract.openapi_yaml }}
@@ -1317,7 +1327,7 @@ Founder approval comment: {{ approval_comment or 'None' }}
 Structure the document with exactly these sections:
 ## 1. Executive Architecture Summary
 ## 2. Functional & Non-Functional Requirements
-## 3. Data Model (ERD + Prisma Schema)
+## 3. Data Model (ERD + SQLAlchemy Models + Alembic Migration)
 ## 4. API Contract (OpenAPI Summary + full YAML in code block)
 ## 5. Technology Stack
 ## 6. Authentication & Authorisation
@@ -1332,10 +1342,11 @@ End with a machine-readable JSON block for the Coder Agent:
   "coder_handoff": {
     "run_id": "{{ run_id }}",
     "parent_run_id": "{{ parent_run_id }}",
-    "tenant_id": "{{ tenant_id }}",
-    "prisma_schema_s3_uri": "s3://autofounder-artefacts/{{ tenant_id }}/{{ run_id }}/schema.prisma",
-    "openapi_yaml_s3_uri":  "s3://autofounder-artefacts/{{ tenant_id }}/{{ run_id }}/openapi.yaml",
-    "stack_summary_s3_uri": "s3://autofounder-artefacts/{{ tenant_id }}/{{ run_id }}/stack.json"
+    "organization_id": "{{ organization_id }}",
+    "sqlalchemy_models_s3_uri": "s3://autofounder-artefacts/{{ organization_id }}/{{ run_id }}/models.py",
+    "alembic_migration_s3_uri": "s3://autofounder-artefacts/{{ organization_id }}/{{ run_id }}/migration.py",
+    "openapi_yaml_s3_uri":  "s3://autofounder-artefacts/{{ organization_id }}/{{ run_id }}/openapi.yaml",
+    "stack_summary_s3_uri": "s3://autofounder-artefacts/{{ organization_id }}/{{ run_id }}/stack.json"
   }
 }
 ```
@@ -1351,14 +1362,14 @@ End with a machine-readable JSON block for the Coder Agent:
 sequenceDiagram
     autonumber
     actor Founder
-    participant API    as NestJS API Gateway
+    participant API    as FastAPI API Gateway
     participant Graph  as LangGraph Orchestrator
     participant Ingest as ingest_input
     participant Req    as extract_requirements
     participant Par    as Parallel Design Nodes
     participant Tav    as Tavily
     participant AWS    as AWS Pricing API
-    participant Lint   as Linters (OpenAPI / Prisma)
+    participant Lint   as Linters (OpenAPI / SQLAlchemy)
     participant Join   as parallel_join
     participant Micro  as define_microservice_boundaries
     participant Cost   as forecast_aws_costs
@@ -1369,7 +1380,7 @@ sequenceDiagram
     participant S3     as AWS S3
     participant Coder  as Coder Agent
 
-    Coder ->> API: gRPC StrategistOutput { run_id, tenant_id, idea_normalised, lean_canvas_json }
+    Coder ->> API: gRPC StrategistOutput { run_id, organization_id, idea_normalised, lean_canvas_json }
     API ->> Graph: invoke(ArchitectState)
     Graph ->> Ingest: validate StrategistOutput
     Ingest -->> Graph: { idea_normalised, domain, viability_band }
@@ -1381,7 +1392,7 @@ sequenceDiagram
 
     par Parallel design (fan-out)
         Graph ->> Par: design_db_schema
-        Par ->> Lint: lint_prisma(generated_schema)
+        Par ->> Lint: lint_sqlalchemy(generated_models)
         Lint -->> Par: { valid: true }
         Par -->> Join: db_schema
 
@@ -1396,7 +1407,7 @@ sequenceDiagram
         Par -->> Join: tech_stack
 
         Graph ->> Par: plan_auth_strategy
-        Par ->> Tav: search("Auth0 OAuth2 SAML multi-tenant best practice")
+        Par ->> Tav: search("Supabase Auth OAuth2 SAML multi-tenant best practice")
         Tav -->> Par: results
         Par -->> Join: auth_strategy
     end
@@ -1407,9 +1418,9 @@ sequenceDiagram
     Micro -->> Graph: microservice_map (incl. dependency_mermaid)
 
     Graph ->> Cost: forecast_aws_costs(state)
-    Cost ->> AWS: pricing(AmazonEKS, ap-south-1)
+    Cost ->> AWS: pricing(AmazonECS, ap-south-1)
     AWS -->> Cost: on-demand prices
-    Cost ->> AWS: pricing(AmazonRDS, ap-south-1)
+    Cost ->> AWS: pricing(AmazonElastiCache, ap-south-1)
     AWS -->> Cost: on-demand prices
     Cost -->> Graph: aws_cost_forecast
 
@@ -1429,9 +1440,9 @@ sequenceDiagram
     Graph ->> Render: render_architecture_doc(state)
     Render -->> Graph: architecture_doc_markdown
 
-    Graph ->> S3: PUT {tenant_id}/{run_id}/architecture.md
-    Graph ->> S3: PUT {tenant_id}/{run_id}/schema.prisma
-    Graph ->> S3: PUT {tenant_id}/{run_id}/openapi.yaml
+    Graph ->> S3: PUT {organization_id}/{run_id}/architecture.md
+    Graph ->> S3: PUT {organization_id}/{run_id}/models.py
+    Graph ->> S3: PUT {organization_id}/{run_id}/openapi.yaml
     S3 -->> Graph: upload confirmed
 
     Graph -->> API: ArchitectState (complete)
@@ -1450,7 +1461,7 @@ sequenceDiagram
     participant State  as ArchitectState
 
     Graph ->> Judge: llm_judge_review(state) [attempt 1]
-    Judge -->> Graph: { overall_score: 58, blocking_issues: ["Missing tenant_id on Orders table", "2 unauthenticated routes"], passed: false }
+    Judge -->> Graph: { overall_score: 58, blocking_issues: ["Missing organization_id on Orders table", "2 unauthenticated routes"], passed: false }
 
     Note over Graph: judge_retry_count = 1
     Graph ->> State: store blocking_issues, increment judge_retry_count
@@ -1468,7 +1479,7 @@ sequenceDiagram
 sequenceDiagram
     autonumber
     actor Founder
-    participant API   as NestJS API Gateway
+    participant API   as FastAPI API Gateway
     participant Graph as LangGraph Orchestrator
     participant Gate  as founder_approval_gate
     participant EH    as error_handler
@@ -1483,7 +1494,7 @@ sequenceDiagram
 
     Graph ->> Gate: route_after_approval → "error_handler"
     Gate ->> EH: ApprovalRejected { comment }
-    EH ->> Redis: publish("architect:rejected", { run_id, tenant_id, comment })
+    EH ->> Redis: publish("architect:rejected", { run_id, organization_id, comment })
     EH ->> Slack: POST { run_id, rejection_reason: comment }
     EH -->> Graph: fatal_error = "Founder rejected architecture: {comment}", is_complete = false
 
@@ -1500,7 +1511,7 @@ sequenceDiagram
     participant Gate  as founder_approval_gate
     participant Redis as Redis (session)
     participant Slack as Slack Webhook
-    participant API   as NestJS API Gateway
+    participant API   as FastAPI API Gateway
     participant Founder
 
     Note over Gate: Timer starts when interrupt fires (approval_timeout_at = now + 15min)
@@ -1511,7 +1522,7 @@ sequenceDiagram
     end
 
     Note over Gate: 15 min elapsed — timeout
-    Gate ->> Slack: POST alert { run_id, tenant_id, message: "Approval timed out — human review required" }
+    Gate ->> Slack: POST alert { run_id, organization_id, message: "Approval timed out — human review required" }
     Gate -->> Graph: approval_status = TIMED_OUT → route to error_handler
 
     Graph -->> API: ArchitectState { fatal_error: "Founder approval timed out after 15 minutes" }
@@ -1527,7 +1538,7 @@ sequenceDiagram
 | Error class | Examples | Strategy |
 |---|---|---|
 | `ValidationError` | StrategistOutput missing required fields | Reject with `fatal_error`, do not process |
-| `LintError` | Prisma schema invalid, OpenAPI spec malformed | LLM self-corrects once; if still invalid, log warning and continue |
+| `LintError` | SQLAlchemy models invalid, OpenAPI spec malformed | LLM self-corrects once; if still invalid, log warning and continue |
 | `ToolTimeout` | AWS Pricing API 20 s exceeded | Fallback to hardcoded tier estimates |
 | `ToolUnavailable` | Tavily 503 | LLM uses training knowledge, marks source as "estimate" |
 | `ParseError` | LLM returns non-JSON | Re-prompt with format correction (max 1 retry) |
@@ -1541,7 +1552,7 @@ sequenceDiagram
 ### 7.2 Error handler node
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/architect/nodes/error_handler.py
+# backend/app/agents/architect/nodes/error_handler.py
 
 import asyncio
 import logging
@@ -1598,7 +1609,7 @@ async def _post_slack_alert(state: ArchitectState, reason: str) -> None:
             f":large_orange_circle: *Architect Agent Error*\n"
             f"*Run ID*: `{state.run_id}`\n"
             f"*Parent Run*: `{state.parent_run_id}`\n"
-            f"*Tenant*: `{state.tenant_id}`\n"
+            f"*Tenant*: `{state.organization_id}`\n"
             f"*Idea*: {state.idea_normalised[:80]}\n"
             f"*Reason*: {reason}\n"
             f"*Time*: {datetime.now(timezone.utc).isoformat()}"
@@ -1614,7 +1625,7 @@ async def _post_slack_alert(state: ArchitectState, reason: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/architect/utils/retry.py
+# backend/app/agents/architect/utils/retry.py
 
 import asyncio
 import functools
@@ -1670,7 +1681,7 @@ def with_retry(node_name: str):
 ### 7.4 LLM parse-error self-correction
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/architect/utils/llm_parse.py
+# backend/app/agents/architect/utils/llm_parse.py
 
 import json
 import logging
@@ -1717,7 +1728,7 @@ async def parse_with_correction(
 ### 7.5 Founder approval gate with timeout
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/architect/nodes/founder_approval_gate.py
+# backend/app/agents/architect/nodes/founder_approval_gate.py
 
 import asyncio
 import logging
@@ -1765,7 +1776,7 @@ async def founder_approval_gate(state: ArchitectState) -> dict:
 ### 7.6 SLA breach monitoring
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/architect/utils/sla.py
+# backend/app/agents/architect/utils/sla.py
 
 import asyncio
 import logging
@@ -1813,22 +1824,22 @@ package autofounder.architect.v1;
 message ArchitectOutput {
   string run_id                    = 1;
   string parent_run_id             = 2;   // Strategist run_id
-  string tenant_id                 = 3;
+  string organization_id                 = 3;
   string idea_normalised           = 4;
   string domain                    = 5;
 
   // S3 URIs for all artefacts
-  string architecture_doc_s3_uri   = 6;   // s3://{bucket}/{tenant_id}/{run_id}/architecture.md
-  string prisma_schema_s3_uri      = 7;   // s3://{bucket}/{tenant_id}/{run_id}/schema.prisma
-  string openapi_yaml_s3_uri       = 8;   // s3://{bucket}/{tenant_id}/{run_id}/openapi.yaml
-  string stack_json_s3_uri         = 9;   // s3://{bucket}/{tenant_id}/{run_id}/stack.json
-  string erd_mermaid_s3_uri        = 10;  // s3://{bucket}/{tenant_id}/{run_id}/erd.mmd
+  string architecture_doc_s3_uri   = 6;   // s3://{bucket}/{organization_id}/{run_id}/architecture.md
+  string sqlalchemy_models_s3_uri  = 7;   // s3://{bucket}/{organization_id}/{run_id}/models.py
+  string openapi_yaml_s3_uri       = 8;   // s3://{bucket}/{organization_id}/{run_id}/openapi.yaml
+  string stack_json_s3_uri         = 9;   // s3://{bucket}/{organization_id}/{run_id}/stack.json
+  string erd_mermaid_s3_uri        = 10;  // s3://{bucket}/{organization_id}/{run_id}/erd.mmd
 
   // Stack summary (inline for Coder Agent bootstrap)
   string overall_pattern           = 11;  // "modular_monolith" | "microservices" etc.
-  string api_gateway               = 12;  // always "NestJS API Gateway"
-  string message_bus               = 13;  // always "Apache Kafka"
-  string auth_provider             = 14;  // always "Auth0"
+  string api_gateway               = 12;  // always "FastAPI API Gateway"
+  string message_bus               = 13;  // always "Confluent Kafka"
+  string auth_provider             = 14;  // always "Supabase Auth"
 
   // Cost metadata
   float  monthly_total_usd         = 15;
@@ -1846,12 +1857,12 @@ message ArchitectOutput {
 }
 ```
 
-**S3 path convention**: All artefact paths use `s3://autofounder-artefacts/{tenant_id}/{run_id}/` prefix — never share paths between tenants.
+**S3 path convention**: All artefact paths use `s3://autofounder-artefacts/{organization_id}/{run_id}/` prefix — never share paths between tenants.
 
 **Routing rules after output**:
 - `cost_within_target == false` → surface COGS warning in Coder Agent dashboard; do NOT block pipeline
 - `judge_overall_score < 80` → surface `judge_warnings` as a yellow banner in the Founder Portal
-- `overall_pattern == "microservices"` → Coder Agent generates separate service repos; if `"modular_monolith"`, generates a single NestJS monorepo with logical module boundaries
+- `overall_pattern == "microservices"` → Coder Agent generates separate service repos; if `"modular_monolith"`, generates a single FastAPI monorepo with logical module boundaries
 - `domain in ("FinTech", "HealthTech")` → Coder Agent must enable additional security scan profiles (Semgrep finance/health ruleset)
 
 ---

@@ -10,7 +10,7 @@
 
 1. [Module Breakdown](#1-module-breakdown)
 2. [Data Models & Schemas](#2-data-models--schemas)
-   - 2.1 PostgreSQL (per-tenant schema)
+   - 2.1 PostgreSQL (per-organization schema)
    - 2.2 TypeScript domain types
    - 2.3 Python/Pydantic models
    - 2.4 Vector store document schemas
@@ -40,16 +40,16 @@
    - 5.10 RAG pipeline
    - 5.11 Guardrails pipeline per agent call
 6. [Service-Level Component Breakdown](#6-service-level-component-breakdown)
-   - 6.1 `AUTOFOUNDER-BACKEND` — FastAPI API Gateway
-   - 6.2 `AUTOFOUNDER-BACKEND/app/orchestrator` — LangGraph Engine
-   - 6.3 `AUTOFOUNDER-BACKEND/app/workers` — FastAPI Agent Workers
+   - 6.1 `backend/app/api` — FastAPI API Gateway
+   - 6.2 `backend/app/orchestrator` — LangGraph Engine
+   - 6.3 `backend/app/workers` — FastAPI Agent Workers
    - 6.4 Supabase Realtime — WebSocket Fan-out (Managed)
-   - 6.5 `AUTOFOUNDER-FRONTEND-WEB` — Next.js Founder Portal
-   - 6.6 `AUTOFOUNDER-BACKEND/app/db` — UDAL
-   - 6.7 `AUTOFOUNDER-BACKEND/app/agents` — Agent implementations
-   - 6.8 `AUTOFOUNDER-BACKEND/app/guardrails` — Guardrails pipeline
-   - 6.9 `AUTOFOUNDER-BACKEND/app/tools` — MCP tool registry
-   - 6.10 `AUTOFOUNDER-BACKEND/app/prompts` — Prompt registry
+   - 6.5 `frontend` — Next.js Founder Portal
+   - 6.6 `backend/app/db` — UDAL
+   - 6.7 `backend/app/agents` — Agent implementations
+   - 6.8 `backend/app/guardrails` — Guardrails pipeline
+   - 6.9 `backend/app/tools` — MCP tool registry
+   - 6.10 `backend/app/prompts` — Prompt registry
 7. [Key Design Decisions & Trade-offs](#7-key-design-decisions--trade-offs)
 8. [Dependency Matrix](#8-dependency-matrix)
 9. [Error Handling Specifications](#9-error-handling-specifications)
@@ -61,185 +61,180 @@
 
 ```
 autofounder-ai/
-├── apps/
-│   ├── api/                         # FastAPI API Gateway  (Python 3.12)
-│   │   ├── main.py                  # FastAPI app, lifespan, middleware
-│   │   ├── routers/
-│   │   │   ├── ideas.py             # POST /v1/ideas
-│   │   │   ├── runs.py              # GET /v1/runs/:id, artifacts
-│   │   │   ├── gates.py             # POST /v1/runs/:id/gates/:gate_id
-│   │   │   ├── tenants.py           # Tenant management
-│   │   │   ├── llmops.py            # GET /v1/llmops/cost
-│   │   │   └── feedback.py          # POST /v1/feedback
-│   │   ├── auth/
-│   │   │   ├── jwt.py               # Supabase JWT validation
-│   │   │   ├── opa.py               # OPA policy guard
-│   │   │   └── tenant.py            # TenantContext dependency
-│   │   ├── schemas/                 # Pydantic request/response models
-│   │   ├── grpc_client.py           # gRPC stubs → orchestrator
-│   │   ├── openapi.yaml             # OpenAPI 3.1 spec (auto-generated + pinned)
-│   │   └── tests/
-│   │
-│   ├── orchestrator/                # LangGraph engine  (Python 3.12)
-│   │   ├── orchestrator/
-│   │   │   ├── main.py              # FastAPI entrypoint + gRPC server
-│   │   │   ├── graph/
-│   │   │   │   ├── builder.py       # LangGraph StateGraph factory
-│   │   │   │   ├── nodes.py         # Node definitions (one per pillar step)
-│   │   │   │   ├── edges.py         # Conditional edge logic
-│   │   │   │   ├── state.py         # RunState TypedDict
-│   │   │   │   └── checkpointer.py  # Postgres + Redis checkpointer
-│   │   │   ├── planner/
-│   │   │   │   ├── dag.py           # Plan → DAG serializer
-│   │   │   │   └── router.py        # Task priority router
-│   │   │   ├── hitl/
-│   │   │   │   ├── gate_manager.py  # Gate state machine
-│   │   │   │   └── notifier.py      # EventBridge gate.required events
-│   │   │   ├── events/
-│   │   │   │   ├── producer.py      # EventBridge publisher
-│   │   │   │   └── consumer.py      # SQS consumer
-│   │   │   └── proto/               # Generated gRPC stubs
-│   │   └── tests/
-│   │
-│   ├── ai-services/                 # FastAPI agent workers  (Python 3.12)
-│   │   ├── main.py                  # FastAPI app + SQS worker loop
-│   │   ├── agents/                  # Agent entry-points (thin wrappers)
-│   │   │   ├── strategy_runner.py
-│   │   │   ├── engineering_runner.py
-│   │   │   └── marketing_runner.py
-│   │   ├── llm/
-│   │   │   ├── router.py            # LiteLLM model router
-│   │   │   ├── cache.py             # Semantic + prompt cache (Redis)
-│   │   │   └── clients.py           # Google AI (Gemini) client
-│   │   ├── rag/
-│   │   │   ├── retriever.py         # Hybrid BM25 + ANN
-│   │   │   ├── reranker.py          # Cohere / BGE reranker
-│   │   │   └── pipeline.py          # End-to-end RAG chain
-│   │   ├── sandbox/
-│   │   │   ├── runner.py            # Fargate sandbox task launcher
-│   │   │   └── executor.py          # Code execution + output capture
-│   │   └── proto/
-│   │
-│   # Realtime: Supabase Realtime (managed service — no separate app service)
-│   # Frontend subscribes directly to Supabase Realtime channels per run_id.
-│   # Orchestrator publishes step events via Supabase client (postgres NOTIFY).
-│   │
-│   ├── web/                         # Next.js 14 Founder Portal
-│   │   ├── app/
-│   │   │   ├── (auth)/              # Supabase Auth login/callback routes
-│   │   │   ├── dashboard/           # Run list + overview
-│   │   │   ├── runs/[id]/
-│   │   │   │   ├── validation/      # Pillar 1 — Validation Studio
-│   │   │   │   ├── architecture/    # Pillar 2 — Architecture Studio
-│   │   │   │   ├── code/            # Pillar 3 — Code Review Studio
-│   │   │   │   ├── deploy/          # Pillar 5 — Deploy Console
-│   │   │   │   ├── launch/          # Pillar 6 — Launch Control Center
-│   │   │   │   └── llmops/          # Pillar 7 — LLMOps Dashboard
-│   │   │   └── admin/               # Super-admin (separate layout)
-│   │   ├── components/
-│   │   │   ├── lean-canvas/
-│   │   │   ├── erd-viewer/
-│   │   │   ├── openapi-viewer/
-│   │   │   ├── monaco-diff/
-│   │   │   ├── deploy-console/
-│   │   │   └── llmops-dashboard/
-│   │   ├── lib/
-│   │   │   ├── api-client.ts        # Typed REST client (fetch wrapper)
-│   │   │   ├── ws-client.ts         # WebSocket hook
-│   │   │   └── store/               # Zustand stores (per surface)
-│   │   └── hooks/
-│   │       ├── useRun.ts            # React Query + WS merge
-│   │       └── useGate.ts           # Gate polling + mutation
-│   │
-│   └── admin/                       # Next.js super-admin (internal)
+├── backend/                         # FastAPI — consolidated modular monolith (Python 3.12)
+│   └── app/
+│       ├── api/                     # API gateway layer
+│       │   ├── main.py              # FastAPI app, lifespan, middleware
+│       │   ├── v1/                  # REST routes
+│       │   │   ├── ideas.py         # POST /v1/ideas
+│       │   │   ├── runs.py          # GET /v1/runs/:id, artifacts
+│       │   │   ├── gates.py         # POST /v1/runs/:id/gates/:gate_id
+│       │   │   ├── tenants.py       # Organization management
+│       │   │   ├── llmops.py        # GET /v1/llmops/cost
+│       │   │   └── feedback.py      # POST /v1/feedback
+│       │   ├── auth/
+│       │   │   ├── jwt.py           # Supabase JWT validation
+│       │   │   ├── opa.py           # OPA policy guard
+│       │   │   └── tenant.py        # OrganizationContext dependency
+│       │   ├── schemas/             # Pydantic request/response models
+│       │   └── openapi.yaml         # OpenAPI 3.1 spec (auto-generated + pinned)
+│       │
+│       ├── orchestrator/            # LangGraph engine
+│       │   ├── graph/
+│       │   │   ├── builder.py       # LangGraph StateGraph factory
+│       │   │   ├── nodes.py         # Node definitions (one per pillar step)
+│       │   │   ├── edges.py         # Conditional edge logic
+│       │   │   ├── state.py         # RunState TypedDict
+│       │   │   └── checkpointer.py  # Postgres + Redis checkpointer
+│       │   ├── planner/
+│       │   │   ├── dag.py           # Plan → DAG serializer
+│       │   │   └── router.py        # Task priority router
+│       │   ├── hitl/
+│       │   │   ├── gate_manager.py  # Gate state machine
+│       │   │   └── notifier.py      # EventBridge gate.required events
+│       │   └── events/
+│       │       ├── producer.py      # EventBridge publisher
+│       │       └── consumer.py      # SQS consumer
+│       │
+│       ├── workers/                 # FastAPI agent workers
+│       │   ├── runners/             # Agent entry-points (thin wrappers)
+│       │   │   ├── strategy_runner.py
+│       │   │   ├── engineering_runner.py
+│       │   │   └── marketing_runner.py
+│       │   ├── llm/
+│       │   │   ├── router.py        # LiteLLM model router
+│       │   │   ├── cache.py         # Semantic + prompt cache (Redis)
+│       │   │   └── clients.py       # Google AI (Gemini) client
+│       │   ├── rag/
+│       │   │   ├── retriever.py     # Hybrid BM25 + ANN
+│       │   │   ├── reranker.py      # Cohere / BGE reranker
+│       │   │   └── pipeline.py      # End-to-end RAG chain
+│       │   └── sandbox/
+│       │       ├── runner.py        # Fargate sandbox task launcher
+│       │       └── executor.py      # Code execution + output capture
+│       │
+│       # Realtime: Supabase Realtime (managed service — no separate app service)
+│       # Frontend subscribes directly to Supabase Realtime channels per run_id.
+│       # Orchestrator publishes step events via Supabase client (postgres NOTIFY).
+│       │
+│       ├── agents/                  # Agent logic (Python)
+│       │   ├── strategy/
+│       │   │   ├── agent.py         # StrategyAgent(BaseAgent)
+│       │   │   ├── sub_agents/
+│       │   │   │   ├── competitor_tracker.py
+│       │   │   │   ├── trend_analyst.py
+│       │   │   │   ├── persona_builder.py
+│       │   │   │   └── canvas_composer.py
+│       │   │   └── prompts/         # Jinja2 templates
+│       │   ├── research/
+│       │   │   └── agent.py         # ResearchAgent(BaseAgent)
+│       │   ├── product_planner/
+│       │   │   └── agent.py         # ProductPlannerAgent(BaseAgent)
+│       │   ├── engineering/
+│       │   │   ├── architect/agent.py
+│       │   │   ├── coder/
+│       │   │   │   ├── agent.py
+│       │   │   │   ├── frontend_specialist.py
+│       │   │   │   └── backend_specialist.py
+│       │   │   ├── reviewer/
+│       │   │   │   ├── agent.py
+│       │   │   │   └── self_healer.py
+│       │   │   └── devops/agent.py
+│       │   ├── marketing/
+│       │   │   ├── agent.py
+│       │   │   └── sub_agents/
+│       │   │       ├── seo_writer.py
+│       │   │       ├── visual_designer.py
+│       │   │       └── social_scheduler.py
+│       │   ├── finance/agent.py
+│       │   ├── ops_risk/agent.py
+│       │   ├── llmops/
+│       │   │   ├── agent.py
+│       │   │   ├── prompt_optimizer.py  # DSPy pipeline
+│       │   │   ├── model_router.py      # LiteLLM routing rules
+│       │   │   └── drift_monitor.py     # TruLens + Evidently
+│       │   └── base_agent.py        # BaseAgent ABC
+│       │
+│       ├── guardrails/              # Guardrails pipeline (Python)
+│       │   ├── pipeline.py          # 6-stage orchestrator
+│       │   ├── stages/
+│       │   │   ├── policy.py        # Stage 1 — OPA call
+│       │   │   ├── input_guard.py   # Stage 2 — Llama Guard + Presidio
+│       │   │   ├── instruction_guard.py # Stage 3 — Prompt validators
+│       │   │   ├── execution_guard.py   # Stage 4 — Tool call middleware
+│       │   │   ├── output_guard.py  # Stage 5 — TruLens + citation check
+│       │   │   └── monitoring_guard.py  # Stage 6 — anomaly rules
+│       │   └── audit.py             # Immutable audit log writer
+│       │
+│       ├── tools/                   # MCP tool definitions (Python)
+│       │   ├── registry.py          # ToolRegistry singleton
+│       │   ├── research/
+│       │   │   ├── tavily.py
+│       │   │   ├── serpapi.py
+│       │   │   └── crunchbase.py
+│       │   ├── engineering/
+│       │   │   ├── github.py
+│       │   │   ├── stripe.py
+│       │   │   └── aws_pricing.py
+│       │   ├── marketing/
+│       │   │   ├── producthunt.py
+│       │   │   ├── twitter.py
+│       │   │   └── resend.py
+│       │   └── base_tool.py         # BaseTool ABC
+│       │
+│       ├── prompts/                 # Versioned Jinja2 prompt templates
+│       │   ├── registry.py          # PromptRegistry (DB-backed)
+│       │   ├── templates/
+│       │   │   ├── strategy/
+│       │   │   ├── engineering/
+│       │   │   ├── marketing/
+│       │   │   └── shared/
+│       │   └── validator.py         # Variable completeness checker
+│       │
+│       ├── db/                      # UDAL + SQLAlchemy (Python) + Supabase client
+│       │   ├── udal.py              # UDAL Python client (primary)
+│       │   ├── relational.py        # SQLAlchemy async + Supabase PostgreSQL
+│       │   ├── vector.py            # Supabase pgvector (vecs client)
+│       │   ├── graph.py             # Neo4j async driver
+│       │   └── object.py            # Supabase Storage + S3 (data lake)
+│       │
+│       ├── eval/                    # Eval harness
+│       │   ├── run_evals.py
+│       │   ├── golden_sets/
+│       │   └── promptfoo.config.yaml
+│       │
+│       └── core/                    # config, logging, security
+│   ├── alembic/                     # SQLAlchemy/Alembic migrations
+│   └── tests/
 │
-├── packages/
-│   ├── agents/                      # Agent logic (Python)
-│   │   ├── strategy/
-│   │   │   ├── agent.py             # StrategyAgent(BaseAgent)
-│   │   │   ├── sub_agents/
-│   │   │   │   ├── competitor_tracker.py
-│   │   │   │   ├── trend_analyst.py
-│   │   │   │   ├── persona_builder.py
-│   │   │   │   └── canvas_composer.py
-│   │   │   └── prompts/             # Jinja2 templates
-│   │   ├── research/
-│   │   │   └── agent.py             # ResearchAgent(BaseAgent)
-│   │   ├── product_planner/
-│   │   │   └── agent.py             # ProductPlannerAgent(BaseAgent)
-│   │   ├── engineering/
-│   │   │   ├── architect/agent.py
-│   │   │   ├── coder/
-│   │   │   │   ├── agent.py
-│   │   │   │   ├── frontend_specialist.py
-│   │   │   │   └── backend_specialist.py
-│   │   │   ├── reviewer/
-│   │   │   │   ├── agent.py
-│   │   │   │   └── self_healer.py
-│   │   │   └── devops/agent.py
-│   │   ├── marketing/
-│   │   │   ├── agent.py
-│   │   │   └── sub_agents/
-│   │   │       ├── seo_writer.py
-│   │   │       ├── visual_designer.py
-│   │   │       └── social_scheduler.py
-│   │   ├── finance/agent.py
-│   │   ├── ops_risk/agent.py
-│   │   ├── llmops/
-│   │   │   ├── agent.py
-│   │   │   ├── prompt_optimizer.py  # DSPy pipeline
-│   │   │   ├── model_router.py      # LiteLLM routing rules
-│   │   │   └── drift_monitor.py     # TruLens + Evidently
-│   │   └── base_agent.py            # BaseAgent ABC
-│   │
-│   ├── guardrails/                  # Guardrails pipeline (Python)
-│   │   ├── pipeline.py              # 6-stage orchestrator
-│   │   ├── stages/
-│   │   │   ├── policy.py            # Stage 1 — OPA call
-│   │   │   ├── input_guard.py       # Stage 2 — Llama Guard + Presidio
-│   │   │   ├── instruction_guard.py # Stage 3 — Prompt validators
-│   │   │   ├── execution_guard.py   # Stage 4 — Tool call middleware
-│   │   │   ├── output_guard.py      # Stage 5 — TruLens + citation check
-│   │   │   └── monitoring_guard.py  # Stage 6 — anomaly rules
-│   │   └── audit.py                 # Immutable audit log writer
-│   │
-│   ├── tools/                       # MCP tool definitions (Python)
-│   │   ├── registry.py              # ToolRegistry singleton
-│   │   ├── research/
-│   │   │   ├── tavily.py
-│   │   │   ├── serpapi.py
-│   │   │   └── crunchbase.py
-│   │   ├── engineering/
-│   │   │   ├── github.py
-│   │   │   ├── stripe.py
-│   │   │   └── aws_pricing.py
-│   │   ├── marketing/
-│   │   │   ├── producthunt.py
-│   │   │   ├── twitter.py
-│   │   │   └── resend.py
-│   │   └── base_tool.py             # BaseTool ABC
-│   │
-│   ├── prompts/                     # Versioned Jinja2 prompt templates
-│   │   ├── registry.py              # PromptRegistry (DB-backed)
-│   │   ├── templates/
-│   │   │   ├── strategy/
-│   │   │   ├── engineering/
-│   │   │   ├── marketing/
-│   │   │   └── shared/
-│   │   └── validator.py             # Variable completeness checker
-│   │
-│   ├── db/                          # UDAL + SQLAlchemy (Python) + Supabase client
-│   │   ├── python/
-│   │   │   ├── udal.py              # UDAL Python client (primary)
-│   │   │   ├── relational.py        # SQLAlchemy async + Supabase PostgreSQL
-│   │   │   ├── vector.py            # Supabase pgvector (vecs client)
-│   │   │   ├── graph.py             # Neo4j async driver
-│   │   │   └── object.py            # Supabase Storage + S3 (data lake)
-│   │   ├── ts/
-│   │   │   └── udal.ts              # UDAL TypeScript client (frontend read-only)
-│   │   └── migrations/              # Supabase SQL migrations
-│   │       └── supabase/
-│   │
+├── frontend/                        # Next.js 14 Founder Portal
+│   ├── app/
+│   │   ├── (auth)/                  # Supabase Auth login/callback routes
+│   │   ├── dashboard/               # Run list + overview
+│   │   ├── runs/[id]/
+│   │   │   ├── validation/          # Pillar 1 — Validation Studio
+│   │   │   ├── architecture/        # Pillar 2 — Architecture Studio
+│   │   │   ├── code/                # Pillar 3 — Code Review Studio
+│   │   │   ├── deploy/              # Pillar 5 — Deploy Console
+│   │   │   ├── launch/              # Pillar 6 — Launch Control Center
+│   │   │   └── llmops/              # Pillar 7 — LLMOps Dashboard
+│   │   └── admin/                   # Super-admin (role-guarded route group)
+│   ├── components/
+│   │   ├── lean-canvas/
+│   │   ├── erd-viewer/
+│   │   ├── openapi-viewer/
+│   │   ├── monaco-diff/
+│   │   ├── deploy-console/
+│   │   └── llmops-dashboard/
+│   ├── lib/
+│   │   ├── api-client.ts            # Typed REST client (fetch wrapper)
+│   │   ├── ws-client.ts             # WebSocket hook
+│   │   └── store/                   # Zustand stores (per surface)
+│   └── hooks/
+│       ├── useRun.ts                # React Query + WS merge
+│       └── useGate.ts               # Gate polling + mutation
+│
+├── packages/                        # TypeScript-only
 │   ├── shared/                      # Cross-language shared types
 │   │   ├── types/
 │   │   │   ├── run.ts
@@ -247,11 +242,8 @@ autofounder-ai/
 │   │   │   ├── gate.ts
 │   │   │   └── events.ts
 │   │   └── constants.ts
-│   │
-│   └── eval/                        # Eval harness
-│       ├── run_evals.py
-│       ├── golden_sets/
-│       └── promptfoo.config.yaml
+│   └── api-client/                  # Typed backend client (OpenAPI-generated)
+│       └── udal.ts                  # UDAL TypeScript client (frontend read-only)
 │
 └── infra/
     ├── terraform/
@@ -280,12 +272,12 @@ autofounder-ai/
 
 ```sql
 -- ─────────────────────────────────────────────
--- PLATFORM schema (shared across all tenants)
+-- PLATFORM schema (shared across all organizations)
 -- ─────────────────────────────────────────────
 
 CREATE SCHEMA platform;
 
-CREATE TABLE platform.tenants (
+CREATE TABLE platform.organizations (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name          TEXT NOT NULL,
   slug          TEXT UNIQUE NOT NULL,
@@ -296,21 +288,21 @@ CREATE TABLE platform.tenants (
   deleted_at    TIMESTAMPTZ
 );
 
-CREATE TABLE platform.tenant_api_keys (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id     UUID NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
-  key_hash      TEXT NOT NULL UNIQUE,   -- bcrypt hash; never store raw key
-  label         TEXT,
-  scopes        TEXT[] NOT NULL DEFAULT '{}',
-  expires_at    TIMESTAMPTZ,
-  revoked_at    TIMESTAMPTZ,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE platform.organization_api_keys (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES platform.organizations(id) ON DELETE CASCADE,
+  key_hash        TEXT NOT NULL UNIQUE,   -- bcrypt hash; never store raw key
+  label           TEXT,
+  scopes          TEXT[] NOT NULL DEFAULT '{}',
+  expires_at      TIMESTAMPTZ,
+  revoked_at      TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE platform.model_registry (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  model_id      TEXT NOT NULL,          -- e.g. "gemini-1.5-flash-002"
-  provider      TEXT NOT NULL,          -- "google"|"openai"|"bedrock"
+  model_id      TEXT NOT NULL,          -- e.g. "gemini-3.5-flash"
+  provider      TEXT NOT NULL,          -- "google"|"anthropic"|"bedrock"
   version       TEXT NOT NULL,
   task_classes  TEXT[] NOT NULL,        -- ["complex_reasoning","self_healing",...]
   cost_per_1k_input_tokens   NUMERIC(12,6) NOT NULL,
@@ -348,28 +340,28 @@ CREATE TABLE platform.tool_registry (
 );
 
 CREATE TABLE platform.audit_log (
-  id            BIGSERIAL PRIMARY KEY,
-  tenant_id     UUID,
-  run_id        UUID,
-  agent_id      TEXT,
-  action        TEXT NOT NULL,
-  resource_type TEXT NOT NULL,
-  resource_id   TEXT,
-  actor         TEXT NOT NULL,         -- user_id or "system"
-  outcome       TEXT NOT NULL CHECK (outcome IN ('allowed','denied','error')),
-  metadata      JSONB,
-  occurred_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+  id              BIGSERIAL PRIMARY KEY,
+  organization_id UUID,
+  run_id          UUID,
+  agent_id        TEXT,
+  action          TEXT NOT NULL,
+  resource_type   TEXT NOT NULL,
+  resource_id     TEXT,
+  actor           TEXT NOT NULL,         -- user_id or "system"
+  outcome         TEXT NOT NULL CHECK (outcome IN ('allowed','denied','error')),
+  metadata        JSONB,
+  occurred_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 -- audit_log is append-only; writes are funnelled through audit.py only.
 -- S3 Object Lock export runs nightly.
 ```
 
-### 2.2 PostgreSQL — Per-Tenant Schema (`tenant_<uuid>`)
+### 2.2 PostgreSQL — Per-Organization Schema (`org_<organization_id>`)
 
 ```sql
 -- ─────────────────────────────────────────────
--- PER-TENANT schema (one schema per tenant)
--- Created automatically on tenant provisioning.
+-- PER-ORGANIZATION schema (one schema per organization)
+-- Created automatically on organization provisioning.
 -- RLS is set as defense-in-depth; UDAL is the primary enforcement.
 -- ─────────────────────────────────────────────
 
@@ -482,7 +474,7 @@ export type PillarId = '1' | '2' | '3' | '4' | '5' | '6' | '7';
 
 export interface Run {
   id: string;
-  tenantId: string;
+  organizationId: string;
   pillar: PillarId;
   status: RunStatus;
   plan: PlanDAG;
@@ -631,7 +623,7 @@ export type EventType =
 export interface PlatformEvent {
   id: string;
   type: EventType;
-  tenantId: string;
+  organizationId: string;
   runId: string;
   pillar?: PillarId;
   agentId?: string;
@@ -642,10 +634,10 @@ export interface PlatformEvent {
 }
 ```
 
-### 2.4 Python / Pydantic Models (`AUTOFOUNDER-BACKEND/app/agents/`)
+### 2.4 Python / Pydantic Models (`backend/app/agents/`)
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/base_agent.py
+# backend/app/agents/base_agent.py
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
@@ -716,7 +708,7 @@ class ExecutionTrace(BaseModel):
     run_id: str
     step_id: str
     agent_id: str
-    tenant_id: str
+    organization_id: str
     prompt: str
     response: str
     tool_calls: list[dict] = Field(default_factory=list)
@@ -727,9 +719,9 @@ class ExecutionTrace(BaseModel):
 
 
 class BaseAgent(ABC, Generic[TInput, TOutput]):
-    def __init__(self, agent_id: str, tenant_id: str):
+    def __init__(self, agent_id: str, organization_id: str):
         self.id = agent_id
-        self.tenant_id = tenant_id
+        self.organization_id = organization_id
 
     @property
     @abstractmethod
@@ -753,10 +745,10 @@ class BaseAgent(ABC, Generic[TInput, TOutput]):
 
     async def learn(self, trace: ExecutionTrace) -> None:
         # Emit to LLMOps agent via EventBridge — default implementation
-        from packages.tools.registry import tool_registry
+        from app.tools.registry import tool_registry
         await tool_registry.get("eventbridge.publish").call({
             "event_type": "agent.trace",
-            "tenant_id": self.tenant_id,
+            "organization_id": self.organization_id,
             "payload": trace.model_dump(),
         })
 
@@ -896,7 +888,7 @@ class MarketingOutput(BaseModel):
 All collections live in Supabase pgvector, namespaced per tenant (schema-per-tenant + pgvector extension).
 
 ```sql
--- All vector tables live in the per-tenant schema "tenant_<uuid>"
+-- All vector tables live in the per-organization schema "org_<organization_id>"
 -- pgvector extension enabled: CREATE EXTENSION IF NOT EXISTS vector;
 
 -- market_intelligence
@@ -967,7 +959,7 @@ CREATE INDEX ON user_preferences USING hnsw (embedding vector_cosine_ops);
 
 ```
 Nodes:
-  (:Tenant   {id, name, tier})
+  (:Organization {id, name, tier})
   (:Idea     {id, run_id, text, created_at})
   (:Competitor {id, name, url, category, founded_year})
   (:Market   {id, name, tam_usd, geography})
@@ -976,7 +968,7 @@ Nodes:
   (:Technology {id, name, category, version})
 
 Relationships:
-  (Tenant)-[:HAS_RUN]->(Idea)
+  (Organization)-[:HAS_RUN]->(Idea)
   (Idea)-[:TARGETS]->(Market)
   (Competitor)-[:OPERATES_IN]->(Market)
   (Competitor)-[:HAS_FEATURE]->(Feature)
@@ -1018,16 +1010,16 @@ Value: {embedding: float[], dim: int}
 Key:  "queue:tasks:{pillar}"
 Type: Sorted Set
 Score: priority_score (higher = more urgent)
-Member: {run_id, step_id, tenant_tier, enqueued_at}
+Member: {run_id, step_id, org_tier, enqueued_at}
 
 # Per-tenant cost accumulator (sliding window)
-Key:  "cost:{tenant_id}:{YYYY-MM}"
+Key:  "cost:{organization_id}:{YYYY-MM}"
 Type: Hash
 TTL:  end of month + 7d
 Fields: {total_usd, llm_usd, infra_usd, tool_usd}
 
-# Rate limit counters (per tenant, per tool)
-Key:  "ratelimit:{tenant_id}:{tool_name}:{minute_bucket}"
+# Rate limit counters (per organization, per tool)
+Key:  "ratelimit:{organization_id}:{tool_name}:{minute_bucket}"
 Type: String (integer)
 TTL:  120
 ```
@@ -1036,7 +1028,7 @@ TTL:  120
 
 ## 3. API Contracts
 
-### 3.1 REST API — FastAPI (`AUTOFOUNDER-BACKEND`)
+### 3.1 REST API — FastAPI (`backend`)
 
 #### `POST /v1/ideas`
 ```
@@ -1171,11 +1163,11 @@ Response 202: accepted for async LLMOps processing
 
 #### `GET /v1/llmops/cost`
 ```
-Query params: tenant_id, from (ISO date), to (ISO date)
+Query params: organization_id, from (ISO date), to (ISO date)
 
 Response 200:
   {
-    "tenant_id": "uuid",
+    "organization_id": "uuid",
     "period": {"from": "...", "to": "..."},
     "total_usd": 0.00,
     "by_model": [{"model_id": "...", "usd": 0.00, "tokens": 0}],
@@ -1199,10 +1191,10 @@ service OrchestratorService {
 }
 
 message CreateRunRequest {
-  string tenant_id  = 1;
-  string idea_text  = 2;
-  bytes  idea_meta  = 3; // JSON-encoded IdeaMeta
-  string created_by = 4;
+  string organization_id = 1;
+  string idea_text       = 2;
+  bytes  idea_meta       = 3; // JSON-encoded IdeaMeta
+  string created_by      = 4;
 }
 
 message CreateRunResponse {
@@ -1211,8 +1203,8 @@ message CreateRunResponse {
 }
 
 message GetRunStateRequest {
-  string tenant_id = 1;
-  string run_id    = 2;
+  string organization_id = 1;
+  string run_id          = 2;
 }
 
 message RunState {
@@ -1224,12 +1216,12 @@ message RunState {
 }
 
 message DecideGateRequest {
-  string tenant_id = 1;
-  string run_id    = 2;
-  string gate_id   = 3;
-  string decision  = 4; // "approved" | "rejected"
-  string note      = 5;
-  bytes  payload   = 6; // extra data (pivot choice etc.)
+  string organization_id = 1;
+  string run_id          = 2;
+  string gate_id         = 3;
+  string decision        = 4; // "approved" | "rejected"
+  string note            = 5;
+  bytes  payload         = 6; // extra data (pivot choice etc.)
 }
 
 message DecideGateResponse {
@@ -1238,9 +1230,9 @@ message DecideGateResponse {
 }
 
 message CancelRunRequest {
-  string tenant_id = 1;
-  string run_id    = 2;
-  string reason    = 3;
+  string organization_id = 1;
+  string run_id          = 2;
+  string reason          = 3;
 }
 
 message CancelRunResponse {
@@ -1254,11 +1246,11 @@ service AgentWorkerService {
 }
 
 message DispatchStepRequest {
-  string run_id    = 1;
-  string step_id   = 2;
-  string agent_id  = 3;
-  string tenant_id = 4;
-  bytes  input     = 5; // JSON-encoded agent-specific input
+  string run_id          = 1;
+  string step_id         = 2;
+  string agent_id        = 3;
+  string organization_id = 4;
+  bytes  input           = 5; // JSON-encoded agent-specific input
 }
 
 message StepEventProto {
@@ -1280,11 +1272,11 @@ message StepEventProto {
   "detail-type": "<EventType>",
   "detail": {
     "schema_version": "1.0",
-    "tenant_id": "<uuid>",
+    "organization_id": "<uuid>",
     "run_id": "<uuid>",
     "pillar": "1",
     "agent_id": "strategy.v1",
-    "model": "gemini-1.5-flash-002",
+    "model": "gemini-3.5-flash",
     "env": "production",
     "payload": { /* event-specific data */ },
     "emitted_at": "2026-05-19T10:00:00Z"
@@ -1336,7 +1328,7 @@ message StepEventProto {
 
 export interface Agent<TInput, TOutput> {
   readonly id: string;           // e.g. "strategy.v3"
-  readonly tenantId: string;
+  readonly organizationId: string;
   readonly capabilities: Capability[];
   readonly tools: ToolSpec[];
 
@@ -1373,7 +1365,7 @@ export interface UDAL {
 }
 
 export interface RelationalQuery {
-  schema: string;          // "platform" or "tenant_<uuid>"
+  schema: string;          // "platform" or "org_<organization_id>"
   table: string;
   operation: 'select' | 'insert' | 'update' | 'delete';
   data?: Record<string, unknown>;
@@ -1408,7 +1400,7 @@ export interface VectorSearchResult {
 ### 4.2 Guardrails Pipeline Interface (Python)
 
 ```python
-# AUTOFOUNDER-BACKEND/app/guardrails/pipeline.py
+# backend/app/guardrails/pipeline.py
 
 from dataclasses import dataclass
 from enum import Enum
@@ -1424,7 +1416,7 @@ class GuardrailAction(str, Enum):
 
 @dataclass
 class GuardrailContext:
-    tenant_id: str
+    organization_id: str
     run_id: str
     agent_id: str
     pillar: str
@@ -1479,7 +1471,7 @@ class GuardrailsPipeline:
 ### 4.3 Tool Registry Interface (Python)
 
 ```python
-# AUTOFOUNDER-BACKEND/app/tools/registry.py
+# backend/app/tools/registry.py
 
 from pydantic import BaseModel
 from typing import Any, Callable, Awaitable
@@ -1512,7 +1504,7 @@ class ToolRegistry:
 ### 4.4 Prompt Registry Interface (Python)
 
 ```python
-# AUTOFOUNDER-BACKEND/app/prompts/registry.py
+# backend/app/prompts/registry.py
 
 from pydantic import BaseModel
 
@@ -1537,7 +1529,7 @@ class PromptRegistry:
     async def get(
         self,
         name: str,
-        tenant_id: str,
+        organization_id: str,
         variables: dict
     ) -> str:
         """Resolve, render (Jinja2), and validate prompt. Returns final string."""
@@ -1563,14 +1555,14 @@ Founder              Next.js Portal          FastAPI API GW         LangGraph Or
   |                        |   Authorization: Bearer <jwt>                  |                        |
   |                        |                        |                       |                        |
   |                        |                        |-- validateJWT()        |                        |
-  |                        |                        |-- extractTenantId()    |                        |
+  |                        |                        |-- extractOrganizationId() |                     |
   |                        |                        |-- OPA.check(policy)    |                        |
   |                        |                        |-- checkCostCap()  ---->|                        |
-  |                        |                        |                        |-- GET cost:{tenant_id} |
+  |                        |                        |                        |-- GET cost:{organization_id} |
   |                        |                        |                        |<-- {total_usd}         |
   |                        |                        |                        |                        |
   |                        |                        |-- gRPC CreateRun() --->|                        |
-  |                        |                        |   {tenant_id, idea}    |                        |
+  |                        |                        |   {organization_id, idea}    |                        |
   |                        |                        |                        |-- INSERT runs -------->|
   |                        |                        |                        |<-- {run_id}            |
   |                        |                        |                        |-- enqueue SQS pillar-1 |
@@ -1586,7 +1578,7 @@ Founder              Next.js Portal          FastAPI API GW         LangGraph Or
 ### 5.2 Pillar 1 — Strategy Agent Execution
 
 ```
-Orchestrator       SQS (pillar-1)      AI Services        Strategy Agent      Guardrails       UDAL           LLM (Gemini)      EventBridge
+Orchestrator       SQS (pillar-1)      Agent Workers      Strategy Agent      Guardrails       UDAL           LLM (Gemini)      EventBridge
      |                   |                   |                    |                  |             |                 |                |
      |-- poll() -------->|                   |                    |                  |             |                 |                |
      |<-- {run_id, step} |                   |                    |                  |             |                 |                |
@@ -1654,7 +1646,7 @@ Founder        Portal (Next.js)       FastAPI API GW        Orchestrator        
 ### 5.4 Pillar 3 — Parallel Frontend + Backend Code Generation
 
 ```
-Orchestrator         AI Services         Coder Agent            Frontend Spec      Backend Spec
+Orchestrator         Agent Workers       Coder Agent            Frontend Spec      Backend Spec
      |                    |                    |                       |                  |
      |-- DispatchStep("coder.scaffold") ------>|                       |                  |
      |                    |                    |-- plan() generates 3 parallel branches   |
@@ -1831,23 +1823,23 @@ Request               JWT Guard           Supabase Auth        OPA Engine       
   |                       |-- JWT.verify() --->|                     |                  |
   |                       |<── {valid, claims} |                     |                  |
   |                       |                    |                     |                  |
-  |                       |   claims: {sub, tenant_id, role, scopes, exp}               |
+  |                       |   claims: {sub, organization_id, role, scopes, exp}               |
   |                       |                    |                     |                  |
-  |                       |-- OPA.check({input: {tenant_id, role,  ->|                  |
+  |                       |-- OPA.check({input: {organization_id, role,  ->|                  |
   |                       |              scopes, resource, action}}) |                  |
   |                       |<── {allow: true/false, reason} ─────── |                  |
   |                       |                    |                     |                  |
   |                       |   [if allow=false → 403]                 |                  |
   |                       |                    |                     |                  |
-  |                       |-- inject TenantContext into request       |                  |
+  |                       |-- inject OrganizationContext into request |                  |
   |                       |   (available to all downstream handlers) |                  |
   |                       |                    |                     |                  |
   |   [downstream service calls UDAL]          |                     |                  |
   |                       |                    |                     |-- UDAL resolves  |
-  |                       |                    |                     |  tenant_id from  |
-  |                       |                    |                     |  TenantContext   |
+  |                       |                    |                     |  organization_id from  |
+  |                       |                    |                     |  OrganizationContext |
   |                       |                    |                     |-- routes to      |
-  |                       |                    |                     |  schema tenant_X |
+  |                       |                    |                     |  schema org_<organization_id> |
 ```
 
 ### 5.10 RAG Pipeline (Detailed)
@@ -1861,7 +1853,7 @@ Agent                Query Rewriter        Retriever            Reranker        
   |                       |<── {rewritten_query, sub_queries[]}    |               |                   |
   |                       |                    |                    |               |                   |
   |                       |-- retriever.search(rewritten_query) --->|               |                   |
-  |                       |   BM25 lexical search (Mongo Atlas)     |               |                   |
+  |                       |   BM25 lexical search (Supabase Postgres FTS) |         |                   |
   |                       |   + ANN dense search (cosine, top_k=20) |               |                   |
   |                       |   merge + deduplicate                   |               |                   |
   |                       |<── {candidates: [{doc, bm25_score,      |               |                   |
@@ -1932,7 +1924,7 @@ Agent Call           Stage 1 Policy       Stage 2 Input        Stage 3 Instructi
 
 ## 6. Service-Level Component Breakdown
 
-### 6.1 `AUTOFOUNDER-BACKEND` — FastAPI API Gateway
+### 6.1 `backend` — FastAPI API Gateway
 
 **Responsibilities**: JWT validation (Supabase Auth), tenant resolution, rate-limiting, OPA policy check, request routing to Orchestrator via gRPC. Realtime streaming handled by Supabase Realtime.
 
@@ -1940,7 +1932,7 @@ Agent Call           Stage 1 Policy       Stage 2 Input        Stage 3 Instructi
 
 | Router | Key functions | Deps |
 |---|---|---|
-| `auth/jwt.py` | `verify_token()`, `get_tenant_context()` | Supabase JWT, OPA sidecar |
+| `auth/jwt.py` | `verify_token()`, `get_organization_context()` | Supabase JWT, OPA sidecar |
 | `routers/ideas.py` | `POST /v1/ideas` | Orchestrator gRPC client, Guardrails Stage 1 |
 | `routers/runs.py` | `GET /v1/runs/{id}`, artifacts | UDAL (read-only), Orchestrator gRPC |
 | `routers/gates.py` | `POST /v1/runs/{id}/gates/{gate_id}` | Orchestrator gRPC |
@@ -1961,15 +1953,15 @@ Agent Call           Stage 1 Policy       Stage 2 Input        Stage 3 Instructi
 }
 ```
 
-### 6.2 `AUTOFOUNDER-BACKEND/app/orchestrator` — LangGraph Engine
+### 6.2 `backend/app/orchestrator` — LangGraph Engine
 
-**Responsibilities**: Build and execute the per-run LangGraph StateGraph, manage checkpoints, handle HITL gate state machine, dispatch steps to AI Services, publish events.
+**Responsibilities**: Build and execute the per-run LangGraph StateGraph, manage checkpoints, handle HITL gate state machine, dispatch steps to the Agent Workers, publish events.
 
 **LangGraph state (`RunState` TypedDict)**:
 ```python
 class RunState(TypedDict):
     run_id:          str
-    tenant_id:       str
+    organization_id:       str
     pillar:          str
     idea_text:       str
     idea_meta:       dict
@@ -1991,7 +1983,7 @@ class RunState(TypedDict):
 
 Resumption on failure: LangGraph's `interrupt_after` + Redis hot-restore within 30s; fall back to Postgres if Redis miss.
 
-### 6.3 `AUTOFOUNDER-BACKEND/app/workers` — FastAPI Agent Workers
+### 6.3 `backend/app/workers` — FastAPI Agent Workers
 
 **Responsibilities**: Host agent execution workers, LLM clients, RAG pipeline, sandbox launcher. Receives steps from Orchestrator via gRPC streaming.
 
@@ -2002,7 +1994,7 @@ Resumption on failure: LangGraph's `interrupt_after` + Redis hot-restore within 
 **LLM client (`llm/router.py`)**:
 ```python
 class ModelRouter:
-    def route(self, task_class: str, tenant_id: str) -> str:
+    def route(self, task_class: str, organization_id: str) -> str:
         """
         Returns model_id for the given task class.
         Checks: A/B bucket assignment, cost cap headroom, model health.
@@ -2036,31 +2028,31 @@ class ModelRouter:
 ```javascript
 supabase
   .channel(`run:${runId}`)
-  .on('postgres_changes', { event: 'INSERT', schema: 'tenant_x', table: 'step_events', filter: `run_id=eq.${runId}` }, handleEvent)
+  .on('postgres_changes', { event: 'INSERT', schema: 'org_<organization_id>', table: 'step_events', filter: `run_id=eq.${runId}` }, handleEvent)
   .subscribe()
 ```
 
 **Backpressure**: Supabase Realtime handles backpressure internally. Portal replays missed events by querying `step_events` table on reconnect.
 
-### 6.5 `AUTOFOUNDER-FRONTEND-WEB` — Next.js Founder Portal
+### 6.5 `frontend` — Next.js Founder Portal
 
 **Key patterns**:
 
 - **`useRun(runId)` hook**: React Query for initial fetch + WebSocket for incremental updates. Merges WS events into React Query cache using `queryClient.setQueryData` with optimistic reconciliation.
 - **Gate surface**: `useGate(gateId)` polls `/v1/runs/{id}/gates/{gateId}` every 5s when state=pending; renders gate-specific UI (e.g. `<LeanCanvasReview />`, `<ArchitectureReview />`).
 - **Monaco diff viewer**: displays Reviewer Agent's code patches side-by-side with original; founder can comment before approving.
-- **Auth**: Supabase Auth (`@supabase/ssr`); session stored in HttpOnly cookie; `tenant_id` extracted from Supabase JWT on every API call.
+- **Auth**: Supabase Auth (`@supabase/ssr`); session stored in HttpOnly cookie; `organization_id` extracted from Supabase JWT on every API call.
 - **Error boundary**: per-surface React error boundary; Sentry `captureException` on unhandled errors.
 
-### 6.6 `AUTOFOUNDER-BACKEND/app/db` — UDAL
+### 6.6 `backend/app/db` — UDAL
 
 **Invariant**: no code outside this package may import `pg`, `pymongo`, `neo4j`, `boto3.s3`, or `ioredis` directly.
 
 **UDAL request lifecycle** (Python primary; TypeScript client for frontend read-only queries):
 ```
-1. Extract tenant_id from AsyncLocalStorage (set by AuthMiddleware)
-2. Validate tenant_id present (throws UDALError.NoTenantContext if missing)
-3. Determine schema: "platform" for platform tables, "tenant_{id}" for tenant tables
+1. Extract organization_id from AsyncLocalStorage (set by AuthMiddleware)
+2. Validate organization_id present (throws UDALError.NoOrganizationContext if missing)
+3. Determine schema: "platform" for platform tables, "org_<organization_id>" for organization tables
 4. Execute query with schema search_path or collection namespace
 5. Emit lineage event to audit_log
 6. Return result
@@ -2068,7 +2060,7 @@ supabase
 
 **Python UDAL** mirrors the same lifecycle using `contextvars.ContextVar` for tenant propagation across async tasks.
 
-### 6.7 `AUTOFOUNDER-BACKEND/app/agents` — Agent Implementations
+### 6.7 `backend/app/agents` — Agent Implementations
 
 **All agents extend `BaseAgent`**. Key overrides per agent:
 
@@ -2082,19 +2074,19 @@ supabase
 | `DevOpsAgent` | Parse arch + repo → infra requirements | Dockerfile → Terraform → ECS → DNS DAG | terraform apply + smoke test | HTTP 200 + latency < 2s |
 | `MarketingAgent` | Extract brand/audience from strategy output | Brand → Page → SEO → Email → Social DAG | Parallel content gen; hallucination check per asset | Feature-list cross-reference |
 
-### 6.8 `AUTOFOUNDER-BACKEND/app/guardrails`
+### 6.8 `backend/app/guardrails`
 
 **Stage 1 OPA call** (`stages/policy.py`):
 ```python
 # OPA input shape
 {
-  "tenant_id": "...",
+  "organization_id": "...",
   "agent_id": "...",
   "action": "invoke_agent"|"call_tool"|"write_artifact",
   "resource": {"type": "...", "id": "..."},
   "context": {"tier": "startup", "cost_so_far": 0.42}
 }
-# OPA policy file: AUTOFOUNDER-BACKEND/app/guardrails/opa/policies/agent_policy.rego
+# OPA policy file: backend/app/guardrails/opa/policies/agent_policy.rego
 ```
 
 **Stage 5 output guardrail — Marketing Agent special case**:
@@ -2105,7 +2097,7 @@ Every marketing asset goes through `feature_list_crossref()`:
 
 **Audit log writes** are synchronous and happen after every stage regardless of outcome. The audit record is written by `audit.py` directly to PostgreSQL `platform.audit_log`, then asynchronously exported to S3 Object Lock by a nightly Lambda.
 
-### 6.9 `AUTOFOUNDER-BACKEND/app/tools` — MCP Tool Registry
+### 6.9 `backend/app/tools` — MCP Tool Registry
 
 **Tool call lifecycle**:
 ```
@@ -2128,7 +2120,7 @@ Every marketing asset goes through `feature_list_crossref()`:
 - Deploy tools: GitHub API, AWS service endpoints only
 - All other outbound: denied
 
-### 6.10 `AUTOFOUNDER-BACKEND/app/prompts` — Prompt Registry
+### 6.10 `backend/app/prompts` — Prompt Registry
 
 **Jinja2 template rendering** with strict variable validation:
 ```python
@@ -2142,10 +2134,10 @@ Every marketing asset goes through `feature_list_crossref()`:
 # prompt = f"Analyze {user_input}"  # ← direct string concat, blocked
 
 # Correct:
-# template = prompt_registry.get("strategy.market_sizing.v3", tenant_id, vars)
+# template = prompt_registry.get("strategy.market_sizing.v3", organization_id, vars)
 ```
 
-**Canary traffic split**: LLMOps Agent assigns tenants to A/B buckets using a deterministic hash: `bucket = hash(tenant_id + experiment_id) % 100`. If `bucket < canary_pct` (default 5), the canary prompt version is served.
+**Canary traffic split**: LLMOps Agent assigns tenants to A/B buckets using a deterministic hash: `bucket = hash(organization_id + experiment_id) % 100`. If `bucket < canary_pct` (default 5), the canary prompt version is served.
 
 ---
 
@@ -2171,24 +2163,24 @@ Every marketing asset goes through `feature_list_crossref()`:
 | Cross-tenant query risk | Zero (different schemas) | RLS bug = data leak |
 | Migration complexity | Run per tenant (parallelisable) | Single migration, simpler |
 | Postgres connection limit | PgBouncer per schema increases count | Fewer connections |
-| Right to erasure | `DROP SCHEMA tenant_X CASCADE` | Partial deletes, complex |
+| Right to erasure | `DROP SCHEMA org_<organization_id> CASCADE` | Partial deletes, complex |
 
 **Decision**: Schema-per-tenant as the primary isolation mechanism. RLS added as defense-in-depth only. UDAL enforces `search_path` at query time — not configurable by callers. GDPR erasure becomes a clean `DROP SCHEMA`.
 
 ### 7.3 UDAL as mandatory data access layer
 
 **Trade-off**: adds one indirection hop (~0.1ms) and a code convention to enforce.  
-**Why it's worth it**: Without UDAL, a single misplaced `db.query("SELECT * FROM runs WHERE ...")` without a `tenant_id` filter leaks cross-tenant data. UDAL makes the unsafe operation structurally impossible. The audit lineage benefit (every data access is logged) is a requirement for SOC 2 Type II evidence.
+**Why it's worth it**: Without UDAL, a single misplaced `db.query("SELECT * FROM runs WHERE ...")` without a `organization_id` filter leaks cross-tenant data. UDAL makes the unsafe operation structurally impossible. The audit lineage benefit (every data access is logged) is a requirement for SOC 2 Type II evidence.
 
 ### 7.4 Cheapest-capable model routing (LiteLLM)
 
 The model router runs a rule table evaluated left-to-right:
 
 ```
-task_class == "complex_reasoning"                              → gemini-1.5-flash-002
-task_class == "code_gen"                                       → gemini-1.5-flash-002
-task_class == "classification"                                 → gemini-1.5-flash-002
-task_class == "embedding"                                      → gemini-embedding-002
+task_class == "complex_reasoning"                              → gemini-3.5-flash
+task_class == "code_gen"                                       → gemini-3.5-flash
+task_class == "classification"                                 → gemini-3.5-flash
+task_class == "embedding"                                      → gemini-embedding-2
 task_class == "image_gen"                                      → dall-e-3
 task_class == "speech"                                         → whisper-1
 task_class == "safety_classifier"                              → llama-guard-3
@@ -2227,57 +2219,57 @@ All prompts are Jinja2 templates stored in the prompt registry, never Python f-s
 ```
 Service / Package          Direct Dependencies
 ─────────────────────────────────────────────────────────────────────────────
-AUTOFOUNDER-BACKEND                   packages/shared, AUTOFOUNDER-BACKEND/app/db (Python + TS read-only)
+backend                   packages/shared, backend/app/db (Python + TS read-only)
                            Supabase Auth (JWT) (external)
                            OPA sidecar (gRPC localhost:8181)
-                           AUTOFOUNDER-BACKEND/app/orchestrator (gRPC)
+                           backend/app/orchestrator (gRPC)
                            Kafka producer (feedback topic publish)
 
-AUTOFOUNDER-BACKEND/app/orchestrator          packages/shared, AUTOFOUNDER-BACKEND/app/db (Python)
-                           AUTOFOUNDER-BACKEND/app/workers (gRPC)
+backend/app/orchestrator          packages/shared, backend/app/db (Python)
+                           backend/app/workers (gRPC)
                            Amazon EventBridge (publish)
                            Amazon SQS (pillar queues — consume + publish)
                            Redis (checkpoint hot cache)
                            PostgreSQL (checkpoint durable, runs, gates CRUD)
 
-AUTOFOUNDER-BACKEND/app/workers           AUTOFOUNDER-BACKEND/app/agents, AUTOFOUNDER-BACKEND/app/guardrails
-                           AUTOFOUNDER-BACKEND/app/tools, AUTOFOUNDER-BACKEND/app/prompts
-                           AUTOFOUNDER-BACKEND/app/db (Python)
+backend/app/workers           backend/app/agents, backend/app/guardrails
+                           backend/app/tools, backend/app/prompts
+                           backend/app/db (Python)
                            Google AI API (Gemini)
                            Supabase (pgvector + Storage)
                            Amazon ECR (sandbox image pull)
                            Amazon ECS (sandbox task launch)
                            Amazon EventBridge (publish traces)
 
-AUTOFOUNDER-FRONTEND-WEB                   AUTOFOUNDER-BACKEND (REST)
+frontend                   backend (REST)
                            Supabase JS client (Realtime + Auth)
                            Sentry browser SDK
 
-AUTOFOUNDER-BACKEND/app/agents            AUTOFOUNDER-BACKEND/app/db (Python), AUTOFOUNDER-BACKEND/app/tools
-                           AUTOFOUNDER-BACKEND/app/prompts, AUTOFOUNDER-BACKEND/app/guardrails
+backend/app/agents            backend/app/db (Python), backend/app/tools
+                           backend/app/prompts, backend/app/guardrails
                            packages/shared
 
-AUTOFOUNDER-BACKEND/app/guardrails        OPA (HTTP policy evaluation)
+backend/app/guardrails        OPA (HTTP policy evaluation)
                            Llama Guard 3 (Bedrock or self-hosted)
                            Microsoft Presidio (PII)
                            TruLens (output eval)
                            PostgreSQL (audit_log — via UDAL)
 
-AUTOFOUNDER-BACKEND/app/db                Supabase PostgreSQL (pgvector + Storage)
+backend/app/db                Supabase PostgreSQL (pgvector + Storage)
                            Redis (ElastiCache)
                            Neo4j / Amazon Neptune
                            Amazon S3 (data lake / audit)
 
-AUTOFOUNDER-BACKEND/app/tools             External tool APIs (scoped egress per tool)
-                           AUTOFOUNDER-BACKEND/app/db (tool_registry read via UDAL)
+backend/app/tools             External tool APIs (scoped egress per tool)
+                           backend/app/db (tool_registry read via UDAL)
 
-AUTOFOUNDER-BACKEND/app/prompts           PostgreSQL (prompt_registry via UDAL)
+backend/app/prompts           PostgreSQL (prompt_registry via UDAL)
                            Amazon S3 (template artifacts)
 
-AUTOFOUNDER-INFRA/terraform            AWS provider (~30 resources)
+infra/terraform            AWS provider (~30 resources)
 ```
 
-**Circular dependency rule**: `AUTOFOUNDER-BACKEND/app/db` must not import `AUTOFOUNDER-BACKEND/app/agents`, `AUTOFOUNDER-BACKEND/app/guardrails`, or `AUTOFOUNDER-BACKEND/app/tools`. Enforced by `depcheck`/`pylint` in CI.
+**Circular dependency rule**: `backend/app/db` must not import `backend/app/agents`, `backend/app/guardrails`, or `backend/app/tools`. Enforced by `depcheck`/`pylint` in CI.
 
 ---
 
@@ -2292,10 +2284,10 @@ class AutoFounderError(Exception):
     retryable: bool = False
 
 class UDALError(AutoFounderError):
-    class NoTenantContext(UDALError):
-        code = "UDAL_NO_TENANT_CONTEXT"
-    class CrossTenantAccess(UDALError):
-        code = "UDAL_CROSS_TENANT_ACCESS"  # SEV-1 alert
+    class NoOrganizationContext(UDALError):
+        code = "UDAL_NO_ORGANIZATION_CONTEXT"
+    class CrossOrganizationAccess(UDALError):
+        code = "UDAL_CROSS_ORGANIZATION_ACCESS"  # SEV-1 alert
 
 class GuardrailError(AutoFounderError):
     class Blocked(GuardrailError):
@@ -2366,7 +2358,7 @@ On OPEN: raise CircuitOpenError (not retried; LLM router falls back to alternate
 
 | SEV | Condition | Response |
 |---|---|---|
-| SEV-1 | `UDALError.CrossTenantAccess` | PagerDuty immediate; auto-pause affected tenant; security team notified |
+| SEV-1 | `UDALError.CrossOrganizationAccess` | PagerDuty immediate; auto-pause affected organization; security team notified |
 | SEV-1 | Audit log write failure | PagerDuty immediate; block all writes until resolved |
 | SEV-2 | > 10% of runs failing in 5 min | PagerDuty within 5 min; on-call investigates |
 | SEV-3 | Single run stuck > SLA | Async alert; LLMOps drift detection flags for review |
@@ -2380,7 +2372,7 @@ All non-secret config lives in AWS SSM Parameter Store (`/{env}/autofounder/{ser
 All secrets live in AWS Secrets Manager (`/{env}/autofounder/{service}/{secret_name}`).  
 **No `.env` files in the repository** (enforced by Gitleaks + semgrep rule `no-dotenv-in-repo`).
 
-### 10.1 `AUTOFOUNDER-BACKEND` (FastAPI)
+### 10.1 `backend` (FastAPI)
 
 | Variable | Source | Example |
 |---|---|---|
@@ -2393,7 +2385,7 @@ All secrets live in AWS Secrets Manager (`/{env}/autofounder/{service}/{secret_n
 | `THROTTLE_LIMIT_SOLO` | SSM | `10` |
 | `SENTRY_DSN` | Secrets Mgr | `https://...@sentry.io/...` |
 
-### 10.2 `AUTOFOUNDER-BACKEND/app/orchestrator` (Python)
+### 10.2 `backend/app/orchestrator` (Python)
 
 | Variable | Source | Example |
 |---|---|---|
@@ -2401,11 +2393,11 @@ All secrets live in AWS Secrets Manager (`/{env}/autofounder/{service}/{secret_n
 | `REDIS_URL` | Secrets Mgr | `rediss://...` |
 | `EVENTBRIDGE_BUS_NAME` | SSM | `autofounder-platform-prod` |
 | `SQS_PILLAR_QUEUES` | SSM | `{"1": "...", "2": "...", ...}` (JSON) |
-| `AI_SERVICES_GRPC_HOST` | SSM | `ai-services.internal:50052` |
+| `WORKERS_GRPC_HOST` | SSM | `workers.internal:50052` |
 | `LANGSMITH_API_KEY` | Secrets Mgr | `lsv2_...` |
 | `LANGSMITH_PROJECT` | SSM | `autofounder-prod` |
 
-### 10.3 `AUTOFOUNDER-BACKEND/app/workers` (Python)
+### 10.3 `backend/app/workers` (Python)
 
 | Variable | Source | Example |
 |---|---|---|
@@ -2423,7 +2415,7 @@ All secrets live in AWS Secrets Manager (`/{env}/autofounder/{service}/{secret_n
 
 ### 10.4 Supabase Realtime (Managed — no env config required)
 
-Supabase Realtime is configured via the Supabase project dashboard and inherits the project's JWT secret. No separate service deployment or environment variables are needed beyond `SUPABASE_URL` and `SUPABASE_ANON_KEY` (already in `AUTOFOUNDER-FRONTEND-WEB`).
+Supabase Realtime is configured via the Supabase project dashboard and inherits the project's JWT secret. No separate service deployment or environment variables are needed beyond `SUPABASE_URL` and `SUPABASE_ANON_KEY` (already in `frontend`).
 
 ### 10.5 Feature flags (GrowthBook / Statsig)
 

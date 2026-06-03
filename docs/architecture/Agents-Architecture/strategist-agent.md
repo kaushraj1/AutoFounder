@@ -49,7 +49,7 @@ The agent runs as a LangGraph stateful graph, parallelises independent research 
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/strategist/schema.py
+# backend/app/agents/strategist/schema.py
 
 from __future__ import annotations
 
@@ -209,9 +209,9 @@ class StrategistState(BaseModel):
     """
 
     # Identity
-    run_id: UUID        = Field(default_factory=uuid4)
-    tenant_id: str      = Field(..., description="Validated from JWT claims")
-    idea_raw: str       = Field(..., min_length=10, max_length=4000)
+    run_id: UUID            = Field(default_factory=uuid4)
+    organization_id: str    = Field(..., description="Validated from Supabase JWT claims")
+    idea_raw: str           = Field(..., min_length=10, max_length=4000)
 
     # Normalised inputs
     idea_normalised: str | None = None
@@ -257,23 +257,23 @@ class StrategistState(BaseModel):
 
 | Node ID | Type | Description | Model |
 |---|---|---|---|
-| `normalize_idea` | Sequential | Cleans raw input, extracts domain & geography | Claude Sonnet |
-| `size_market` | Parallel branch | TAM/SAM/SOM via Tavily + SerpAPI | Claude Sonnet |
-| `discover_competitors` | Parallel branch | Competitor profiling via Crunchbase + G2 | Claude Sonnet |
-| `mine_keywords` | Parallel branch | SEO keyword research via SerpAPI | GPT-4o |
-| `generate_personas` | Parallel branch | Buyer persona synthesis | GPT-4o |
-| `analyze_trends` | Parallel branch | Google Trends + Reddit + HackerNews | GPT-4o |
+| `normalize_idea` | Sequential | Cleans raw input, extracts domain & geography | Gemini 3.5 Flash |
+| `size_market` | Parallel branch | TAM/SAM/SOM via Tavily + SerpAPI | Gemini 3.5 Flash |
+| `discover_competitors` | Parallel branch | Competitor profiling via Crunchbase + G2 | Gemini 3.5 Flash |
+| `mine_keywords` | Parallel branch | SEO keyword research via SerpAPI | Gemini 3.5 Flash |
+| `generate_personas` | Parallel branch | Buyer persona synthesis | Gemini 3.5 Flash |
+| `analyze_trends` | Parallel branch | Google Trends + Reddit + HackerNews | Gemini 3.5 Flash |
 | `parallel_join` | Barrier | Waits for all 5 parallel nodes | — |
-| `audit_bias` | Sequential | Checks for Western-centric / recency bias | Claude Sonnet |
-| `synthesize_canvas` | Sequential | Lean Canvas from aggregated research | Claude Sonnet |
-| `score_viability` | Sequential | Weighted viability score + pivot suggestions | Claude Sonnet |
-| `render_report` | Sequential | Assembles the 5-page Markdown report | GPT-4o |
+| `audit_bias` | Sequential | Checks for Western-centric / recency bias | Gemini 3.5 Flash |
+| `synthesize_canvas` | Sequential | Lean Canvas from aggregated research | Gemini 3.5 Flash |
+| `score_viability` | Sequential | Weighted viability score + pivot suggestions | Gemini 3.5 Flash |
+| `render_report` | Sequential | Assembles the 5-page Markdown report | Gemini 3.5 Flash |
 | `error_handler` | Error sink | Retries or escalates failed nodes | — |
 
 ### 3.2 Graph definition
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/strategist/graph.py
+# backend/app/agents/strategist/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -380,7 +380,7 @@ def build_strategist_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# AUTOFOUNDER-BACKEND/app/agents/strategist/routers.py
+# backend/app/agents/strategist/routers.py
 
 def route_after_normalize(state: StrategistState) -> str | list[str]:
     if state.fatal_error:
@@ -448,7 +448,7 @@ flowchart TD
 ### 4.1 Tool definitions (LangChain-compatible)
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/strategist/tools.py
+# backend/app/agents/strategist/tools.py
 
 import os
 from langchain_community.tools.tavily_search import TavilySearchResults
@@ -653,12 +653,12 @@ TOOL_REGISTRY: dict[str, list] = {
 
 ## 5. Prompt Templates
 
-All prompts use **Claude Sonnet** (complex reasoning) or **GPT-4o** (copy / classification) per the model routing policy. Prompts are stored as Jinja2 templates.
+All prompts use **Gemini 3.5 Flash** (complex reasoning, copy, and classification) per the model routing policy. Prompts are stored as Jinja2 templates.
 
 ### 5.1 `normalize_idea` — Idea Normalisation
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/normalize_idea.j2 #}
+{# backend/app/agents/strategist/prompts/normalize_idea.j2 #}
 
 SYSTEM:
 You are the Strategist Agent for Auto-Founder AI, a platform that turns ideas into
@@ -688,7 +688,7 @@ Return a JSON object with keys:
 ### 5.2 `size_market` — TAM/SAM/SOM Sizing
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/size_market.j2 #}
+{# backend/app/agents/strategist/prompts/size_market.j2 #}
 
 SYSTEM:
 You are a market research analyst. Use the tool results provided to estimate
@@ -723,7 +723,7 @@ Constraints:
 ### 5.3 `discover_competitors` — Competitor Profiling
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/discover_competitors.j2 #}
+{# backend/app/agents/strategist/prompts/discover_competitors.j2 #}
 
 SYSTEM:
 You are a competitive intelligence analyst. Find REAL, existing companies only.
@@ -754,7 +754,7 @@ Return as: { "whitespace": string }
 ### 5.4 `mine_keywords` — SEO Keyword Mining
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/mine_keywords.j2 #}
+{# backend/app/agents/strategist/prompts/mine_keywords.j2 #}
 
 SYSTEM:
 You are an SEO strategist. Use SerpAPI and Google Trends data to identify high-value
@@ -780,7 +780,7 @@ Flag at least 2 "low-difficulty, high-intent" opportunities.
 ### 5.5 `generate_personas` — Buyer Persona Generation
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/generate_personas.j2 #}
+{# backend/app/agents/strategist/prompts/generate_personas.j2 #}
 
 SYSTEM:
 You are a UX researcher and B2B sales strategist. Ground personas in real market
@@ -810,7 +810,7 @@ Generate 2–3 buyer personas as a JSON array:
 ### 5.6 `analyze_trends` — Trend & Sentiment Analysis
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/analyze_trends.j2 #}
+{# backend/app/agents/strategist/prompts/analyze_trends.j2 #}
 
 SYSTEM:
 You are a market trend analyst. Synthesise signals from Google Trends,
@@ -837,7 +837,7 @@ Also return: { "overall_momentum": "accelerating" | "stable" | "declining" }
 ### 5.7 `audit_bias` — Bias Audit
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/audit_bias.j2 #}
+{# backend/app/agents/strategist/prompts/audit_bias.j2 #}
 
 SYSTEM:
 You are a bias auditor for an AI market research system. Your role is to identify
@@ -869,7 +869,7 @@ Return a JSON object:
 ### 5.8 `synthesize_canvas` — Lean Canvas
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/synthesize_canvas.j2 #}
+{# backend/app/agents/strategist/prompts/synthesize_canvas.j2 #}
 
 SYSTEM:
 You are a startup strategist synthesising a Lean Canvas from validated research.
@@ -902,7 +902,7 @@ Return a Lean Canvas as JSON:
 ### 5.9 `score_viability` — Viability Scoring
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/score_viability.j2 #}
+{# backend/app/agents/strategist/prompts/score_viability.j2 #}
 
 SYSTEM:
 You are a venture analyst scoring startup viability. Use the scoring rubric below.
@@ -939,7 +939,7 @@ Return:
 ### 5.10 `render_report` — 5-Page Markdown Report
 
 ```jinja2
-{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/render_report.j2 #}
+{# backend/app/agents/strategist/prompts/render_report.j2 #}
 
 SYSTEM:
 You are a professional business analyst. Render a clean, structured 5-page market
@@ -947,7 +947,7 @@ analysis report in Markdown. Do not invent facts — every claim must reference
 data already in the research state. Keep language concise, avoid filler.
 
 USER:
-Tenant: {{ tenant_id }}
+Tenant: {{ organization_id }}
 Idea: {{ idea_normalised }}
 Domain: {{ domain }}
 Market size: {{ market_size | tojson }}
@@ -980,7 +980,7 @@ End with a prominent block:
 sequenceDiagram
     autonumber
     actor Founder
-    participant API   as NestJS API Gateway
+    participant API   as FastAPI API Gateway
     participant Graph as LangGraph Orchestrator
     participant Norm  as normalize_idea
     participant Par   as Parallel Research Nodes
@@ -998,7 +998,7 @@ sequenceDiagram
     participant Rpt   as render_report
     participant Arch  as Architect Agent
 
-    Founder ->> API: POST /api/v1/runs { idea_raw, tenant_id }
+    Founder ->> API: POST /api/v1/runs { idea_raw, organization_id }
     API ->> Graph: invoke(StrategistState)
     Graph ->> Norm: normalize_idea(idea_raw)
     Norm -->> Graph: { idea_normalised, domain, geography_focus }
@@ -1100,12 +1100,12 @@ sequenceDiagram
     participant State as StrategistState
     participant Redis as Redis (session)
     participant Slack as Slack Webhook
-    participant API   as NestJS API
+    participant API   as FastAPI API
 
     Node ->> EH: exception (error_count >= max_retries)
     EH ->> State: set fatal_error = "Max retries exceeded on {node}"
     EH ->> Redis: publish("strategist:fatal", { run_id, node, error })
-    EH ->> Slack: POST alert { run_id, tenant_id, node, error_message }
+    EH ->> Slack: POST alert { run_id, organization_id, node, error_message }
     EH -->> State: is_complete = false, fatal_error set
 
     State -->> API: graph exits to END
@@ -1132,7 +1132,7 @@ sequenceDiagram
 ### 7.2 Error handler node
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/strategist/nodes/error_handler.py
+# backend/app/agents/strategist/nodes/error_handler.py
 
 import asyncio
 import logging
@@ -1185,7 +1185,7 @@ async def _post_slack_alert(state: StrategistState, error_summary: str) -> None:
         "text": (
             f":red_circle: *Strategist Agent Fatal Error*\n"
             f"*Run ID*: `{state.run_id}`\n"
-            f"*Tenant*: `{state.tenant_id}`\n"
+            f"*Tenant*: `{state.organization_id}`\n"
             f"*Idea*: {state.idea_normalised or state.idea_raw[:80]}\n"
             f"*Error*: {error_summary}\n"
             f"*Time*: {datetime.now(timezone.utc).isoformat()}"
@@ -1201,7 +1201,7 @@ async def _post_slack_alert(state: StrategistState, error_summary: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/strategist/utils/retry.py
+# backend/app/agents/strategist/utils/retry.py
 
 import asyncio
 import functools
@@ -1261,7 +1261,7 @@ def with_retry(node_name: str):
 ### 7.4 LLM parse-error self-correction
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/strategist/utils/llm_parse.py
+# backend/app/agents/strategist/utils/llm_parse.py
 
 import json
 import logging
@@ -1312,7 +1312,7 @@ async def parse_with_correction(
 ### 7.5 SLA breach monitoring
 
 ```python
-# AUTOFOUNDER-BACKEND/app/agents/strategist/utils/sla.py
+# backend/app/agents/strategist/utils/sla.py
 
 import asyncio
 import logging
@@ -1361,12 +1361,12 @@ package autofounder.strategist.v1;
 
 message StrategistOutput {
   string  run_id         = 1;
-  string  tenant_id      = 2;
+  string  organization_id = 2;
   string  idea_normalised = 3;
   string  domain         = 4;
   int32   viability_score = 5;
   string  viability_band  = 6;   // "strong" | "moderate" | "weak" | "reject"
-  string  report_url      = 7;   // S3 URI: s3://{bucket}/{tenant_id}/reports/{run_id}.md
+  string  report_url      = 7;   // S3 URI: s3://{bucket}/{organization_id}/reports/{run_id}.md
   string  lean_canvas_json = 8;
   repeated string pivot_suggestions = 9;
   repeated string bias_flags        = 10;
