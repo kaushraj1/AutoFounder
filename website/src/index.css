@@ -38,10 +38,18 @@
   }
 
   .hero-gradient {
-    background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(37, 99, 235, 0.22) 0%, transparent 70%);
+    background: radial-gradient(
+      ellipse 80% 60% at 50% -10%,
+      rgba(37, 99, 235, 0.22) 0%,
+      transparent 70%
+    );
   }
 
   .section-gradient {
-    background: radial-gradient(ellipse 60% 40% at 50% 50%, rgba(59, 130, 246, 0.07) 0%, transparent 70%);
+    background: radial-gradient(
+      ellipse 60% 40% at 50% 50%,
+      rgba(59, 130, 246, 0.07) 0%,
+      transparent 70%
+    );
   }
 }
