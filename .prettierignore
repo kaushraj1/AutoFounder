@@ -1,0 +1,20 @@
+# Dependencies & lockfiles
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+uv.lock
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+coverage/
+.turbo/
+
+# Python backend & IaC (not formatted by Prettier)
+AUTOFOUNDER-BACKEND/
+AUTOFOUNDER-INFRA/
+
+# Markdown is left to authors
+*.md

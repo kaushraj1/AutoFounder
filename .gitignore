@@ -67,7 +67,7 @@ secrets/
 .turbo/
 
 # ─── Docker ───────────────────────────────────────────────────────────────────
-.dockerignore
+# (.dockerignore files ARE committed — do not ignore them)
 
 # ─── Terraform / IaC ──────────────────────────────────────────────────────────
 **/.terraform/

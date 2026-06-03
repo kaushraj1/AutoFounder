@@ -1,6 +1,6 @@
 packages:
-  - "apps/*"
+  - "AUTOFOUNDER-FRONTEND-WEB"
+  - "AUTOFOUNDER-ADMIN"
+  - "AUTOFOUNDER-MOBILE-APP"
+  - "AUTOFOUNDER-BACKEND"
   - "packages/*"
-  - "website"
-  - "mobile-app"
-  - "vscode-extension"
