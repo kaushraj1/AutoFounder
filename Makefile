@@ -1,11 +1,11 @@
-.PHONY: install dev stack stack-down backend-lint backend-format js-lint js-format quality
+.PHONY: install dev stack stack-down backend-lint backend-format backend-typecheck backend-test js-lint js-format quality
 
-# Install JS workspaces (pnpm) and Python dev tools (uv + Ruff) in backend/
+# Install JS workspaces (pnpm) and backend Python deps (uv)
 install:
 	pnpm install
-	cd backend && uv sync --all-groups
+	cd backend && uv sync
 
-# Start local databases (PostgreSQL + Redis)
+# Start local ancillary services (Redis). Run `supabase start` separately for Postgres + pgvector.
 stack:
 	docker compose up -d
 
@@ -16,12 +16,18 @@ dev:
 	pnpm dev
 
 backend-lint:
-	cd backend && uv run ruff check src
-	cd backend && uv run ruff format --check src
+	cd backend && uv run ruff check app tests
+	cd backend && uv run ruff format --check app tests
 
 backend-format:
-	cd backend && uv run ruff format src
-	cd backend && uv run ruff check --fix src
+	cd backend && uv run ruff format app tests
+	cd backend && uv run ruff check --fix app tests
+
+backend-typecheck:
+	cd backend && uv run mypy app
+
+backend-test:
+	cd backend && uv run pytest
 
 js-lint:
 	pnpm lint
@@ -29,4 +35,5 @@ js-lint:
 js-format:
 	pnpm format
 
-quality: backend-lint js-lint
+# Run all quality gates locally (mirrors CI)
+quality: backend-lint backend-typecheck backend-test js-lint

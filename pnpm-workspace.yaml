@@ -1,6 +1,5 @@
 packages:
-  - "apps/*"
-  - "packages/*"
-  - "website"
+  - "frontend"
   - "mobile-app"
-  - "vscode-extension"
+  - "backend"
+  - "packages/*"

@@ -1,32 +1,32 @@
-import { AlertCircle, Clock, Banknote, TrendingDown } from 'lucide-react'
+import { AlertCircle, Clock, Banknote, TrendingDown } from "lucide-react";
 
 const problems = [
   {
     icon: TrendingDown,
-    title: '90% of startups build things nobody wants',
+    title: "90% of startups build things nobody wants",
     description:
-      'Founders spend 3+ weeks and $5,000+ on market validation — only to discover there\'s no real demand. Most skip it entirely and ship straight into a dead market.',
+      "Founders spend 3+ weeks and $5,000+ on market validation — only to discover there's no real demand. Most skip it entirely and ship straight into a dead market.",
   },
   {
     icon: Clock,
-    title: 'MVPs take 3–6 months and cost $15K–$50K',
+    title: "MVPs take 3–6 months and cost $15K–$50K",
     description:
-      'Hiring a dev agency, debating the tech stack, onboarding contractors, reviewing code, managing scope creep — by the time your MVP ships, the window has closed.',
+      "Hiring a dev agency, debating the tech stack, onboarding contractors, reviewing code, managing scope creep — by the time your MVP ships, the window has closed.",
   },
   {
     icon: Banknote,
-    title: 'Launch fizzles with zero traction',
+    title: "Launch fizzles with zero traction",
     description:
-      'Even great products fail at launch. Setting up SEO, writing copy, building a social presence, and coordinating Product Hunt takes another 2–3 weeks after the build is done.',
+      "Even great products fail at launch. Setting up SEO, writing copy, building a social presence, and coordinating Product Hunt takes another 2–3 weeks after the build is done.",
   },
-]
+];
 
 const comparison = [
-  { stage: 'Idea → Validated', traditional: '3 weeks', autofounder: '30 minutes' },
-  { stage: 'Validated → MVP built', traditional: '3–6 months', autofounder: '7 days' },
-  { stage: 'MVP → Deployed', traditional: '1 week', autofounder: '10 minutes' },
-  { stage: 'Deployed → Marketed', traditional: '2–3 weeks', autofounder: '2 hours' },
-]
+  { stage: "Idea → Validated", traditional: "3 weeks", autofounder: "30 minutes" },
+  { stage: "Validated → MVP built", traditional: "3–6 months", autofounder: "7 days" },
+  { stage: "MVP → Deployed", traditional: "1 week", autofounder: "10 minutes" },
+  { stage: "Deployed → Marketed", traditional: "2–3 weeks", autofounder: "2 hours" },
+];
 
 export default function Problem() {
   return (
@@ -75,7 +75,7 @@ export default function Problem() {
               <div
                 key={stage}
                 className={`grid grid-cols-3 px-6 py-4 items-center ${
-                  i < comparison.length - 1 ? 'border-b border-white/5' : ''
+                  i < comparison.length - 1 ? "border-b border-white/5" : ""
                 }`}
               >
                 <span className="text-sm text-slate-300">{stage}</span>
@@ -90,11 +90,13 @@ export default function Problem() {
               <span className="text-center text-sm text-red-400 font-bold line-through opacity-70">
                 4–7 months · $20K–$60K
               </span>
-              <span className="text-center text-sm text-blue-300 font-bold">~7 days · $200–$700</span>
+              <span className="text-center text-sm text-blue-300 font-bold">
+                ~7 days · $200–$700
+              </span>
             </div>
           </div>
         </div>
       </div>
     </section>
-  )
+  );
 }

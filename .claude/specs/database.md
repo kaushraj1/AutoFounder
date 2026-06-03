@@ -17,7 +17,7 @@ Organization  (billing entity — company or individual subscriber)
 
 | Level | Column | Type | Notes |
 |-------|--------|------|-------|
-| Top-level tenant | `organization_id` | `UUID` | Maps to Auth0 `org_id` claim |
+| Top-level tenant | `organization_id` | `UUID` | Maps to the Supabase JWT `organization_id` claim |
 | Project scope | `workspace_id` | `UUID` | Child of `organization_id` |
 | Execution | `run_id` | `UUID` | Child of `workspace_id` |
 
@@ -136,7 +136,7 @@ CREATE TABLE workspaces (
   name            TEXT NOT NULL,
   description     TEXT,
   settings        JSONB NOT NULL DEFAULT '{}',
-  created_by      TEXT NOT NULL,          -- Auth0 sub claim
+  created_by      TEXT NOT NULL,          -- Supabase JWT sub claim
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at      TIMESTAMPTZ
 );

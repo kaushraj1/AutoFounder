@@ -1,31 +1,34 @@
-import { Lightbulb, Cpu, Globe } from 'lucide-react'
+import { Lightbulb, Cpu, Globe } from "lucide-react";
 
 const steps = [
   {
-    step: '01',
+    step: "01",
     icon: Lightbulb,
-    title: 'Describe Your Idea',
+    title: "Describe Your Idea",
     description:
-      'Type your startup idea in plain English — or upload a PDF, voice note, or URL. AutoFounder AI ingests it, clarifies ambiguities, and kicks off the autonomous pipeline.',
-    detail: 'Strategy Agent validates your market in < 30 min with full Lean Canvas + viability score.',
+      "Type your startup idea in plain English — or upload a PDF, voice note, or URL. AutoFounder AI ingests it, clarifies ambiguities, and kicks off the autonomous pipeline.",
+    detail:
+      "Strategy Agent validates your market in < 30 min with full Lean Canvas + viability score.",
   },
   {
-    step: '02',
+    step: "02",
     icon: Cpu,
-    title: 'Agents Build Everything',
+    title: "Agents Build Everything",
     description:
-      'Seven specialized AI agents handle architecture, code generation, testing, and self-healing in parallel — with human-approval gates at every critical milestone so you stay in control.',
-    detail: 'Frontend + Backend + DB + Auth + Stripe + CI/CD — all production-grade, zero linting errors.',
+      "Seven specialized AI agents handle architecture, code generation, testing, and self-healing in parallel — with human-approval gates at every critical milestone so you stay in control.",
+    detail:
+      "Frontend + Backend + DB + Auth + Stripe + CI/CD — all production-grade, zero linting errors.",
   },
   {
-    step: '03',
+    step: "03",
     icon: Globe,
-    title: 'Launch to the World',
+    title: "Launch to the World",
     description:
-      'Your product is deployed to AWS ECS Fargate with a live URL, custom domain, SSL certificate, and a full GTM package: landing page, SEO content, social posts, and email drip sequences.',
-    detail: 'Code → Live in < 10 min. Marketing assets delivered in < 2 hours. You approve before anything goes public.',
+      "Your product is deployed to AWS ECS Fargate with a live URL, custom domain, SSL certificate, and a full GTM package: landing page, SEO content, social posts, and email drip sequences.",
+    detail:
+      "Code → Live in < 10 min. Marketing assets delivered in < 2 hours. You approve before anything goes public.",
   },
-]
+];
 
 export default function HowItWorks() {
   return (
@@ -33,9 +36,7 @@ export default function HowItWorks() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            How it works
-          </h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">How it works</h2>
           <p className="text-slate-400 text-lg max-w-xl mx-auto">
             Three steps stand between your idea and a live, marketed software business.
           </p>
@@ -50,7 +51,9 @@ export default function HowItWorks() {
                 <div className="relative flex-shrink-0">
                   <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-600/20 to-blue-600/20 border border-blue-500/30 flex flex-col items-center justify-center gap-1 shadow-lg">
                     <Icon size={28} className="text-blue-400" />
-                    <span className="text-[10px] font-bold text-blue-500 tracking-widest">{step}</span>
+                    <span className="text-[10px] font-bold text-blue-500 tracking-widest">
+                      {step}
+                    </span>
                   </div>
                   {/* Connector arrow for mobile */}
                   {i < steps.length - 1 && (
@@ -84,5 +87,5 @@ export default function HowItWorks() {
         </div>
       </div>
     </section>
-  )
+  );
 }

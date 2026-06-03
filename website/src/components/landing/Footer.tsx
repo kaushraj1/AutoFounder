@@ -1,26 +1,26 @@
-import { Zap } from 'lucide-react'
+import { Zap } from "lucide-react";
 
 const footerLinks = {
   Product: [
-    { label: 'Features', href: '#features' },
-    { label: 'How It Works', href: '#how-it-works' },
-    { label: 'Pricing', href: '#pricing' },
-    { label: 'Roadmap', href: '#' }, // TODO: Link to public roadmap
-    { label: 'Changelog', href: '#' }, // TODO: Link to changelog page
+    { label: "Features", href: "#features" },
+    { label: "How It Works", href: "#how-it-works" },
+    { label: "Pricing", href: "#pricing" },
+    { label: "Roadmap", href: "#" }, // TODO: Link to public roadmap
+    { label: "Changelog", href: "#" }, // TODO: Link to changelog page
   ],
   Company: [
-    { label: 'About', href: '#' }, // TODO: Link to about page
-    { label: 'Blog', href: '#' }, // TODO: Link to blog
-    { label: 'Careers', href: '#' }, // TODO: Link to careers
-    { label: 'Contact', href: 'mailto:autofounderai.co@gmail.com' },
+    { label: "About", href: "#" }, // TODO: Link to about page
+    { label: "Blog", href: "#" }, // TODO: Link to blog
+    { label: "Careers", href: "#" }, // TODO: Link to careers
+    { label: "Contact", href: "mailto:autofounderai.co@gmail.com" },
   ],
   Legal: [
-    { label: 'Privacy Policy', href: '#' }, // TODO: Link to privacy policy
-    { label: 'Terms of Service', href: '#' }, // TODO: Link to ToS
-    { label: 'Cookie Policy', href: '#' }, // TODO: Link to cookie policy
-    { label: 'Security', href: '#' }, // TODO: Link to security page
+    { label: "Privacy Policy", href: "#" }, // TODO: Link to privacy policy
+    { label: "Terms of Service", href: "#" }, // TODO: Link to ToS
+    { label: "Cookie Policy", href: "#" }, // TODO: Link to cookie policy
+    { label: "Security", href: "#" }, // TODO: Link to security page
   ],
-}
+};
 
 export default function Footer() {
   return (
@@ -68,8 +68,8 @@ export default function Footer() {
         {/* Bottom row */}
         <div className="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-600">
-            © {new Date().getFullYear()} AutoFounder AI. All rights reserved. Bengaluru,
-            Karnataka, India.
+            © {new Date().getFullYear()} AutoFounder AI. All rights reserved. Bengaluru, Karnataka,
+            India.
           </p>
           <p className="text-xs text-slate-600">
             {/* TODO: Update tagline if brand voice changes */}
@@ -78,5 +78,5 @@ export default function Footer() {
         </div>
       </div>
     </footer>
-  )
+  );
 }

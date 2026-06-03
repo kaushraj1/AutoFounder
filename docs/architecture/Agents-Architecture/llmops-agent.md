@@ -35,7 +35,7 @@ The LLMOps Agent is the **continuous learning and observability backbone** of th
 - **Hallucination tracking** — detect, log, and attribute hallucination events per agent per tenant
 - **Drift detection** — alert when agent output quality degrades versus the rolling 30-day baseline
 - **Per-user cost telemetry** — compute COGS per MVP build, flag tenants exceeding budget thresholds
-- **Model routing rules** — update the routing table (Claude Sonnet / GPT-4o / GPT-4o-mini) based on quality-cost trade-offs
+- **Model routing rules** — update the routing table (Gemini 3.5 Flash / Claude Sonnet fallback) based on quality-cost trade-offs
 
 ### Sub-tasks and target SLAs
 
@@ -57,7 +57,7 @@ The LLMOps Agent is the **continuous learning and observability backbone** of th
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# packages/agents/llmops/schema.py
+# backend/app/agents/llmops/schema.py
 
 from __future__ import annotations
 
@@ -103,9 +103,9 @@ class SignalType(StrEnum):
 
 
 class RoutingModel(StrEnum):
-    CLAUDE_SONNET = "claude-sonnet-4-6"
-    GPT4O         = "gpt-4o"
-    GPT4O_MINI    = "gpt-4o-mini"
+    GEMINI_FLASH   = "gemini-3.5-flash"
+    GEMINI_FLASH_VISION = "gemini-3.5-flash-vision"
+    CLAUDE_SONNET  = "claude-sonnet-4-6"   # fallback only
 
 
 # ---------------------------------------------------------------------------
@@ -114,7 +114,7 @@ class RoutingModel(StrEnum):
 
 class UserSignal(BaseModel):
     signal_id:   UUID
-    tenant_id:   str
+    organization_id: str
     run_id:      UUID
     agent_name:  str               # "strategist" | "architect" | "coder" | ...
     node_name:   str               # specific node within the agent
@@ -128,7 +128,7 @@ class UserSignal(BaseModel):
 class TraceLog(BaseModel):
     trace_id:    str
     run_id:      UUID
-    tenant_id:   str
+    organization_id: str
     agent_name:  str
     node_name:   str
     model:       RoutingModel
@@ -175,7 +175,7 @@ class ABTestResult(BaseModel):
 class HallucinationEvent(BaseModel):
     event_id:     UUID = Field(default_factory=uuid4)
     run_id:       UUID
-    tenant_id:    str
+    organization_id: str
     agent_name:   str
     node_name:    str
     claim:        str     # the hallucinated claim
@@ -197,7 +197,7 @@ class DriftSignal(BaseModel):
 
 
 class CostBreakdown(BaseModel):
-    tenant_id:          str
+    organization_id:    str
     period_start:       datetime
     period_end:         datetime
     total_cost_usd:     float
@@ -314,13 +314,13 @@ class LLMOpsState(BaseModel):
 | Node ID | Type | Description | Model |
 |---|---|---|---|
 | `ingest_signals` | Sequential | Pull trace logs from LangSmith; pull user signals from PostHog | — (API calls) |
-| `detect_drift` | Sequential | Compare current quality metrics to 30-day rolling baseline | Claude Sonnet |
-| `track_hallucinations` | Sequential | Identify hallucination events via LLM-as-judge on trace samples | Claude Sonnet |
-| `prepare_rlhf_dataset` | Sequential | Format accept/reject signal pairs into RLHF JSONL | GPT-4o |
-| `optimize_prompts` | Sequential | Run DSPy optimiser over collected RLHF samples | Claude Sonnet |
-| `run_ab_test` | Sequential | Evaluate prompt candidates with Promptfoo against production baseline | Claude Sonnet |
+| `detect_drift` | Sequential | Compare current quality metrics to 30-day rolling baseline | Gemini 3.5 Flash |
+| `track_hallucinations` | Sequential | Identify hallucination events via LLM-as-judge on trace samples | Gemini 3.5 Flash |
+| `prepare_rlhf_dataset` | Sequential | Format accept/reject signal pairs into RLHF JSONL | Gemini 3.5 Flash |
+| `optimize_prompts` | Sequential | Run DSPy optimiser over collected RLHF samples | Gemini 3.5 Flash |
+| `run_ab_test` | Sequential | Evaluate prompt candidates with Promptfoo against production baseline | Gemini 3.5 Flash |
 | `compute_cost_telemetry` | Sequential | Aggregate token usage, compute per-tenant COGS, flag overruns | — (computation) |
-| `update_routing_rules` | Sequential | Revise model routing table based on A/B results and COGS | Claude Sonnet |
+| `update_routing_rules` | Sequential | Revise model routing table based on A/B results and COGS | Gemini 3.5 Flash |
 | `trigger_fine_tuning` | Sequential | Submit RLHF dataset to AWS Step Functions fine-tuning workflow | — (API call) |
 | `publish_results` | Sequential | Write promoted prompts and routing rules to config store (S3 + Redis) | — (API calls) |
 | `alert_dispatcher` | Sequential | Send drift / cost alerts via Slack and PagerDuty | — (API calls) |
@@ -347,7 +347,7 @@ Not all nodes run in every pipeline mode. The `route_after_ingest` router select
 ### 3.3 Graph definition
 
 ```python
-# packages/agents/llmops/graph.py
+# backend/app/agents/llmops/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -473,7 +473,7 @@ def build_llmops_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# packages/agents/llmops/routers.py
+# backend/app/agents/llmops/routers.py
 
 from .schema import LLMOpsState, PipelineMode, DriftSeverity
 
@@ -578,7 +578,7 @@ flowchart TD
 ### 4.1 Tool definitions
 
 ```python
-# packages/agents/llmops/tools.py
+# backend/app/agents/llmops/tools.py
 
 import os
 from datetime import datetime, timedelta, timezone
@@ -711,7 +711,7 @@ def _dspy_optimise(agent_name: str, node_name: str, rlhf_samples_json: str, metr
         for s in samples
     ]
 
-    lm = dspy.LM("anthropic/claude-sonnet-4-6", api_key=os.environ["ANTHROPIC_API_KEY"])
+    lm = dspy.LM("gemini/gemini-3.5-flash", api_key=os.environ["GOOGLE_API_KEY"])
     dspy.configure(lm=lm)
 
     teleprompter = BootstrapFewShot(metric=lambda pred, ex: 1.0 if pred.output == ex.output else 0.0)
@@ -845,7 +845,7 @@ TOOL_REGISTRY: dict[str, list] = {
 | LangSmith | 30 s | 100 req/min per project | Reduce `limit`, retry |
 | PostHog | 30 s | 240 req/hour | Reduce `limit`, retry |
 | Prometheus | 20 s | Local — no external limit | Cached last-known metrics |
-| DSPy optimiser | 30 min | Claude Sonnet concurrency limit | Reduce trainset size, retry |
+| DSPy optimiser | 30 min | Gemini 3.5 Flash concurrency limit | Reduce trainset size, retry |
 | Promptfoo | 10 min | LLM API concurrency | Reduce sample count |
 | Step Functions | 10 s (trigger only) | 1 execution per pipeline run | Log, skip (non-fatal) |
 | Slack webhook | 10 s | Slack 1 req/s | Queue and retry once |
@@ -854,12 +854,12 @@ TOOL_REGISTRY: dict[str, list] = {
 
 ## 5. Prompt Templates
 
-All prompts are stored as Jinja2 templates. Complex reasoning nodes use **Claude Sonnet**; classification and formatting nodes use **GPT-4o**.
+All prompts are stored as Jinja2 templates. All reasoning, classification, and formatting nodes use **Gemini 3.5 Flash** (the platform primary, routed via LiteLLM); **Claude Sonnet** is configured only as a fallback.
 
 ### 5.1 `detect_drift` — Quality Drift Detection
 
 ```jinja2
-{# packages/agents/llmops/prompts/detect_drift.j2 #}
+{# backend/app/agents/llmops/prompts/detect_drift.j2 #}
 
 SYSTEM:
 You are an LLM quality monitoring system for Auto-Founder AI.
@@ -896,7 +896,7 @@ Only include entries where abs(delta_pct) >= 5.
 ### 5.2 `track_hallucinations` — LLM-as-Judge Hallucination Detection
 
 ```jinja2
-{# packages/agents/llmops/prompts/track_hallucinations.j2 #}
+{# backend/app/agents/llmops/prompts/track_hallucinations.j2 #}
 
 SYSTEM:
 You are an LLM-as-judge evaluator. Your role is to identify hallucinations in
@@ -941,7 +941,7 @@ Return:
 ### 5.3 `prepare_rlhf_dataset` — RLHF Pair Formatting
 
 ```jinja2
-{# packages/agents/llmops/prompts/prepare_rlhf_dataset.j2 #}
+{# backend/app/agents/llmops/prompts/prepare_rlhf_dataset.j2 #}
 
 SYSTEM:
 You are an RLHF dataset curator. Convert raw accept/reject user signals into
@@ -953,7 +953,7 @@ Rules:
 - Normalise both outputs: strip markdown code fences around JSON, fix whitespace.
 - Compute a score_delta: use the LLM-as-judge score for chosen minus rejected on a 0.0–1.0 scale.
 - Only include pairs where score_delta > 0.1 — discard trivial edits.
-- Do NOT include PII in output (tenant_id, founder names must be redacted).
+- Do NOT include PII in output (organization_id, founder names must be redacted).
 - Return ONLY valid JSON.
 
 USER:
@@ -974,7 +974,7 @@ Return a JSON array of RLHF samples:
 ### 5.4 `update_routing_rules` — Model Routing Decision
 
 ```jinja2
-{# packages/agents/llmops/prompts/update_routing_rules.j2 #}
+{# backend/app/agents/llmops/prompts/update_routing_rules.j2 #}
 
 SYSTEM:
 You are the model routing controller for Auto-Founder AI.
@@ -982,9 +982,9 @@ Your goal is to minimise COGS (target: < ₹500 per MVP) while maintaining
 output quality above the per-node quality baseline.
 
 Routing options:
-- claude-sonnet-4-6: Best reasoning, highest cost. Use for complex reasoning nodes.
-- gpt-4o: Good quality, moderate cost. Use for standard generation.
-- gpt-4o-mini: Cheapest. Use ONLY for simple formatting, classification, templating.
+- gemini-3.5-flash: Platform primary. Cheapest-capable model for reasoning, standard generation, formatting, classification, and templating.
+- gemini-3.5-flash-vision: Use for vision tasks (diagram extraction, screenshot QA).
+- claude-sonnet-4-6: Fallback only. Route here when Gemini quality is below the per-node baseline.
 
 NEVER downgrade a node to a cheaper model if its quality score is below baseline.
 NEVER upgrade a node that is already meeting quality AND cost targets.
@@ -999,7 +999,7 @@ Return a JSON array of routing rule updates. Only include rules that CHANGE:
 [{
   "agent_name":     string,
   "node_name":      string,
-  "model":          "claude-sonnet-4-6" | "gpt-4o" | "gpt-4o-mini",
+  "model":          "gemini-3.5-flash" | "gemini-3.5-flash-vision" | "claude-sonnet-4-6",
   "reason":         string,    // one sentence justifying the change
   "previous_model": string | null
 }]
@@ -1008,7 +1008,7 @@ Return a JSON array of routing rule updates. Only include rules that CHANGE:
 ### 5.5 `alert_dispatcher` — Alert Content Generation
 
 ```jinja2
-{# packages/agents/llmops/prompts/alert_dispatcher.j2 #}
+{# backend/app/agents/llmops/prompts/alert_dispatcher.j2 #}
 
 SYSTEM:
 You are an on-call alert formatter. Generate clear, actionable Slack alerts.
@@ -1092,7 +1092,7 @@ sequenceDiagram
     Graph ->> Cost: compute_cost_telemetry(state)
     Cost  ->> Prom: query_range(llm_cost_usd_total, token_usage_total)
     Prom  -->> Cost: cost metrics
-    Note over Cost: Group by tenant_id, compute COGS in INR
+    Note over Cost: Group by organization_id, compute COGS in INR
     Cost  -->> Graph: { cost_breakdown, cost_alert }
 
     Graph ->> Route: update_routing_rules(state)
@@ -1204,12 +1204,12 @@ sequenceDiagram
 | `RedisWriteFailed` | Redis connection refused | Retry × 3; alert ops if routing rules lost |
 | `CostAlertUnresolvable` | COGS > 2× budget limit after routing update | Escalate to human; freeze new builds |
 | `HallucinationRateCritical` | Hallucination rate > 30% on any node | Alert + trigger manual prompt review |
-| `FatalLLMError` | Anthropic / OpenAI API 5xx | Retry × 3 with 45 s gaps; then escalate |
+| `FatalLLMError` | Google AI (Gemini) / Claude fallback API 5xx | Retry × 3 with 45 s gaps; then escalate |
 
 ### 7.2 Error handler node
 
 ```python
-# packages/agents/llmops/nodes/error_handler.py
+# backend/app/agents/llmops/nodes/error_handler.py
 
 import logging
 from datetime import datetime, timezone
@@ -1285,7 +1285,7 @@ async def _trigger_pagerduty(state: LLMOpsState, error_summary: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# packages/agents/llmops/utils/retry.py
+# backend/app/agents/llmops/utils/retry.py
 
 import asyncio
 import functools
@@ -1350,7 +1350,7 @@ def with_retry(node_name: str):
 ### 7.4 Hallucination rate circuit breaker
 
 ```python
-# packages/agents/llmops/utils/circuit_breaker.py
+# backend/app/agents/llmops/utils/circuit_breaker.py
 
 import logging
 
@@ -1382,10 +1382,10 @@ def check_circuit_breakers(state: LLMOpsState) -> list[str]:
     for cb in state.cost_breakdown:
         if cb.cogs_per_mvp_inr > cb.budget_limit_inr * COST_MULTIPLIER_THRESHOLD:
             logger.critical(
-                "CIRCUIT BREAKER: tenant=%s COGS=₹%.0f > 2× budget",
-                cb.tenant_id, cb.cogs_per_mvp_inr,
+                "CIRCUIT BREAKER: organization=%s COGS=₹%.0f > 2× budget",
+                cb.organization_id, cb.cogs_per_mvp_inr,
             )
-            active.append(f"cost_overrun:{cb.tenant_id}")
+            active.append(f"cost_overrun:{cb.organization_id}")
 
     return active
 ```
@@ -1393,7 +1393,7 @@ def check_circuit_breakers(state: LLMOpsState) -> list[str]:
 ### 7.5 SLA enforcement
 
 ```python
-# packages/agents/llmops/utils/sla.py
+# backend/app/agents/llmops/utils/sla.py
 
 import asyncio
 import logging
@@ -1449,14 +1449,14 @@ All S3 paths are prefixed with the tenant `llmops/` namespace (multi-tenancy: pl
 
 ```redis
 HSET llmops:routing_rules
-  strategist:normalize_idea   "claude-sonnet-4-6"
-  strategist:size_market      "claude-sonnet-4-6"
-  strategist:mine_keywords    "gpt-4o"
-  strategist:generate_personas "gpt-4o"
-  architect:schema_design     "claude-sonnet-4-6"
-  coder:generate_frontend     "gpt-4o"
-  coder:generate_backend      "gpt-4o"
-  reviewer:lint_check         "gpt-4o-mini"
+  strategist:normalize_idea   "gemini-3.5-flash"
+  strategist:size_market      "gemini-3.5-flash"
+  strategist:mine_keywords    "gemini-3.5-flash"
+  strategist:generate_personas "gemini-3.5-flash"
+  architect:schema_design     "gemini-3.5-flash"
+  coder:generate_frontend     "gemini-3.5-flash"
+  coder:generate_backend      "gemini-3.5-flash"
+  reviewer:lint_check         "gemini-3.5-flash"
   ...
 
 EXPIRE llmops:routing_rules 604800   # 7 days — refreshed each weekly run
@@ -1492,7 +1492,7 @@ message LLMOpsRunSummary {
 **Post-run actions triggered by platform event bus**:
 - `drift_severity == "critical"` → pause new build acceptance until manual sign-off
 - `cost_alert == true` → notify finance team; throttle Startup Founder tier builds
-- `prompts_promoted > 0` → hot-reload prompt cache in all running agent pods (rolling restart via ArgoCD)
+- `prompts_promoted > 0` → hot-reload prompt cache in all running agent ECS tasks (rolling restart via AWS CodeDeploy blue/green, triggered by GitHub Actions)
 - `hallucination_rate > 0.15` → activate `check_circuit_breakers` and halt Marketer Agent until resolved
 
 ---

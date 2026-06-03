@@ -1,63 +1,63 @@
-import { Star, Quote } from 'lucide-react'
+import { Star, Quote } from "lucide-react";
 
 // TODO: Replace all testimonials below with real user quotes before launch.
 // Mark source with name, role, company, and optionally a photo URL.
 const testimonials = [
   {
-    name: 'Priya S.',
-    role: 'Solo Founder',
-    company: 'Bengaluru, IN',
-    initials: 'PS',
+    name: "Priya S.",
+    role: "Solo Founder",
+    company: "Bengaluru, IN",
+    initials: "PS",
     quote:
       "I had an idea for a B2B SaaS tool on Monday. By Wednesday, AutoFounder AI had validated the market, built the MVP, and deployed it to AWS. I spent the week reviewing, not building.",
     stars: 5,
   },
   {
-    name: 'Marcus T.',
-    role: 'Product Manager turned Founder',
-    company: 'London, UK',
-    initials: 'MT',
+    name: "Marcus T.",
+    role: "Product Manager turned Founder",
+    company: "London, UK",
+    initials: "MT",
     quote:
       "The self-healing loop blew my mind. It wrote 87 tests, 3 failed, and fixed them all without me touching a line of code. Final coverage was 84%. I have never shipped with that confidence before.",
     stars: 5,
   },
   {
-    name: 'Ananya K.',
-    role: 'Early-Stage Investor',
-    company: 'Portfolio advisor',
-    initials: 'AK',
+    name: "Ananya K.",
+    role: "Early-Stage Investor",
+    company: "Portfolio advisor",
+    initials: "AK",
     quote:
       "I am recommending AutoFounder AI to every pre-seed founder in my portfolio. The Lean Canvas + market sizing output alone is worth the subscription. It is what you would pay a consultant $5K for.",
     stars: 5,
   },
   {
-    name: 'David L.',
-    role: 'Agency Owner',
-    company: 'San Francisco, US',
-    initials: 'DL',
+    name: "David L.",
+    role: "Agency Owner",
+    company: "San Francisco, US",
+    initials: "DL",
     quote:
       "We use the Enterprise tier to ship MVPs for clients. Time to first demo dropped from 6 weeks to 5 days. Our margins went up 40% and our clients think we are wizards.",
     stars: 5,
   },
   {
-    name: 'Rahul M.',
-    role: 'Technical Founder',
-    company: 'Pune, IN',
-    initials: 'RM',
+    name: "Rahul M.",
+    role: "Technical Founder",
+    company: "Pune, IN",
+    initials: "RM",
     quote:
       "The architecture agent's ERD and OpenAPI spec were better than what I would have designed manually in 2 days. It even caught a scaling bottleneck I would have missed until production.",
     stars: 5,
   },
   {
-    name: 'Sophie B.',
-    role: 'Non-technical Founder',
-    company: 'Paris, FR',
-    initials: 'SB',
+    name: "Sophie B.",
+    role: "Non-technical Founder",
+    company: "Paris, FR",
+    initials: "SB",
     quote:
       "I have zero coding background. AutoFounder AI handled everything. I just reviewed each milestone and clicked Approve. My SaaS has 200 paying users and I still have not written a single line of code.",
     stars: 5,
   },
-]
+];
 
 export default function Testimonials() {
   return (
@@ -73,11 +73,12 @@ export default function Testimonials() {
           </h2>
           <p className="text-slate-400 text-lg">
             {/* TODO: Replace with real user count / launch metric */}
-            <span className="text-white font-semibold">500+ founders</span> on the waitlist.{' '}
-            Early access cohort launching soon.
+            <span className="text-white font-semibold">500+ founders</span> on the waitlist. Early
+            access cohort launching soon.
           </p>
           <p className="text-xs text-slate-600 mt-2 italic">
-            Placeholder testimonials — all quotes are illustrative and will be replaced with real user reviews before public launch.
+            Placeholder testimonials — all quotes are illustrative and will be replaced with real
+            user reviews before public launch.
           </p>
         </div>
 
@@ -119,5 +120,5 @@ export default function Testimonials() {
         </div>
       </div>
     </section>
-  )
+  );
 }

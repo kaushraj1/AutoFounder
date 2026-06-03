@@ -27,7 +27,11 @@ importers:
         specifier: ^8.22.0
         version: 8.59.4(eslint@9.39.4)(typescript@5.9.3)
 
-  mobile-app:
+  AUTOFOUNDER-ADMIN: {}
+
+  AUTOFOUNDER-BACKEND: {}
+
+  AUTOFOUNDER-FRONTEND-WEB:
     devDependencies:
       '@eslint/js':
         specifier: ^9.19.0
@@ -42,7 +46,7 @@ importers:
         specifier: ^8.22.0
         version: 8.59.4(eslint@9.39.4)(typescript@5.9.3)
 
-  vscode-extension:
+  AUTOFOUNDER-MOBILE-APP:
     devDependencies:
       '@eslint/js':
         specifier: ^9.19.0
@@ -56,6 +60,14 @@ importers:
       typescript-eslint:
         specifier: ^8.22.0
         version: 8.59.4(eslint@9.39.4)(typescript@5.9.3)
+
+  packages/api-client:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/shared: {}
 
 packages:
 
