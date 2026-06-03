@@ -7,7 +7,7 @@
 
 ## Overview
 
-The AutoFounder AI mobile app (`mobile-app/`) gives founders on-the-go access to:
+The AutoFounder AI mobile app (`AUTOFOUNDER-MOBILE-APP/`) gives founders on-the-go access to:
 - Submitting new ideas (text, voice, file attachment)
 - Monitoring active run progress via live WebSocket stream
 - Approving or rejecting HITL gates without opening a browser
@@ -21,7 +21,7 @@ and **Expo Router** for file-based navigation.
 ## Project Structure
 
 ```
-mobile-app/
+AUTOFOUNDER-MOBILE-APP/
 ├── app/                         Expo Router file-based routes
 │   ├── (auth)/
 │   │   ├── login.tsx
@@ -124,7 +124,7 @@ export async function logout() {
 
 ## API Client
 
-The mobile app uses the same typed API client pattern as `frontend-web`, adapted for React Native's
+The mobile app uses the same typed API client pattern as `AUTOFOUNDER-FRONTEND-WEB` (the Founder Portal), adapted for React Native's
 `fetch` (no `axios` — avoids a native dependency).
 
 ```typescript
@@ -292,4 +292,4 @@ plugins). Those require a full EAS build + store submission.
 
 - Unit tests: Jest + `@testing-library/react-native`
 - E2E tests: Maestro (runs on EAS Device Farm before `production` build promotion)
-- Run locally: `pnpm --filter mobile-app test`
+- Run locally: `pnpm --filter @autofounder-ai/mobile-app test`

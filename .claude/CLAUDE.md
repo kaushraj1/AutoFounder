@@ -198,7 +198,7 @@ from typing import AsyncIterable
 
 class Agent(ABC):
     id: str              # e.g. "strategist.v3"
-    tenant_id: str
+    organization_id: str
     capabilities: list[str]
     tools: list[ToolSpec]
 
@@ -318,7 +318,7 @@ class Agent(ABC):
 | Relational Knowledge | Neo4j / Amazon Neptune | Entity graphs (competitors ↔ markets ↔ personas) | unbounded |
 | Cold Archive | S3 (Raw Data Lake) | Compressed traces, RLHF datasets | 7 y (audit) |
 
-Memory is always **tenant-partitioned** (key prefix `tenant_id/`, row-level security in Postgres, namespace per tenant in vector store).
+Memory is always **tenant-partitioned** (key prefix `organization_id/`, row-level security in Postgres, namespace per tenant in vector store).
 
 ---
 
@@ -363,7 +363,7 @@ sequenceDiagram
     participant OBS as Observability
 
     U->>FE: Submit idea
-    FE->>GW: POST /v1/ideas (JWT, tenant_id)
+    FE->>GW: POST /v1/ideas (JWT, organization_id)
     GW->>ORCH: createRun(idea, tenant)
     ORCH->>OBS: emit run.started
     ORCH->>AG: dispatch(step)
@@ -400,12 +400,12 @@ sequenceDiagram
 | `POST` | `/v1/runs/{id}/gates/{gate_id}` | Approve / reject HITL gate |
 | `GET`  | `/v1/runs/{id}/artifacts` | List artifacts (canvas, repo URL, live URL, etc.) |
 | `POST` | `/v1/tenants/{id}/keys` | Rotate tenant API keys |
-| `GET`  | `/v1/llmops/cost?tenant_id=...` | Per-tenant cost telemetry |
+| `GET`  | `/v1/llmops/cost?organization_id=...` | Per-tenant cost telemetry |
 | `POST` | `/v1/feedback` | Capture accept/reject signal (LLMOps) |
 
 ### 12.3 Contracts
 
-- Every new endpoint **must** have an OpenAPI 3.1 entry checked into `apps/api/openapi.yaml`.
+- Every new endpoint **must** have an OpenAPI 3.1 entry checked into `AUTOFOUNDER-BACKEND/openapi.yaml`.
 - Breaking changes follow `v2/` namespacing; never break v1.
 
 ---
@@ -414,12 +414,15 @@ sequenceDiagram
 
 | Service | Lang | Responsibility |
 |---|---|---|
-| `apps/api` | FastAPI (Python 3.12) | API Gateway, auth, tenancy, rate-limits |
-| `apps/ai-services` | FastAPI (Python 3.12) | Agent workers, LLM clients, tools |
-| `apps/orchestrator` | Python + LangGraph | Plan execution engine |
+| `AUTOFOUNDER-BACKEND` | FastAPI (Python 3.12) | **Consolidated backend** — API gateway, auth, tenancy, rate-limits + LangGraph orchestrator + agent workers. Internal modules: `app/api`, `app/orchestrator`, `app/agents`, `app/workers`, `app/services` |
 | Supabase Realtime | Managed | WebSocket fan-out (agent log streaming, DB change events) |
-| `apps/admin` | Next.js | Super-admin dashboard |
-| `apps/web` | Next.js 14 | Founder Portal |
+| `AUTOFOUNDER-ADMIN` | Next.js | Super-admin dashboard |
+| `AUTOFOUNDER-FRONTEND-WEB` | Next.js 14 | Founder Portal |
+
+> The API gateway, orchestrator, and agent workers were three separate services in the original
+> design (`apps/api`, `apps/orchestrator`, `apps/ai-services`). Phase 1 consolidates them into one
+> deployable **modular monolith** (`AUTOFOUNDER-BACKEND`), to be split back into separate ECS
+> services in Phase 4 if scale requires.
 
 ---
 
@@ -443,11 +446,11 @@ sequenceDiagram
 
 ## 15. Authentication & Authorization
 
-- **AuthN**: OAuth 2.0 + SAML 2.0 (Auth0). MFA enforced on all human accounts.
+- **AuthN**: OAuth 2.0 + SAML 2.0 (Supabase Auth). MFA enforced on all human accounts.
 - **AuthZ**: RBAC + ABAC fine-grained; policy-as-code via OPA.
-- **Tokens**: short-lived JWTs (15 min) + refresh tokens; `tenant_id`, `role`, `scopes` claims mandatory.
+- **Tokens**: short-lived JWTs (15 min) + refresh tokens; `organization_id`, `role`, `scopes` claims mandatory.
 - **Service-to-service**: mTLS + signed JWTs (SPIFFE-style identity).
-- **Tenant isolation**: every DB query is mediated by the Unified Data Access Layer which enforces `tenant_id` from the verified JWT — no raw DB access from agents.
+- **Tenant isolation**: every DB query is mediated by the Unified Data Access Layer which enforces `organization_id` from the verified JWT — no raw DB access from agents.
 
 ---
 
@@ -529,14 +532,14 @@ sequenceDiagram
 | Relational + Vector | **Supabase** (PostgreSQL + pgvector) | **Schema-per-tenant** isolation; RLS enforced; pgvector extension for semantic search |
 | Graph | Neo4j / Amazon Neptune | Competitor ↔ market ↔ persona graph |
 | Cache | Redis (ElastiCache) / DynamoDB (session catalog) | Hot session state |
-| Object | S3 | Tenant-prefixed paths (`s3://bucket/{tenant_id}/...`) |
+| Object | S3 | Tenant-prefixed paths (`s3://bucket/{organization_id}/...`) |
 | Raw Data Lake | S3 (+ optional ADLS/GCS for multi-cloud research) | RLHF datasets, trace dumps |
 
 ### 19.2 Unified Data Access Layer (UDAL)
 
-A thin internal library (`packages/db`) that:
+A thin internal library (`AUTOFOUNDER-BACKEND/app/db`) that:
 
-- Resolves the calling identity → `tenant_id`.
+- Resolves the calling identity → `organization_id`.
 - Routes the call to the correct store.
 - Enforces tenant scoping (cannot be bypassed).
 - Emits lineage events to the Audit & Lineage guardrail.
@@ -547,7 +550,7 @@ Direct DB drivers are forbidden in agent code; agents must use UDAL.
 ### 19.3 Schemas (illustrative)
 
 ```sql
--- per-tenant schema "tenant_<uuid>"
+-- per-organization schema "org_<organization_id>"
 CREATE TABLE runs (
   id UUID PRIMARY KEY,
   pillar TEXT NOT NULL,
@@ -590,13 +593,13 @@ CREATE TABLE gates (
 ## 21. Observability & Monitoring
 
 - **Metrics**: Prometheus + Grafana (RED + USE method dashboards).
-- **Logging**: CloudWatch + Fluent Bit (structured JSON, `trace_id`, `tenant_id`, `run_id`, `agent_id`).
+- **Logging**: CloudWatch + Fluent Bit (structured JSON, `trace_id`, `organization_id`, `run_id`, `agent_id`).
 - **Tracing**: OpenTelemetry → LangSmith (LLM call spans).
 - **Model monitoring**: LangSmith evals (quality, hallucination tracking).
 - **Errors**: Sentry (frontend + backend).
 - **Cost & FinOps**: AWS Cost Explorer + custom per-tenant attribution dashboard.
 
-Mandatory tags on every emitted signal: `tenant_id`, `pillar`, `agent_id`, `model`, `run_id`, `env`.
+Mandatory tags on every emitted signal: `organization_id`, `pillar`, `agent_id`, `model`, `run_id`, `env`.
 
 ---
 
@@ -851,9 +854,9 @@ Delivery channels (Layer 7): Web App, Mobile, Email, Slack, MS Teams, public API
 
 - **Database**: schema-per-tenant in PostgreSQL; never share schemas; RLS as defense-in-depth.
 - **Vector store**: namespace per tenant.
-- **Storage**: S3 paths prefixed `s3://{bucket}/{tenant_id}/...`.
+- **Storage**: S3 paths prefixed `s3://{bucket}/{organization_id}/...`.
 - **Compute**: agent worker tasks tenant-scoped; no shared in-memory state.
-- **Auth**: every API call validates `tenant_id` from JWT before any UDAL query.
+- **Auth**: every API call validates `organization_id` from JWT before any UDAL query.
 - **Right to Erasure (GDPR)**: full tenant wipe across all stores (Postgres, vector, graph, S3, caches, audit excluded by law).
 
 ---
@@ -862,39 +865,36 @@ Delivery channels (Layer 7): Web App, Mobile, Email, Slack, MS Teams, public API
 
 ```
 autofounder-ai/
-├── apps/
-│   ├── web/                  # Next.js 14 — Founder Portal
-│   ├── api/                  # FastAPI (Python) — API Gateway
-│   ├── orchestrator/         # Python — LangGraph engine
-│   ├── ai-services/          # FastAPI — agent workers
-│   └── admin/                # Next.js — Super-admin dashboard
-│   # Realtime: handled by Supabase Realtime (no separate service)
+├── AUTOFOUNDER-BACKEND/          # FastAPI — consolidated backend (Python; uv)
+│   ├── app/
+│   │   ├── api/v1/               # REST routes (health, ideas, runs)
+│   │   ├── core/                # config, logging, security
+│   │   ├── db/                  # UDAL + SQLAlchemy session/base
+│   │   ├── models/  schemas/  services/
+│   │   ├── agents/              # strategy, research, product_planner (+ base contract)
+│   │   ├── orchestrator/        # LangGraph engine
+│   │   ├── guardrails/          # 6-stage pipeline
+│   │   └── workers/             # queue consumers
+│   ├── alembic/                 # database migrations
+│   └── tests/
+├── AUTOFOUNDER-FRONTEND-WEB/     # Next.js 14 — Founder Portal
+├── AUTOFOUNDER-ADMIN/            # Next.js — Super-admin dashboard
+├── AUTOFOUNDER-MOBILE-APP/       # Expo (React Native)
+├── AUTOFOUNDER-INFRA/            # Terraform + CodeDeploy (AWS ECS Fargate)
+│   ├── terraform/
+│   └── codedeploy/
 ├── packages/
-│   ├── agents/
-│   │   ├── strategy/
-│   │   ├── product-planner/
-│   │   ├── research/
-│   │   ├── engineering/
-│   │   │   ├── architect/
-│   │   │   ├── coder/
-│   │   │   ├── reviewer/
-│   │   │   └── devops/
-│   │   ├── marketing/
-│   │   ├── finance/
-│   │   ├── ops-risk/
-│   │   └── llmops/
-│   ├── guardrails/           # OPA policies, validators
-│   ├── prompts/              # Versioned prompt templates
-│   ├── tools/                # MCP-style tool definitions
-│   ├── db/                   # UDAL + SQLAlchemy models + Supabase migrations
-│   ├── shared/               # Shared types, utils, constants
-│   └── eval/                 # Promptfoo + LangSmith golden sets
-├── infra/
-│   ├── terraform/            # IaC for AWS (ECS, RDS, S3, ...)
-│   └── codedeploy/           # Blue/green deploy specs
-├── .github/workflows/        # CI/CD pipelines
-└── CLAUDE.md                 # ← you are here
+│   ├── shared/                  # Shared TypeScript types
+│   └── api-client/              # Typed backend client (OpenAPI-generated Phase 2)
+├── scripts/                     # setup-dev, deploy-backend-dev (.ps1 + .sh)
+├── .github/workflows/           # CI/CD (backend-ci, lint, deploy-frontend)
+└── CLAUDE.md                    # ← you are here
 ```
+
+> **Structure note:** All Python agent / guardrail / tool / prompt / eval code lives under
+> `AUTOFOUNDER-BACKEND/app/`. `packages/` is **TypeScript-only** (`shared`, `api-client`).
+> The original `apps/` + per-domain `packages/*` (agents, guardrails, prompts, tools, db, eval)
+> layout is retired — see [stack.md](specs/stack.md) and PROJECT-3 convention.
 
 ---
 
@@ -926,31 +926,27 @@ autofounder-ai/
 
 ```bash
 # Install
-pnpm install                                        # frontend deps
-uv sync                                             # Python deps (all backend services)
+pnpm install                                        # JS workspaces
+cd AUTOFOUNDER-BACKEND && uv sync                   # Python backend deps
 
 # Local Supabase (postgres + pgvector + auth + storage + realtime)
 supabase start
 
 # Run services locally
-pnpm --filter web dev                               # Next.js Founder Portal
-cd apps/api && uvicorn main:app --reload --port 8000
-cd apps/orchestrator && python -m orchestrator.main
-cd apps/ai-services && uvicorn main:app --reload --port 8001
+pnpm --filter @autofounder-ai/frontend-web dev      # Next.js Founder Portal
+cd AUTOFOUNDER-BACKEND && uv run uvicorn app.main:app --reload --port 8000
 
 # Docker (ancillary services: Redis)
 docker compose up -d
 
 # Quality gates
-pnpm test && pytest                                 # frontend + backend unit tests
-pnpm lint && ruff check . && mypy .
-trivy fs . && semgrep --config auto . && gitleaks detect
+make quality                                        # backend ruff+mypy+pytest, then JS lint
+cd AUTOFOUNDER-BACKEND && uv run pytest              # backend tests only
 
 # Infra
-cd infra/terraform && terraform plan -var-file=env/staging.tfvars
+cd AUTOFOUNDER-INFRA/terraform && terraform plan -var-file=env/staging.tfvars
 
-# Evals
-cd packages/eval && python run_evals.py --suite golden
+# Evals (Phase 2+) — golden sets live under AUTOFOUNDER-BACKEND once implemented
 ```
 
 ---
@@ -965,7 +961,7 @@ cd packages/eval && python run_evals.py --suite golden
 | Code Hosting | GitHub, GitLab, Bitbucket | Engineering |
 | Packages | npm, PyPI, Docker Hub | Engineering |
 | Payments | Stripe | Engineering, Finance |
-| Auth (gen code) | Auth0, Supabase | Engineering |
+| Auth (gen code) | Supabase | Engineering |
 | Email | Resend, SendGrid, Mailchimp | Marketing, Engineering |
 | Comms | Twilio | Engineering |
 | Social | X, LinkedIn, Reddit APIs, Typefully, Buffer | Marketing |

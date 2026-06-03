@@ -44,29 +44,25 @@ PROJECT-1-AutoFounder-AI/                (per CLAUDE.md §40 — authoritative)
 │
 ├── .claude/                   Claude Code config, memory, tasks, and specs
 ├── .github/                   GitHub Actions CI/CD workflows
-├── apps/
-│   ├── api/                   FastAPI API Gateway — Python 3.12 (scaffold)
-│   ├── orchestrator/          LangGraph engine — Python 3.12 (scaffold)
-│   ├── ai-services/           FastAPI agent workers — Python 3.12 (scaffold)
-│   ├── web/                   Next.js 14 Founder Portal (scaffold)
-│   └── admin/                 Next.js super-admin dashboard (scaffold)
-├── packages/
-│   ├── agents/                Agent implementations (Python)
-│   ├── guardrails/            6-stage guardrails pipeline
-│   ├── prompts/               Versioned Jinja2 prompt templates
-│   ├── tools/                 MCP tool definitions
-│   ├── db/                    UDAL + SQLAlchemy + Supabase migrations
-│   ├── shared/                Shared types, utils, constants
-│   └── eval/                  Promptfoo + LangSmith golden sets
-├── infra/
+├── AUTOFOUNDER-BACKEND/       Consolidated FastAPI backend — Python 3.12 (api + orchestrator + agents + workers)
+│   ├── app/                   api/v1, core, db (UDAL), models, schemas, services, agents, orchestrator, guardrails, workers
+│   ├── alembic/               Database migrations
+│   └── tests/
+├── AUTOFOUNDER-FRONTEND-WEB/  Next.js 14 Founder Portal (scaffold)
+├── AUTOFOUNDER-ADMIN/         Next.js super-admin dashboard (scaffold)
+├── AUTOFOUNDER-MOBILE-APP/    Expo React Native (scaffold)
+├── AUTOFOUNDER-INFRA/
 │   ├── terraform/             IaC for AWS (ECS, ElastiCache, S3, messaging, IAM…)
 │   └── codedeploy/            Blue/green deploy specs
+├── packages/
+│   ├── shared/                Shared TypeScript types
+│   └── api-client/            Typed backend client (OpenAPI-generated Phase 2)
 ├── docs/                      Architecture documentation
 ├── scripts/                   Cross-platform setup scripts
 │
 ├── Makefile                   Canonical task runner
 ├── package.json               Root pnpm workspace + Turborepo config
-├── pnpm-workspace.yaml        Declares: apps/web, apps/admin, packages/shared, packages/eval
+├── pnpm-workspace.yaml        Declares: AUTOFOUNDER-FRONTEND-WEB, AUTOFOUNDER-ADMIN, AUTOFOUNDER-MOBILE-APP, AUTOFOUNDER-BACKEND, packages/*
 ├── turbo.json                 Turborepo task pipeline (dev, build, lint)
 ├── eslint.config.mjs          Shared ESLint v9 flat config for all JS/TS packages
 ├── docker-compose.yml         Redis 7 only (Supabase CLI handles DB/Auth/Storage/Realtime)
@@ -90,8 +86,8 @@ All Claude Code context, conventions, and planning files.
 ├── TASKS.md          Phase-by-phase task tracker (AF-001 – AF-078)
 ├── SKILL.md          Dev skill: when to activate, conventions, checklists
 ├── SUMMARY.md        ← this file
-├── PLAN.md           (empty)
-├── PLAN_PHASE.md     (empty)
+├── PLAN.md           Strategic master plan (vision, roadmap, milestones)
+├── PLAN_PHASE.md     Active-phase execution plan (P1 — Validation Engine)
 └── specs/
     ├── api-design.md     REST conventions, response envelope, error codes, pagination, WebSocket
     ├── database.md       PostgreSQL schema design, Redis key schema, Alembic rules
@@ -103,18 +99,27 @@ All Claude Code context, conventions, and planning files.
 
 ---
 
-### 4.2 `apps/api/` — FastAPI API Gateway (Python 3.12)
+### 4.2 `AUTOFOUNDER-BACKEND/` — Consolidated FastAPI Backend (Python 3.12)
 
-**Status**: Scaffold — no application logic yet. Phase 3 (AF-025+) will build this out.
+**Status**: Runnable skeleton — `/health`, `/v1/ideas`, `/v1/runs` (in-memory store), Alembic 0001 migration, pytest suite (7 tests). Agent/orchestrator logic is stubbed (Sprint 1). Merges the former `apps/api` + `apps/orchestrator` + `apps/ai-services`.
 
 ```
-apps/api/
-├── src/                    Application source (to be built in Phase 3)
-├── docker/
-│   └── placeholder_http_server.py   Minimal HTTP health-check server (returns "ok\n")
-├── pyproject.toml          Dependencies + Ruff config (uv-managed)
+AUTOFOUNDER-BACKEND/
+├── app/
+│   ├── main.py             FastAPI app factory + /health
+│   ├── api/v1/             health, ideas, runs routers
+│   ├── core/               config, logging, security
+│   ├── db/                 UDAL + async SQLAlchemy session/base
+│   ├── models/  schemas/  services/
+│   ├── agents/             base contract + strategy / research / product_planner
+│   ├── orchestrator/       LangGraph engine (stub)
+│   ├── guardrails/         6-stage pipeline (stub)
+│   └── workers/            queue consumers (stub)
+├── alembic/                migrations (0001 initial: runs/artifacts/gates)
+├── tests/                  pytest (health + run_service + api)
+├── pyproject.toml          deps + Ruff/mypy/pytest config (uv-managed)
 ├── uv.lock
-├── Dockerfile              python:3.12-slim; placeholder HTTP server on PORT=8080
+├── Dockerfile              multi-stage uv build, non-root, uvicorn app.main:app :8000
 └── README.md
 ```
 
@@ -139,16 +144,16 @@ apps/api/
 **Python**: `>=3.12`  
 **Package manager**: `uv` (`uv sync --all-groups`)
 
-**Dockerfile note**: Currently runs a placeholder Python HTTP server. Dockerfile comment says role is determined via `AUTOFOUNDER-AI_ROLE` env var — api / orchestrator / worker will share the same image.
+**Dockerfile note**: Multi-stage build with `uv`; runs `uvicorn app.main:app` on port 8000 as a non-root user, with a container `HEALTHCHECK` hitting `/health`.
 
 ---
 
-### 4.3 `apps/web/` — Next.js 14 Founder Portal (Scaffold)
+### 4.3 `AUTOFOUNDER-FRONTEND-WEB/` — Next.js 14 Founder Portal (Scaffold)
 
 **Status**: TypeScript placeholder only. Full Next.js 14 implementation is Phase 4 (AF-051+).
 
 ```
-apps/web/
+AUTOFOUNDER-FRONTEND-WEB/
 ├── src/
 │   └── placeholder.ts    Empty placeholder
 ├── package.json
@@ -168,13 +173,13 @@ apps/web/
 
 ---
 
-### 4.4 `mobile-app/` — Expo React Native (Placeholder)
+### 4.4 `AUTOFOUNDER-MOBILE-APP/` — Expo React Native (Placeholder)
 
 **pnpm package name**: `@autofounder-ai/mobile-app`  
 **Status**: TypeScript placeholder only. Phase 5 (AF-063+).
 
 ```
-mobile-app/
+AUTOFOUNDER-MOBILE-APP/
 ├── src/
 │   └── placeholder.ts
 ├── package.json          Scripts: dev (console.log placeholder), lint, format
@@ -281,11 +286,11 @@ Full CI/CD pipeline (lint + typecheck + tests + security scans + ECR push + AWS 
 
 ```
 scripts/
-├── dev-setup.sh     Bash — checks pnpm + uv, copies .env.example, pnpm install, uv sync, docker compose up
-└── dev-setup.ps1    PowerShell equivalent for Windows
+├── setup-dev.sh             Bash — copies .env files, pnpm install, uv sync, docker compose up
+├── setup-dev.ps1            PowerShell equivalent for Windows
+├── deploy-backend-dev.sh    Build + push backend image to AWS ECR (dev)
+└── deploy-backend-dev.ps1   PowerShell equivalent for Windows
 ```
-
-> **Note**: `dev-setup.sh` still mentions "PostgreSQL + Redis started (docker compose)" — stale. Docker Compose now runs Redis only; Supabase CLI (`supabase start`) handles the database stack.
 
 ---
 
@@ -309,14 +314,14 @@ scripts/
 | `build` | Depends on upstream `^build`; caches `dist/**` |
 | `lint` | Depends on upstream `^lint` |
 
-**pnpm workspaces** (`pnpm-workspace.yaml`): `apps/web`, `apps/admin`, `packages/shared`, `packages/eval`.  
-Python services (`apps/api`, `apps/orchestrator`, `apps/ai-services`) use `uv` — not pnpm workspaces.
+**pnpm workspaces** (`pnpm-workspace.yaml`): `AUTOFOUNDER-FRONTEND-WEB`, `AUTOFOUNDER-ADMIN`, `AUTOFOUNDER-MOBILE-APP`, `AUTOFOUNDER-BACKEND`, `packages/*`.  
+The consolidated Python backend (`AUTOFOUNDER-BACKEND`) is managed by `uv`; its `package.json` delegates lint/typecheck/test to uv via Turborepo.
 
 ### Makefile targets
 
 | Target | Command |
 |--------|---------|
-| `make install` | `pnpm install` + `cd backend && uv sync --all-groups` |
+| `make install` | `pnpm install` + `uv sync --all-groups` |
 | `make stack` | `docker compose up -d` (Redis only) |
 | `make stack-down` | `docker compose down` |
 | `make dev` | `pnpm dev` → `turbo dev` |
@@ -379,13 +384,13 @@ All other secrets (Stripe, Resend, GitHub App, LangSmith, Sentry) go into AWS Se
 | Cache | Redis 7 — ElastiCache (prod) / Docker Compose (local) |
 | Graph | Neo4j / Amazon Neptune (competitor ↔ market ↔ persona) |
 | Object storage | Supabase Storage (app artifacts) + S3 (RLHF data lake, 7-yr audit) |
-| Data access | UDAL (`packages/db`) — agents must never touch DB drivers directly |
+| Data access | UDAL (`AUTOFOUNDER-BACKEND/app/db`) — agents must never touch DB drivers directly |
 
 ### Infrastructure
 | Concern | Choice |
 |---------|--------|
 | Cloud | AWS (ECS Fargate, multi-AZ VPC) |
-| IaC | Terraform (planned, `infra/` not yet created) |
+| IaC | Terraform (planned, scaffolded in `AUTOFOUNDER-INFRA/`) |
 | Deploy strategy | GitHub Actions → AWS CodeDeploy (ECS blue/green) |
 | Local dev DB | Supabase CLI (`supabase start`) |
 | Container registry | Amazon ECR |
@@ -412,8 +417,8 @@ make stack            # docker compose up -d
 # 5. Run all frontend workspaces (dev mode)
 make dev              # turbo dev
 
-# 6. Run backend (once FastAPI is scaffolded in Phase 3)
-cd backend && uv run uvicorn autofounder_ai.main:app --reload --port 8000
+# 6. Run the consolidated backend
+cd AUTOFOUNDER-BACKEND && uv run uvicorn app.main:app --reload --port 8000
 
 # 7. Quality gate before any PR
 make quality          # backend ruff + js eslint — must pass
@@ -441,7 +446,6 @@ All merges via PR; `make quality` + tests + security scan must pass.
 |----------|-------|---------------------|
 | `scripts/dev-setup.sh` | Says "PostgreSQL + Redis" for docker compose — now Redis only | `docker-compose.yml` |
 | `Makefile` | `make stack` comment says "Start local databases (PostgreSQL + Redis)" — now Redis only | `docker-compose.yml` |
-| `PLAN.md` / `PLAN_PHASE.md` | Both empty | — |
 
 ---
 

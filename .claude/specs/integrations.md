@@ -18,7 +18,7 @@
    the caller, do not retry immediately.
 5. **Retry policy**: exponential backoff with ±20% jitter, max 3–5 attempts, capped at SLA budget.
 6. **Cost attribution**: every API call that has a per-request cost records usage in `cost_ledger`
-   with `tenant_id`, `run_id`, `service`, `units`, `cost_usd`.
+   with `organization_id`, `run_id`, `service`, `units`, `cost_usd`.
 
 ---
 
@@ -32,7 +32,7 @@ MFA enforcement, role assignment.
 ```json
 {
   "sub":       "uuid",           // user ID (Supabase user)
-  "tenant_id": "uuid",           // tenant ID — mandatory on every call
+  "organization_id": "uuid",           // tenant ID — mandatory on every call
   "role":      "founder",        // "founder" | "admin" | "super_admin"
   "scope":     "runs:read runs:write gates:decide"
 }
@@ -43,7 +43,7 @@ MFA enforcement, role assignment.
 - MFA enforced via Supabase Auth for all human accounts. Cannot be disabled per-tenant.
 - JWT validation uses `SUPABASE_JWT_SECRET` — verified on every request in the FastAPI auth middleware.
 - Short-lived JWTs (15 min). Frontend refreshes silently via the Supabase Auth client.
-- Machine-to-machine calls use API keys (hashed in `platform.tenant_api_keys`).
+- Machine-to-machine calls use API keys (hashed in `platform.organization_keys`).
 - Refresh tokens rotate on every use.
 - Service-to-service calls use mTLS + signed JWTs (SPIFFE-style identity).
 
@@ -99,7 +99,7 @@ subscription receipts, launch confirmation.
 ### Rules
 
 - All emails sent through `POST https://api.resend.com/emails`.
-- Templates are versioned React Email components in `apps/api/src/emails/`.
+- Templates are versioned React Email components in `AUTOFOUNDER-BACKEND/app/emails/`.
 - From address: `noreply@mail.autofounder.ai` (verified domain in Resend).
 - Unsubscribe header required on all non-transactional emails.
 - **Never** send email without founder opt-in. Transactional emails (gate alerts, receipts) are
@@ -197,7 +197,7 @@ any LLM call site.
 ### Rules (all LLM providers)
 
 - Token usage is recorded in `cost_ledger` after every call.
-- All calls are traced to LangSmith with `run_id`, `agent_id`, `model`, `tenant_id` tags.
+- All calls are traced to LangSmith with `run_id`, `agent_id`, `model`, `organization_id` tags.
 - Per-tenant cost caps are checked before dispatching a call. If cap would be exceeded, the
   call is blocked and `AF_ERR_COST_CAP_EXCEEDED` is raised — not a silent drop.
 - Prompt content containing user-supplied text has passed through Input Guardrail (Stage 2)
