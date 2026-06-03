@@ -30,7 +30,7 @@ Authorization: Bearer <Supabase JWT>
 ```
 
 - JWTs are short-lived (15 min). Frontend refreshes silently via the Supabase Auth client.
-- Every JWT must contain: `sub` (user ID), `tenant_id` (tenant ID), `role`, `scopes`.
+- Every JWT must contain: `sub` (user ID), `organization_id` (top-level tenant), `role`, `scopes`.
 - MFA is enforced for all human accounts via Supabase Auth.
 
 ### Machine clients (API keys)
