@@ -1,10 +1,5 @@
 packages:
-<<<<<<< HEAD
-  - "frontend-web"
-=======
-  - "apps/*"
-  - "packages/*"
-  - "website"
->>>>>>> dev
+  - "frontend"
   - "mobile-app"
-  - "vscode-extension"
+  - "backend"
+  - "packages/*"

@@ -49,15 +49,9 @@ mobile-app/
 │   └── useWebSocket.ts
 ├── lib/
 │   ├── api-client.ts            Typed REST client (shared logic)
-<<<<<<< HEAD
-│   ├── auth.ts                  Auth0 native + SecureStore wrapper
-│   ├── notifications.ts         FCM token registration
-│   └── ws-client.ts             WebSocket hook
-=======
 │   ├── auth.ts                  Supabase Auth + ExpoSecureStoreAdapter
 │   ├── notifications.ts         Expo push token registration
 │   └── realtime.ts              Supabase Realtime hook
->>>>>>> dev
 ├── constants/
 │   └── colors.ts                Design tokens (light + dark)
 ├── app.config.ts                Expo config (dynamic, reads env vars)
@@ -77,11 +71,7 @@ Expo Router with typed routes (`expo-router/typed-routes` enabled in `app.config
 /runs/[run_id]          → Run detail
 /runs/[run_id]/gates/[gate_id]  → Gate approval
 /runs/[run_id]/artifacts        → Artifact viewer
-<<<<<<< HEAD
-/(auth)/login           → Auth0 login
-=======
 /(auth)/login           → Supabase Auth login
->>>>>>> dev
 ```
 
 Auth guard wraps `(tabs)` layout: if no valid session, redirect to `/(auth)/login`.
@@ -90,27 +80,6 @@ Auth guard wraps `(tabs)` layout: if no valid session, redirect to `/(auth)/logi
 
 ## Authentication
 
-<<<<<<< HEAD
-Auth0 native PKCE flow via `react-native-auth0`.
-
-```typescript
-// lib/auth.ts
-import Auth0 from 'react-native-auth0';
-import * as SecureStore from 'expo-secure-store';
-
-const auth0 = new Auth0({
-  domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN!,
-  clientId: process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID!,
-});
-
-export async function login() {
-  const credentials = await auth0.webAuth.authorize({
-    scope: 'openid profile email offline_access',
-    audience: process.env.EXPO_PUBLIC_API_AUDIENCE!,
-  });
-  await SecureStore.setItemAsync('access_token', credentials.accessToken);
-  await SecureStore.setItemAsync('refresh_token', credentials.refreshToken!);
-=======
 Supabase Auth with `ExpoSecureStoreAdapter` — tokens are stored in hardware-backed secure storage.
 
 ```typescript
@@ -141,29 +110,21 @@ export async function login() {
 
 export async function logout() {
   await supabase.auth.signOut();
->>>>>>> dev
 }
 ```
 
 **Rules**:
-<<<<<<< HEAD
-- Tokens stored in `expo-secure-store` — hardware-backed on supported devices.
-- Never `AsyncStorage` for auth tokens.
-- Access token refreshed silently before expiry. On refresh failure → force re-login.
-- `EXPO_PUBLIC_*` prefix for env vars that are safe to embed in the JS bundle.
-=======
 - Tokens stored via `ExpoSecureStoreAdapter` — hardware-backed on supported devices.
 - Never `AsyncStorage` for auth tokens.
 - `autoRefreshToken: true` handles silent refresh. On failure → session cleared → re-login.
 - `EXPO_PUBLIC_*` prefix for env vars safe to embed in the JS bundle.
->>>>>>> dev
   Secret values go through the backend, never the mobile app directly.
 
 ---
 
 ## API Client
 
-The mobile app uses the same typed API client pattern as `frontend-web`, adapted for React Native's
+The mobile app uses the same typed API client pattern as `frontend` (the Founder Portal), adapted for React Native's
 `fetch` (no `axios` — avoids a native dependency).
 
 ```typescript
@@ -195,14 +156,6 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 ### Flow
 
 ```
-<<<<<<< HEAD
-1. App registers with FCM via Expo Notifications
-2. Expo token + raw FCM token sent to backend: POST /v1/devices/token
-3. Backend stores token in platform.user_devices
-4. Agent pipeline event → backend publishes to Pub/Sub topic `push-notifications`
-5. Cloud Function reads topic → calls FCM HTTP v1 API
-6. Device receives notification → tap deep-links to relevant screen
-=======
 1. App registers and obtains Expo push token (Expo Notifications)
 2. Token sent to backend: POST /v1/devices/token
 3. Backend stores token in platform.user_devices
@@ -210,7 +163,6 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 5. SNS → SQS → Notification worker (ECS) → Expo Push API (api.expo.dev/v2/push/send)
 6. Expo proxies to APNs (iOS) or FCM (Android)
 7. Device receives notification → tap deep-links to relevant screen
->>>>>>> dev
 ```
 
 ### Setup in app
@@ -219,10 +171,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 // lib/notifications.ts
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-<<<<<<< HEAD
-=======
 import { Platform } from 'react-native';
->>>>>>> dev
 
 export async function registerForPushNotifications() {
   if (!Device.isDevice) return; // simulator — skip
@@ -343,4 +292,4 @@ plugins). Those require a full EAS build + store submission.
 
 - Unit tests: Jest + `@testing-library/react-native`
 - E2E tests: Maestro (runs on EAS Device Farm before `production` build promotion)
-- Run locally: `pnpm --filter mobile-app test`
+- Run locally: `pnpm --filter @autofounder-ai/mobile-app test`

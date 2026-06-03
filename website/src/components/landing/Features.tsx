@@ -1,91 +1,83 @@
-import {
-  Brain,
-  Layers,
-  Code2,
-  Rocket,
-  Megaphone,
-  ShieldCheck,
-  BarChart3,
-} from 'lucide-react'
+import { Brain, Layers, Code2, Rocket, Megaphone, ShieldCheck, BarChart3 } from "lucide-react";
 
 const features = [
   {
     icon: Brain,
-    color: 'blue',
-    title: 'Autonomous Market Validation',
+    color: "blue",
+    title: "Autonomous Market Validation",
     description:
-      'The Strategy Agent scans competitors, sizes your market (TAM/SAM/SOM), generates ICPs, and produces a full Lean Canvas with viability score — in under 30 minutes.',
-    badge: 'Pillar 1',
+      "The Strategy Agent scans competitors, sizes your market (TAM/SAM/SOM), generates ICPs, and produces a full Lean Canvas with viability score — in under 30 minutes.",
+    badge: "Pillar 1",
   },
   {
     icon: Layers,
-    color: 'violet',
-    title: 'Architecture & Tech Stack Design',
+    color: "violet",
+    title: "Architecture & Tech Stack Design",
     description:
-      'The Architect Agent extracts requirements, designs your DB schema (ERD), generates an OpenAPI contract, selects the optimal tech stack, and produces a cost forecast — then waits for your approval before a line of code is written.',
-    badge: 'Pillar 2',
+      "The Architect Agent extracts requirements, designs your DB schema (ERD), generates an OpenAPI contract, selects the optimal tech stack, and produces a cost forecast — then waits for your approval before a line of code is written.",
+    badge: "Pillar 2",
   },
   {
     icon: Code2,
-    color: 'sky',
-    title: 'Full-Stack Code Generation',
+    color: "sky",
+    title: "Full-Stack Code Generation",
     description:
-      'The Engineering Agent scaffolds your entire repo: Next.js 14 frontend, FastAPI/NestJS backend, PostgreSQL schema, auth (OAuth/JWT), Stripe integration, and Dockerfile — all TypeScript-strict and linting-clean.',
-    badge: 'Pillar 3',
+      "The Engineering Agent scaffolds your entire repo: Next.js 14 frontend, FastAPI/NestJS backend, PostgreSQL schema, auth (OAuth/JWT), Stripe integration, and Dockerfile — all TypeScript-strict and linting-clean.",
+    badge: "Pillar 3",
   },
   {
     icon: ShieldCheck,
-    color: 'emerald',
-    title: 'Autonomous Testing & Self-Healing',
+    color: "emerald",
+    title: "Autonomous Testing & Self-Healing",
     description:
-      'Generates unit, integration, and security tests. If tests fail, a self-healing loop attempts up to 5 auto-fix cycles — targeting ≥80% coverage and ≥90% auto-fix rate.',
-    badge: 'Pillar 4',
+      "Generates unit, integration, and security tests. If tests fail, a self-healing loop attempts up to 5 auto-fix cycles — targeting ≥80% coverage and ≥90% auto-fix rate.",
+    badge: "Pillar 4",
   },
   {
     icon: Rocket,
-    color: 'cyan',
-    title: 'One-Click AWS Deployment',
+    color: "cyan",
+    title: "One-Click AWS Deployment",
     description:
-      'Containerizes your app, writes Terraform IaC, provisions ECS Fargate + RDS + Redis, configures SSL via ACM, and sets up CI/CD — from code to live in under 10 minutes.',
-    badge: 'Pillar 5',
+      "Containerizes your app, writes Terraform IaC, provisions ECS Fargate + RDS + Redis, configures SSL via ACM, and sets up CI/CD — from code to live in under 10 minutes.",
+    badge: "Pillar 5",
   },
   {
     icon: Megaphone,
-    color: 'pink',
-    title: 'Full GTM Launch Package',
+    color: "pink",
+    title: "Full GTM Launch Package",
     description:
-      'Generates your brand identity, landing page, SEO blog posts, Product Hunt kit, email drip sequences, and launch threads for X/LinkedIn/Reddit — founder approves before anything goes live.',
-    badge: 'Pillar 6',
+      "Generates your brand identity, landing page, SEO blog posts, Product Hunt kit, email drip sequences, and launch threads for X/LinkedIn/Reddit — founder approves before anything goes live.",
+    badge: "Pillar 6",
   },
   {
     icon: BarChart3,
-    color: 'amber',
-    title: 'Continuous LLMOps & Growth',
+    color: "amber",
+    title: "Continuous LLMOps & Growth",
     description:
-      'After launch, the LLMOps Agent tracks user feedback, optimizes prompts with DSPy, detects model drift, runs A/B experiments, and delivers weekly improvement cycles.',
-    badge: 'Pillar 7',
+      "After launch, the LLMOps Agent tracks user feedback, optimizes prompts with DSPy, detects model drift, runs A/B experiments, and delivers weekly improvement cycles.",
+    badge: "Pillar 7",
   },
-]
+];
 
 const colorMap: Record<string, string> = {
-  blue: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
-  violet: 'bg-violet-500/10 border-violet-500/20 text-violet-400',
-  sky: 'bg-sky-500/10 border-sky-500/20 text-sky-400',
-  emerald: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-  cyan: 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400',
-  pink: 'bg-pink-500/10 border-pink-500/20 text-pink-400',
-  amber: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
-}
+  blue: "bg-blue-500/10 border-blue-500/20 text-blue-400",
+  violet: "bg-violet-500/10 border-violet-500/20 text-violet-400",
+  sky: "bg-sky-500/10 border-sky-500/20 text-sky-400",
+  emerald: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
+  cyan: "bg-cyan-500/10 border-cyan-500/20 text-cyan-400",
+  pink: "bg-pink-500/10 border-pink-500/20 text-pink-400",
+  amber: "bg-amber-500/10 border-amber-500/20 text-amber-400",
+};
 
 const badgeMap: Record<string, string> = {
-  blue: 'bg-blue-500/10 text-blue-400',
-  violet: 'bg-violet-500/10 text-violet-400',
-  sky: 'bg-sky-500/10 text-sky-400',
-  emerald: 'bg-emerald-500/10 text-emerald-400',
-  cyan: 'bg-cyan-500/10 text-cyan-400',
-  pink: 'bg-pink-500/10 text-pink-400',
-  amber: 'bg-amber-500/10 text-amber-400',
-}
+  blue: "bg-blue-500/10 text-blue-400",
+  violet: "bg-violet-500/10 text-violet-400",
+  sky: "bg-sky-500/10 text-sky-400",
+  emerald: "bg-emerald-500/10 text-emerald-400",
+  cyan: "bg-cyan-500/10 text-cyan-400",
+  pink: "bg-pink-500/10 text-pink-400",
+  amber: "bg-amber-500/10 text-amber-400",
+};
 
 export default function Features() {
   return (
@@ -94,12 +86,12 @@ export default function Features() {
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            Everything a founding team does —{' '}
-            <span className="gradient-text">done by AI.</span>
+            Everything a founding team does — <span className="gradient-text">done by AI.</span>
           </h2>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
             Seven specialized AI agents cover every pillar of startup creation, collaborating
-            through a LangGraph orchestration engine with human-approval gates at every critical step.
+            through a LangGraph orchestration engine with human-approval gates at every critical
+            step.
           </p>
         </div>
 
@@ -129,5 +121,5 @@ export default function Features() {
         </div>
       </div>
     </section>
-  )
+  );
 }

@@ -17,7 +17,7 @@ Organization  (billing entity — company or individual subscriber)
 
 | Level | Column | Type | Notes |
 |-------|--------|------|-------|
-| Top-level tenant | `organization_id` | `UUID` | Maps to Auth0 `org_id` claim |
+| Top-level tenant | `organization_id` | `UUID` | Maps to the Supabase JWT `organization_id` claim |
 | Project scope | `workspace_id` | `UUID` | Child of `organization_id` |
 | Execution | `run_id` | `UUID` | Child of `workspace_id` |
 
@@ -136,7 +136,7 @@ CREATE TABLE workspaces (
   name            TEXT NOT NULL,
   description     TEXT,
   settings        JSONB NOT NULL DEFAULT '{}',
-  created_by      TEXT NOT NULL,          -- Auth0 sub claim
+  created_by      TEXT NOT NULL,          -- Supabase JWT sub claim
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at      TIMESTAMPTZ
 );
@@ -227,9 +227,5 @@ All Redis keys are prefixed with `{organization_id}:` to enforce tenant isolatio
 ## Observability
 
 - Every migration run emits a structured log: `{"event": "migration", "revision": "...", "duration_ms": ...}`
-<<<<<<< HEAD
-- Slow queries (> 200 ms) are logged at `WARN` level. `pg_stat_statements` is enabled in Cloud SQL.
-=======
 - Slow queries (> 200 ms) are logged at `WARN` level. `pg_stat_statements` is enabled in Supabase/PostgreSQL.
->>>>>>> dev
 - Connection pool metrics (active, idle, wait) are exported to Prometheus via the UDAL layer.

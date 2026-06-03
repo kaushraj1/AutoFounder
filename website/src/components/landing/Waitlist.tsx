@@ -1,21 +1,21 @@
-import { useState } from 'react'
-import { ArrowRight, Mail } from 'lucide-react'
+import { useState } from "react";
+import { ArrowRight, Mail } from "lucide-react";
 
 export default function Waitlist() {
-  const [email, setEmail] = useState('')
-  const [submitted, setSubmitted] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email) return
-    setLoading(true)
+    e.preventDefault();
+    if (!email) return;
+    setLoading(true);
 
     // TODO: Replace with real API call to waitlist endpoint (e.g. POST /v1/waitlist or Mailchimp/Resend integration)
-    await new Promise((r) => setTimeout(r, 800))
-    setSubmitted(true)
-    setLoading(false)
-  }
+    await new Promise((r) => setTimeout(r, 800));
+    setSubmitted(true);
+    setLoading(false);
+  };
 
   return (
     <section id="waitlist" className="py-24">
@@ -62,16 +62,19 @@ export default function Waitlist() {
                   disabled={loading}
                   className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-blue-900/50 whitespace-nowrap"
                 >
-                  {loading ? 'Joining…' : 'Get Early Access'}
+                  {loading ? "Joining…" : "Get Early Access"}
                   {!loading && <ArrowRight size={16} />}
                 </button>
               </form>
             )}
 
             <p className="text-slate-600 text-xs mt-6">
-              No credit card required · Unsubscribe any time ·{' '}
+              No credit card required · Unsubscribe any time ·{" "}
               {/* TODO: Link to real privacy policy */}
-              <a href="#" className="underline underline-offset-2 hover:text-slate-400 transition-colors">
+              <a
+                href="#"
+                className="underline underline-offset-2 hover:text-slate-400 transition-colors"
+              >
                 Privacy Policy
               </a>
             </p>
@@ -79,5 +82,5 @@ export default function Waitlist() {
         </div>
       </div>
     </section>
-  )
+  );
 }

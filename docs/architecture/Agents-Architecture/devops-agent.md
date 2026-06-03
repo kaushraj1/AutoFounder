@@ -23,7 +23,7 @@
 
 The DevOps Agent is the fifth stage of the Auto-Founder AI pipeline. It receives a tested, containerised `CoderOutput` via gRPC and autonomously provisions, deploys, and monitors a live production environment. Its output is a **fully operational live URL** with SSL, DNS, CI/CD, and observability configured.
 
-The agent runs as a LangGraph stateful graph with a mandatory **Human-in-the-Loop (HITL) spend gate** before any AWS resource is created. All infrastructure is managed as code (Terraform); all deployments are GitOps-driven via ArgoCD.
+The agent runs as a LangGraph stateful graph with a mandatory **Human-in-the-Loop (HITL) spend gate** before any AWS resource is created. All infrastructure is managed as code (Terraform); all deployments are blue/green via AWS CodeDeploy, triggered by GitHub Actions.
 
 ### Sub-tasks executed (with target SLA)
 
@@ -32,13 +32,13 @@ The agent runs as a LangGraph stateful graph with a mandatory **Human-in-the-Loo
 | Ingest + validate CoderOutput | `ingest_input` | < 15 s |
 | HITL infrastructure spend approval | `hitl_spend_gate` | async (10 min timeout) |
 | VPC + subnets + security groups | `provision_networking` | < 3 min |
-| EKS cluster + node groups | `provision_compute` | < 4 min |
-| RDS + ElastiCache + S3 bucket | `provision_data_layer` | < 3 min |
+| ECS cluster + Fargate capacity providers | `provision_compute` | < 4 min |
+| Supabase + ElastiCache + S3 bucket | `provision_data_layer` | < 3 min |
 | AWS Secrets Manager seeding | `provision_secrets` | < 30 s |
-| Helm chart generation for all services | `build_helm_charts` | < 2 min |
-| ArgoCD app definitions + sync policy | `configure_argocd` | < 1 min |
-| ArgoCD sync → EKS rolling deploy | `deploy_application` | < 3 min |
-| Route53 A record + cert-manager TLS | `configure_dns_ssl` | < 1 min |
+| ECS task + service definition generation for all services | `build_task_defs` | < 2 min |
+| CodeDeploy app definitions + deployment groups | `configure_codedeploy` | < 1 min |
+| CodeDeploy blue/green → ECS rolling deploy | `deploy_application` | < 3 min |
+| Route53 A record + ACM TLS | `configure_dns_ssl` | < 1 min |
 | CloudWatch alarms + Prometheus + Grafana | `configure_monitoring` | < 1 min |
 | GitHub Actions deploy workflow update | `configure_cicd` | < 1 min |
 | Live health check smoke tests | `smoke_test` | < 30 s |
@@ -49,7 +49,7 @@ The agent runs as a LangGraph stateful graph with a mandatory **Human-in-the-Loo
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# packages/agents/devops/schema.py
+# backend/app/agents/devops/schema.py
 
 from __future__ import annotations
 
@@ -113,7 +113,7 @@ class DeployStatus(StrEnum):
 # ---------------------------------------------------------------------------
 
 class ServiceManifest(BaseModel):
-    name: str                    # e.g. "api-gateway", "ai-services", "web"
+    name: str                    # e.g. "backend", "frontend", "worker"
     image_uri: str               # ECR URI: {account}.dkr.ecr.{region}.amazonaws.com/{repo}:{tag}
     port: int
     replicas_baseline: int = 2
@@ -141,32 +141,33 @@ class VPCConfig(BaseModel):
     internet_gateway_id: str | None = None
     security_group_ids: dict[str, str] = Field(
         default_factory=dict,
-        description="Role → SG ID: 'alb', 'eks_nodes', 'rds', 'redis'"
+        description="Role → SG ID: 'alb', 'ecs_tasks', 'supabase_egress', 'redis'"
     )
 
 
 # ---------------------------------------------------------------------------
-# Sub-models: Compute (EKS)
+# Sub-models: Compute (ECS on Fargate)
 # ---------------------------------------------------------------------------
 
-class EKSNodeGroup(BaseModel):
-    name: str
-    instance_type: str    = "t3.medium"
-    min_size: int         = 2
-    max_size: int         = 10
-    desired_size: int     = 2
-    disk_size_gb: int     = 50
+class FargateTaskDef(BaseModel):
+    family: str                                  # task definition family, e.g. "backend"
+    cpu: str               = "512"               # Fargate CPU units (vCPU * 1024)
+    memory: str            = "1024"              # Fargate memory in MiB
+    network_mode: str      = "awsvpc"            # required for Fargate
+    requires_compatibilities: list[str] = Field(default_factory=lambda: ["FARGATE"])
+    execution_role_arn: str | None = None        # task execution role (ECR pull, logs)
+    task_role_arn: str | None      = None        # task role (app AWS permissions)
     labels: dict[str, str] = Field(default_factory=dict)
 
 
-class EKSCluster(BaseModel):
+class EcsCluster(BaseModel):
     cluster_name: str | None  = None
     cluster_arn: str | None   = None
-    kubernetes_version: str   = "1.30"
+    platform_version: str     = "LATEST"         # Fargate platform version
     region: str               = "ap-south-1"
-    endpoint: str | None      = None
-    oidc_provider_arn: str | None = None
-    node_groups: list[EKSNodeGroup] = Field(default_factory=list)
+    capacity_providers: list[str] = Field(default_factory=lambda: ["FARGATE", "FARGATE_SPOT"])
+    enable_execute_command: bool  = True         # ECS Exec for debugging (replaces shell access)
+    task_defs: list[FargateTaskDef] = Field(default_factory=list)
     status: InfraStatus       = InfraStatus.NOT_STARTED
 
 
@@ -174,16 +175,15 @@ class EKSCluster(BaseModel):
 # Sub-models: Data Layer
 # ---------------------------------------------------------------------------
 
-class RDSInstance(BaseModel):
-    identifier: str | None = None
+class SupabaseProject(BaseModel):
+    project_ref: str | None = None             # Supabase project reference id
     engine: str            = "postgres"
     engine_version: str    = "16.2"
-    instance_class: str    = "db.t3.micro"
-    allocated_storage_gb: int = 20
-    storage_type: str      = "gp3"
-    multi_az: bool         = False
+    plan: str              = "pro"              # Supabase compute plan (cost-optimised for seed)
+    pgvector_enabled: bool = True               # pgvector extension for semantic memory / RAG
+    multi_az: bool         = True               # Supabase platform provides multi-AZ
     db_name: str | None    = None
-    endpoint: str | None   = None
+    endpoint: str | None   = None               # Supabase Postgres connection host
     port: int              = 5432
     status: InfraStatus    = InfraStatus.NOT_STARTED
 
@@ -218,24 +218,24 @@ class SecretRef(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Sub-models: Helm / ArgoCD
+# Sub-models: ECS task/service definitions / CodeDeploy
 # ---------------------------------------------------------------------------
 
-class HelmChart(BaseModel):
+class EcsService(BaseModel):
     service_name: str
-    chart_path: str         # relative path in the repo
-    values_yaml: str        # rendered values.yaml content
-    release_name: str
-    namespace: str          = "default"
+    task_def_path: str      # relative path in the repo to the rendered task definition JSON
+    task_def_json: str      # rendered ECS task definition content (container defs)
+    desired_count: int      = 2
+    cluster: str            # ECS cluster name the service is deployed into
 
 
-class ArgoCDApp(BaseModel):
+class CodeDeployApp(BaseModel):
     app_name: str
     repo_url: str
     target_revision: str    = "HEAD"
-    path: str               # path in repo to Helm chart
-    destination_namespace: str
-    sync_policy: str        = "automated"
+    appspec_path: str       # path in repo to the CodeDeploy appspec.yaml
+    deployment_group: str
+    deployment_config: str  = "CodeDeployDefault.ECSAllAtOnce"  # blue/green traffic shift
     health_status: str | None = None
 
 
@@ -254,7 +254,7 @@ class DNSRecord(BaseModel):
 class TLSCertificate(BaseModel):
     domain: str
     cert_arn: str | None       = None   # ACM cert ARN
-    issuer: str                = "letsencrypt-prod"
+    issuer: str                = "amazon-acm"
     status: str | None         = None   # "Issued" | "Pending"
 
 
@@ -288,7 +288,7 @@ class MonitoringConfig(BaseModel):
 class CICDConfig(BaseModel):
     workflow_file_path: str     # e.g. ".github/workflows/deploy.yml"
     workflow_yaml: str          # generated workflow YAML content
-    argocd_server: str | None   = None
+    codedeploy_app: str | None  = None
     ecr_registry: str | None    = None
 
 
@@ -338,7 +338,7 @@ class DevOpsState(BaseModel):
     run_id: UUID            = Field(default_factory=uuid4)
     parent_run_id: UUID     = Field(..., description="Coder Agent run_id")
     grandparent_run_id: UUID = Field(..., description="Architect Agent run_id")
-    tenant_id: str          = Field(..., description="Validated from JWT claims")
+    organization_id: str    = Field(..., description="Validated from Supabase JWT claims")
 
     # Input from Coder Agent (deserialized from gRPC CoderOutput)
     idea_normalised: str
@@ -357,15 +357,15 @@ class DevOpsState(BaseModel):
 
     # Infrastructure outputs (populated by provision_* nodes)
     vpc_config: VPCConfig | None             = None
-    eks_cluster: EKSCluster | None           = None
-    rds_instance: RDSInstance | None         = None
+    ecs_cluster: EcsCluster | None           = None
+    supabase_project: SupabaseProject | None = None
     elasticache_cluster: ElastiCacheCluster | None = None
     s3_bucket: S3Bucket | None               = None
     secrets: list[SecretRef]                 = Field(default_factory=list)
 
     # Deployment artefacts
-    helm_charts: list[HelmChart]             = Field(default_factory=list)
-    argocd_apps: list[ArgoCDApp]             = Field(default_factory=list)
+    ecs_services: list[EcsService]           = Field(default_factory=list)
+    codedeploy_apps: list[CodeDeployApp]     = Field(default_factory=list)
     deploy_status: DeployStatus              = DeployStatus.NOT_STARTED
 
     # Post-deploy configuration
@@ -414,27 +414,27 @@ class DevOpsState(BaseModel):
 |---|---|---|---|
 | `ingest_input` | Sequential | Deserialise + validate CoderOutput from gRPC | — (validation only) |
 | `hitl_spend_gate` | HITL / Async | Block until Founder approves AWS spend | — |
-| `provision_networking` | Sequential | Terraform: VPC, subnets, SGs, NAT, IGW | Claude Sonnet (plan gen) |
-| `provision_compute` | Sequential | Terraform: EKS cluster + managed node groups | Claude Sonnet |
-| `provision_data_layer` | Parallel branch | Terraform: RDS + ElastiCache + S3 | Claude Sonnet |
+| `provision_networking` | Sequential | Terraform: VPC, subnets, SGs, NAT, IGW | Gemini 3.5 Flash (plan gen) |
+| `provision_compute` | Sequential | Terraform: ECS cluster + Fargate capacity providers | Gemini 3.5 Flash |
+| `provision_data_layer` | Parallel branch | Terraform: Supabase + ElastiCache + S3 | Gemini 3.5 Flash |
 | `infra_join` | Barrier | Waits for compute + data layer | — |
-| `provision_secrets` | Sequential | boto3: seed AWS Secrets Manager secrets | GPT-4o |
-| `build_helm_charts` | Parallel branch | Generate Helm values.yaml per service | GPT-4o |
-| `configure_argocd` | Parallel branch | Generate ArgoCD Application manifests | GPT-4o |
-| `deploy_join` | Barrier | Waits for Helm charts + ArgoCD config | — |
-| `deploy_application` | Sequential | ArgoCD sync → EKS rolling deploy | — (API call) |
-| `configure_dns_ssl` | Sequential | Route53 A record + cert-manager TLS | GPT-4o |
-| `configure_monitoring` | Parallel branch | CloudWatch alarms + Prometheus scrape | GPT-4o |
-| `configure_cicd` | Parallel branch | GitHub Actions deploy workflow | GPT-4o |
+| `provision_secrets` | Sequential | boto3: seed AWS Secrets Manager secrets | Gemini 3.5 Flash |
+| `build_task_defs` | Parallel branch | Generate ECS task + service definitions per service | Gemini 3.5 Flash |
+| `configure_codedeploy` | Parallel branch | Generate CodeDeploy appspec + deployment groups | Gemini 3.5 Flash |
+| `deploy_join` | Barrier | Waits for task defs + CodeDeploy config | — |
+| `deploy_application` | Sequential | CodeDeploy blue/green → ECS rolling deploy | — (API call) |
+| `configure_dns_ssl` | Sequential | Route53 A record + ACM TLS | Gemini 3.5 Flash |
+| `configure_monitoring` | Parallel branch | CloudWatch alarms + Prometheus scrape | Gemini 3.5 Flash |
+| `configure_cicd` | Parallel branch | GitHub Actions deploy workflow | Gemini 3.5 Flash |
 | `postdeploy_join` | Barrier | Waits for monitoring + CI/CD config | — |
 | `smoke_test` | Sequential | HTTP health checks on live URL | — (HTTP calls) |
-| `render_deploy_report` | Sequential | Assemble final Markdown deploy report | GPT-4o |
+| `render_deploy_report` | Sequential | Assemble final Markdown deploy report | Gemini 3.5 Flash |
 | `error_handler` | Error sink | Classifies failure, tears down partial infra, alerts | — |
 
 ### 3.2 Graph definition
 
 ```python
-# packages/agents/devops/graph.py
+# backend/app/agents/devops/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -448,8 +448,8 @@ from .nodes import (
     provision_data_layer,
     infra_join,
     provision_secrets,
-    build_helm_charts,
-    configure_argocd,
+    build_task_defs,
+    configure_codedeploy,
     deploy_join,
     deploy_application,
     configure_dns_ssl,
@@ -486,8 +486,8 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
     graph.add_node("provision_data_layer",  provision_data_layer)
     graph.add_node("infra_join",            infra_join)
     graph.add_node("provision_secrets",     provision_secrets)
-    graph.add_node("build_helm_charts",     build_helm_charts)
-    graph.add_node("configure_argocd",      configure_argocd)
+    graph.add_node("build_task_defs",       build_task_defs)
+    graph.add_node("configure_codedeploy",  configure_codedeploy)
     graph.add_node("deploy_join",           deploy_join)
     graph.add_node("deploy_application",    deploy_application)
     graph.add_node("configure_dns_ssl",     configure_dns_ssl)
@@ -545,18 +545,18 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- Secrets → fan-out: Helm charts + ArgoCD config --------------------
+    # -- Secrets → fan-out: ECS task defs + CodeDeploy config --------------
     graph.add_conditional_edges(
         "provision_secrets",
         route_after_secrets,
         {
-            "parallel":      ["build_helm_charts", "configure_argocd"],
+            "parallel":      ["build_task_defs", "configure_codedeploy"],
             "error_handler": "error_handler",
         },
     )
 
-    graph.add_edge("build_helm_charts", "deploy_join")
-    graph.add_edge("configure_argocd",  "deploy_join")
+    graph.add_edge("build_task_defs",      "deploy_join")
+    graph.add_edge("configure_codedeploy", "deploy_join")
 
     # -- Deploy join → application deploy ----------------------------------
     graph.add_conditional_edges(
@@ -633,7 +633,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# packages/agents/devops/routers.py
+# backend/app/agents/devops/routers.py
 
 from .schema import DevOpsState, ApprovalStatus, DeployStatus, InfraStatus
 
@@ -659,7 +659,7 @@ def route_after_networking(state: DevOpsState) -> str | list[str]:
 def route_after_infra_join(state: DevOpsState) -> str:
     if state.error_count >= state.retry_policy.max_retries:
         return "error_handler"
-    if state.eks_cluster is None or state.eks_cluster.status != InfraStatus.READY:
+    if state.ecs_cluster is None or state.ecs_cluster.status != InfraStatus.READY:
         return "error_handler"
     return "provision_secrets"
 
@@ -671,7 +671,7 @@ def route_after_secrets(state: DevOpsState) -> str | list[str]:
 
 
 def route_after_deploy_join(state: DevOpsState) -> str:
-    if not state.helm_charts or not state.argocd_apps:
+    if not state.ecs_services or not state.codedeploy_apps:
         return "error_handler"
     return "deploy_application"
 
@@ -724,16 +724,16 @@ flowchart TD
     provision_compute    --> infra_join
     provision_data_layer --> infra_join
 
-    infra_join -->|EKS not ready| error_handler
+    infra_join -->|ECS not ready| error_handler
     infra_join -->|ok| provision_secrets
 
     provision_secrets -->|fatal| error_handler
-    provision_secrets -->|ok| build_helm_charts & configure_argocd
+    provision_secrets -->|ok| build_task_defs & configure_codedeploy
 
-    build_helm_charts --> deploy_join
-    configure_argocd  --> deploy_join
+    build_task_defs      --> deploy_join
+    configure_codedeploy --> deploy_join
 
-    deploy_join -->|charts missing| error_handler
+    deploy_join -->|task defs missing| error_handler
     deploy_join -->|ok| deploy_application
 
     deploy_application -->|FAILED| error_handler
@@ -772,7 +772,7 @@ flowchart TD
 ### 4.1 Tool definitions (LangChain-compatible)
 
 ```python
-# packages/agents/devops/tools.py
+# backend/app/agents/devops/tools.py
 
 import os
 import json
@@ -836,21 +836,22 @@ terraform_run = StructuredTool.from_function(
 
 
 # ---------------------------------------------------------------------------
-# kubectl (Kubernetes CLI)
+# AWS ECS CLI
 # ---------------------------------------------------------------------------
 
-class KubectlInput(BaseModel):
-    command: str  = Field(..., description="Full kubectl command excluding the 'kubectl' binary, e.g. 'get pods -n default'")
-    kubeconfig: str | None = Field(None, description="Path to kubeconfig file")
+class EcsCommandInput(BaseModel):
+    command: str  = Field(..., description="Full AWS ECS sub-command excluding the 'aws ecs' prefix, e.g. 'describe-services --cluster my-cluster --services backend'")
+    region: str | None = Field(None, description="AWS region override")
 
 
-def _kubectl(command: str, kubeconfig: str | None = None) -> dict:
+def _aws_ecs(command: str, region: str | None = None) -> dict:
     env = {**os.environ}
-    if kubeconfig:
-        env["KUBECONFIG"] = kubeconfig
+    cmd = ["aws", "ecs"] + command.split()
+    if region:
+        cmd += ["--region", region]
 
     result = subprocess.run(
-        ["kubectl"] + command.split(),
+        cmd,
         capture_output=True,
         text=True,
         timeout=60,
@@ -864,30 +865,31 @@ def _kubectl(command: str, kubeconfig: str | None = None) -> dict:
     }
 
 
-kubectl = StructuredTool.from_function(
-    func=_kubectl,
-    name="kubectl",
-    description="Run a kubectl command against the provisioned EKS cluster.",
-    args_schema=KubectlInput,
+aws_ecs = StructuredTool.from_function(
+    func=_aws_ecs,
+    name="aws_ecs",
+    description="Run an AWS ECS CLI command (e.g. describe-services, update-service) against the provisioned ECS cluster.",
+    args_schema=EcsCommandInput,
 )
 
 
 # ---------------------------------------------------------------------------
-# Helm CLI
+# ECS service deploy (register task def + update service)
 # ---------------------------------------------------------------------------
 
-class HelmInput(BaseModel):
-    command: str     = Field(..., description="Helm sub-command, e.g. 'upgrade --install my-app ./charts/my-app -n default'")
-    kubeconfig: str | None = None
+class EcsDeployInput(BaseModel):
+    command: str     = Field(..., description="AWS ECS deploy sub-command, e.g. 'update-service --cluster my-cluster --service backend --task-definition backend:12 --force-new-deployment'")
+    region: str | None = None
 
 
-def _helm(command: str, kubeconfig: str | None = None) -> dict:
+def _ecs_deploy(command: str, region: str | None = None) -> dict:
     env = {**os.environ}
-    if kubeconfig:
-        env["KUBECONFIG"] = kubeconfig
+    cmd = ["aws", "ecs"] + command.split()
+    if region:
+        cmd += ["--region", region]
 
     result = subprocess.run(
-        ["helm"] + command.split(),
+        cmd,
         capture_output=True,
         text=True,
         timeout=120,
@@ -901,45 +903,45 @@ def _helm(command: str, kubeconfig: str | None = None) -> dict:
     }
 
 
-helm_cli = StructuredTool.from_function(
-    func=_helm,
-    name="helm_cli",
-    description="Run a Helm command (lint, upgrade, install, rollback) against the EKS cluster.",
-    args_schema=HelmInput,
+ecs_deploy = StructuredTool.from_function(
+    func=_ecs_deploy,
+    name="ecs_deploy",
+    description="Register a task definition or roll an ECS service (update-service, register-task-definition, rollback) on the ECS cluster.",
+    args_schema=EcsDeployInput,
 )
 
 
 # ---------------------------------------------------------------------------
-# ArgoCD REST API
+# AWS CodeDeploy REST API
 # ---------------------------------------------------------------------------
 
-class ArgoCDSyncInput(BaseModel):
-    app_name: str         = Field(..., description="ArgoCD Application name to sync")
-    argocd_server: str    = Field(..., description="ArgoCD server URL, e.g. 'https://argocd.internal'")
-    argocd_token: str     = Field(..., description="ArgoCD API token (from Secrets Manager)")
-    force: bool           = False
+class CodeDeployCreateInput(BaseModel):
+    app_name: str         = Field(..., description="CodeDeploy application name to deploy")
+    deployment_group: str = Field(..., description="CodeDeploy deployment group name")
+    appspec_s3_uri: str   = Field(..., description="S3 URI of the appspec/taskdef revision bundle")
+    region: str           = Field("ap-south-1")
 
 
-async def _argocd_sync(app_name: str, argocd_server: str,
-                       argocd_token: str, force: bool = False) -> dict:
-    headers = {"Authorization": f"Bearer {argocd_token}"}
-    payload: dict[str, Any] = {"prune": True, "dryRun": False, "force": force}
+async def _codedeploy_create(app_name: str, deployment_group: str,
+                             appspec_s3_uri: str, region: str = "ap-south-1") -> dict:
+    client = boto3.client("codedeploy", region_name=region)
+    bucket, _, key = appspec_s3_uri.removeprefix("s3://").partition("/")
+    resp = client.create_deployment(
+        applicationName=app_name,
+        deploymentGroupName=deployment_group,
+        revision={
+            "revisionType": "S3",
+            "s3Location": {"bucket": bucket, "key": key, "bundleType": "YAML"},
+        },
+    )
+    return {"app_name": app_name, "deployment_id": resp["deploymentId"], "success": True}
 
-    async with httpx.AsyncClient(verify=False, timeout=120) as client:
-        resp = await client.post(
-            f"{argocd_server}/api/v1/applications/{app_name}/sync",
-            headers=headers,
-            json=payload,
-        )
-        resp.raise_for_status()
-        return {"app_name": app_name, "status": resp.json().get("status"), "success": True}
 
-
-argocd_sync = StructuredTool.from_function(
-    coroutine=_argocd_sync,
-    name="argocd_sync",
-    description="Trigger an ArgoCD sync for a named application and wait for health.",
-    args_schema=ArgoCDSyncInput,
+codedeploy_create = StructuredTool.from_function(
+    coroutine=_codedeploy_create,
+    name="codedeploy_create",
+    description="Trigger an AWS CodeDeploy blue/green deployment for a named application and wait for health.",
+    args_schema=CodeDeployCreateInput,
 )
 
 
@@ -995,7 +997,7 @@ route53_upsert = StructuredTool.from_function(
 # ---------------------------------------------------------------------------
 
 class SecretsManagerCreateInput(BaseModel):
-    secret_name: str  = Field(..., description="Secret name, e.g. '{tenant_id}/{run_id}/db-password'")
+    secret_name: str  = Field(..., description="Secret name, e.g. '{organization_id}/{run_id}/supabase-credentials'")
     secret_value: str = Field(..., description="JSON string of key-value pairs")
     region: str       = Field("ap-south-1")
 
@@ -1012,7 +1014,7 @@ def _secrets_manager_create(secret_name: str, secret_value: str, region: str = "
 secrets_manager_create = StructuredTool.from_function(
     func=_secrets_manager_create,
     name="secrets_manager_create",
-    description="Create or update an AWS Secrets Manager secret for a tenant.",
+    description="Create or update an AWS Secrets Manager secret for an organization.",
     args_schema=SecretsManagerCreateInput,
 )
 
@@ -1060,10 +1062,10 @@ http_health_check = StructuredTool.from_function(
 # ---------------------------------------------------------------------------
 
 class GitHubFileUpsertInput(BaseModel):
-    repo_full_name: str  = Field(..., description="Owner/repo, e.g. 'euron-ai/tenant-abc-app'")
+    repo_full_name: str  = Field(..., description="Owner/repo, e.g. 'euron-ai/org-abc-app'")
     file_path: str       = Field(..., description="File path in repo, e.g. '.github/workflows/deploy.yml'")
     content: str         = Field(..., description="File content (plaintext, will be base64-encoded)")
-    commit_message: str  = Field("ci: add ArgoCD deploy workflow [AutoFounder AI]")
+    commit_message: str  = Field("ci: add CodeDeploy blue/green deploy workflow [AutoFounder AI]")
     branch: str          = Field("main")
 
 
@@ -1110,10 +1112,10 @@ TOOL_REGISTRY: dict[str, list] = {
     "provision_compute":    [terraform_run],
     "provision_data_layer": [terraform_run],
     "provision_secrets":    [secrets_manager_create],
-    "build_helm_charts":    [helm_cli],
-    "configure_argocd":     [],                               # manifest generation only
-    "deploy_application":   [argocd_sync, kubectl],
-    "configure_dns_ssl":    [route53_upsert, kubectl],
+    "build_task_defs":      [ecs_deploy],
+    "configure_codedeploy": [],                               # appspec/taskdef generation only
+    "deploy_application":   [codedeploy_create, aws_ecs],
+    "configure_dns_ssl":    [route53_upsert, aws_ecs],
     "configure_monitoring": [],                               # CloudWatch via boto3 in node
     "configure_cicd":       [github_upsert_file],
     "smoke_test":           [http_health_check],
@@ -1126,9 +1128,9 @@ TOOL_REGISTRY: dict[str, list] = {
 | Tool | Timeout | Rate limit guard | Fallback |
 |---|---|---|---|
 | `terraform_run` | 600 s (apply) | Serialised per-tenant; no concurrent applies | Retry with fresh `plan` |
-| `kubectl` | 60 s | Local kubeconfig; no rate limit | Skip + log |
-| `helm_cli` | 120 s | Local binary; no rate limit | `kubectl apply` direct |
-| `argocd_sync` | 120 s | 10 req/s via ArgoCD server | `kubectl rollout` fallback |
+| `aws_ecs` | 60 s | AWS CLI; AWS API default rate limit | Skip + log |
+| `ecs_deploy` | 120 s | AWS CLI; AWS API default rate limit | `aws ecs update-service` direct |
+| `codedeploy_create` | 120 s | 10 req/s via CodeDeploy API | `aws ecs update-service --force-new-deployment` fallback |
 | `route53_upsert` | 10 s | AWS default (5 req/s) | Retry with exp. back-off |
 | `secrets_manager_create` | 10 s | AWS default (100 TPS) | Retry |
 | `http_health_check` | 10 s | 10 checks × 3 retries max | Mark failed, escalate |
@@ -1138,12 +1140,12 @@ TOOL_REGISTRY: dict[str, list] = {
 
 ## 5. Prompt Templates
 
-All prompts use **Claude Sonnet** (infrastructure reasoning, Terraform plan generation) or **GPT-4o** (manifest generation, structured YAML output) per the model routing policy.
+All prompts use **Gemini 3.5 Flash** (infrastructure reasoning, Terraform plan generation, task-definition generation, structured YAML output) via the LiteLLM router per the model routing policy. **Claude Sonnet** is configured only as a fallback model.
 
 ### 5.1 `provision_networking` — Terraform VPC Plan
 
 ```jinja2
-{# packages/agents/devops/prompts/provision_networking.j2 #}
+{# backend/app/agents/devops/prompts/provision_networking.j2 #}
 
 SYSTEM:
 You are a senior cloud infrastructure engineer generating Terraform for AWS.
@@ -1156,18 +1158,18 @@ Mandatory constraints:
   across 2 AZs: ap-south-1a and ap-south-1b
 - NAT Gateway in public subnet (cost-optimised: 1 NAT, not HA)
 - Internet Gateway for public subnets
-- Security groups: ALB (80, 443 inbound from 0.0.0.0/0), EKS nodes (all from ALB SG),
-  RDS (5432 from EKS nodes SG only), Redis (6379 from EKS nodes SG only)
-- Tag all resources: Tenant={{ tenant_id }}, RunId={{ run_id }}, ManagedBy=terraform
+- Security groups: ALB (80, 443 inbound from 0.0.0.0/0), ECS tasks (all from ALB SG),
+  Supabase egress (5432 outbound to managed Postgres), Redis (6379 from ECS tasks SG only)
+- Tag all resources: Organization={{ organization_id }}, RunId={{ run_id }}, ManagedBy=terraform
 
 Rules:
 - Return ONLY the Terraform HCL (no markdown fences, no explanation).
 - Use terraform-aws-modules/vpc/aws module (version ~> 5.0).
 - Output all resource IDs as Terraform outputs.
-- Store state in S3: bucket=autofounder-tf-state, key={{ tenant_id }}/{{ run_id }}/networking.tfstate
+- Store state in S3: bucket=autofounder-tf-state, key={{ organization_id }}/{{ run_id }}/networking.tfstate
 
 USER:
-Tenant ID: {{ tenant_id }}
+Organization ID: {{ organization_id }}
 Run ID: {{ run_id }}
 Region: {{ aws_region }}
 Domain: {{ domain }}
@@ -1175,61 +1177,62 @@ Domain: {{ domain }}
 Generate main.tf, variables.tf, and outputs.tf as a single HCL block with file headers as comments.
 ```
 
-### 5.2 `provision_compute` — Terraform EKS Plan
+### 5.2 `provision_compute` — Terraform ECS Fargate Plan
 
 ```jinja2
-{# packages/agents/devops/prompts/provision_compute.j2 #}
+{# backend/app/agents/devops/prompts/provision_compute.j2 #}
 
 SYSTEM:
-You are a Kubernetes infrastructure engineer generating Terraform for AWS EKS.
+You are a cloud infrastructure engineer generating Terraform for Amazon ECS on Fargate.
 
 Mandatory constraints:
-- Kubernetes version: 1.30
-- Node group: t3.medium, min=2, max=10, desired=2, disk=50GB
-- Private subnets for EKS nodes (never public)
-- Enable OIDC provider for IRSA (IAM Roles for Service Accounts)
-- Enable EKS add-ons: coredns, kube-proxy, vpc-cni, aws-ebs-csi-driver
-- Install cert-manager (v1.14) and metrics-server via Helm after cluster creation
-- Tag: Tenant={{ tenant_id }}, RunId={{ run_id }}
+- ECS cluster with Fargate + Fargate Spot capacity providers
+- Default capacity provider strategy: 1 base on FARGATE, remainder weighted to FARGATE_SPOT
+- All Fargate tasks run in private subnets (never public); ALB is the only public ingress
+- awsvpc network mode for every task definition (required by Fargate)
+- Enable ECS Exec (enable_execute_command) for debugging instead of node shell access
+- Task execution role for ECR image pull + CloudWatch Logs; task role for app AWS permissions
+- Enable Container Insights on the cluster for metrics
+- Tag: Organization={{ organization_id }}, RunId={{ run_id }}
 
 Security rules:
-- No public endpoint for EKS API server (private endpoint only)
-- Node security group: allow only from VPC CIDR
-- Enable envelope encryption for secrets using AWS KMS
+- No public IPs on Fargate tasks (assign_public_ip = false); egress via NAT Gateway only
+- Task security group: allow inbound only from the ALB security group
+- Encrypt task logs and ephemeral storage with AWS KMS
 
 Rules:
-- Return ONLY Terraform HCL. Use terraform-aws-modules/eks/aws (version ~> 20.0).
-- State bucket: autofounder-tf-state, key: {{ tenant_id }}/{{ run_id }}/compute.tfstate
+- Return ONLY Terraform HCL. Use terraform-aws-modules/ecs/aws (version ~> 5.0).
+- State bucket: autofounder-tf-state, key: {{ organization_id }}/{{ run_id }}/compute.tfstate
 - Reference networking outputs via terraform_remote_state data source.
 
 USER:
-Tenant ID: {{ tenant_id }}
+Organization ID: {{ organization_id }}
 Run ID: {{ run_id }}
 Region: {{ aws_region }}
-VPC state key: {{ tenant_id }}/{{ run_id }}/networking.tfstate
+VPC state key: {{ organization_id }}/{{ run_id }}/networking.tfstate
 Services to deploy: {{ services | map(attribute='name') | join(', ') }}
 
 Generate main.tf, variables.tf, and outputs.tf.
 ```
 
-### 5.3 `provision_data_layer` — Terraform RDS + ElastiCache + S3
+### 5.3 `provision_data_layer` — Terraform Supabase + ElastiCache + S3
 
 ```jinja2
-{# packages/agents/devops/prompts/provision_data_layer.j2 #}
+{# backend/app/agents/devops/prompts/provision_data_layer.j2 #}
 
 SYSTEM:
-You are a database and storage infrastructure engineer generating Terraform for AWS.
+You are a database and storage infrastructure engineer generating Terraform for AWS,
+using the Supabase Terraform provider for the managed relational + vector layer.
 
 Provision all three resources in parallel within the same module:
 
-1. RDS PostgreSQL 16:
-   - Instance class: db.t3.micro (cost-optimised for seed stage)
-   - 20 GB gp3, multi-AZ: false
-   - Automated backups: 7 days retention
-   - Deletion protection: true
-   - DB name: {{ tenant_id | replace('-', '_') }}_prod
-   - Store credentials in Secrets Manager: {{ tenant_id }}/{{ run_id }}/rds-credentials
-   - Enable Performance Insights
+1. Supabase project (managed PostgreSQL 16 + pgvector):
+   - Compute plan: pro (cost-optimised for seed stage); multi-AZ is provided by the Supabase platform
+   - Enable the pgvector extension for semantic memory / RAG
+   - DB name: {{ organization_id | replace('-', '_') }}_prod
+   - Store the Supabase connection string + service-role key in Secrets Manager:
+     {{ organization_id }}/{{ run_id }}/supabase-credentials
+   - Enable point-in-time recovery (7 days)
 
 2. ElastiCache Redis 7.1:
    - cache.t3.micro, 1 node (no cluster mode for seed)
@@ -1237,52 +1240,54 @@ Provision all three resources in parallel within the same module:
    - Automatic failover: false (single node)
 
 3. S3 bucket:
-   - Name: autofounder-{{ tenant_id }}-{{ run_id[:8] }}
+   - Name: autofounder-{{ organization_id }}-{{ run_id[:8] }}
    - Versioning: enabled
    - Server-side encryption: AES256
    - Block all public access: true
    - Lifecycle: transition to IA after 30 days, Glacier after 90 days
 
 Rules:
-- All resources in private subnets only
+- ElastiCache and S3 access live in private subnets only; Supabase is reached over its managed
+  TLS endpoint via the Supabase-egress security group
 - Security groups from provision_networking module outputs
-- State: autofounder-tf-state/{{ tenant_id }}/{{ run_id }}/data-layer.tfstate
+- State: autofounder-tf-state/{{ organization_id }}/{{ run_id }}/data-layer.tfstate
 
 USER:
-Tenant ID: {{ tenant_id }}
+Organization ID: {{ organization_id }}
 Run ID: {{ run_id }}
 Region: {{ aws_region }}
-VPC state key: {{ tenant_id }}/{{ run_id }}/networking.tfstate
+VPC state key: {{ organization_id }}/{{ run_id }}/networking.tfstate
 Domain: {{ domain }}
 
 Generate main.tf, variables.tf, and outputs.tf.
 ```
 
-### 5.4 `build_helm_charts` — Helm values.yaml Generation
+### 5.4 `build_task_defs` — ECS Task & Service Definition Generation
 
 ```jinja2
-{# packages/agents/devops/prompts/build_helm_charts.j2 #}
+{# backend/app/agents/devops/prompts/build_task_defs.j2 #}
 
 SYSTEM:
-You are a Kubernetes engineer generating Helm chart values for a SaaS application.
-Generate a values.yaml for each service. Use the standard NestJS/Next.js/FastAPI Helm
-chart template from infra/helm/app-template.
+You are an ECS engineer generating Amazon ECS task definitions and service definitions for a
+SaaS application. Generate one task definition JSON and one ECS service definition per service,
+targeting Fargate launch type with awsvpc networking.
 
 Rules:
-- Image pull policy: Always
-- liveness probe: GET {{ service.health_check_path }}, initialDelaySeconds=30, periodSeconds=15
-- readiness probe: GET {{ service.health_check_path }}, initialDelaySeconds=10, periodSeconds=5
-- Resources: requests and limits as provided
-- Environment variables sourced from Kubernetes Secret (not plain ConfigMap)
-- Secret name: {{ tenant_id }}-{{ service.name }}-secrets
-- HPA enabled: minReplicas={{ service.replicas_baseline }}, maxReplicas=10,
-  targetCPUUtilizationPercentage=70
-- Ingress: enabled, class=alb, host={{ service.name }}.{{ live_url }}, TLS via cert-manager
-- ServiceAccount with IRSA annotation for S3 access
-- PodDisruptionBudget: minAvailable=1
-- topologySpreadConstraints: spread across zones
+- requiresCompatibilities: ["FARGATE"]; networkMode: awsvpc
+- Task-level cpu / memory derived from the provided resource requests and limits
+- containerDefinitions: one container per service, image pulled from ECR (image_uri)
+- healthCheck: CMD-SHELL curl -f http://localhost:{{ service.port }}{{ service.health_check_path }} || exit 1,
+  interval=15s, timeout=5s, retries=3, startPeriod=30s
+- Secrets injected via the `secrets` block from AWS Secrets Manager ARNs (not plaintext environment)
+- Secret name prefix: {{ organization_id }}/{{ service.name }}
+- logConfiguration: awslogs driver → CloudWatch log group /autofounder/{{ organization_id }}/{{ run_id }}
+- ECS service: desiredCount={{ service.replicas_baseline }}, deploymentController=CODE_DEPLOY (blue/green),
+  registered behind the ALB target group on host {{ service.name }}.{{ live_url }}
+- Service Auto Scaling: target tracking on ECS CPU utilisation 70%, min={{ service.replicas_baseline }}, max=10
+- Spread tasks across availability zones via the default Fargate placement
+- Task role carries an IAM policy granting least-privilege S3 access
 
-Return ONLY valid YAML. One values.yaml per service.
+Return ONLY valid JSON. One task definition + one service definition per service.
 
 USER:
 {% for service in services %}
@@ -1297,80 +1302,86 @@ Secret refs: {{ service.env_secret_refs | join(', ') }}
 ---
 {% endfor %}
 Live URL base: {{ live_url }}
-Namespace: {{ tenant_id }}
+ECS cluster: {{ ecs_cluster.cluster_name }}
 ```
 
-### 5.5 `configure_argocd` — ArgoCD Application Manifests
+### 5.5 `configure_codedeploy` — CodeDeploy AppSpec & Deployment Group Manifests
 
 ```jinja2
-{# packages/agents/devops/prompts/configure_argocd.j2 #}
+{# backend/app/agents/devops/prompts/configure_codedeploy.j2 #}
 
 SYSTEM:
-You are a GitOps engineer generating ArgoCD Application manifests in Kubernetes YAML.
-Each Application must:
-- Use automated sync policy with selfHeal=true and prune=true
-- Target namespace: {{ tenant_id }} (pre-create with CreateNamespace=true)
-- Source: the generated Helm chart in the tenant's GitHub repo
-- Health checks: use standard Kubernetes health assessment
-- Sync wave: data-layer-dependent services in wave 1, API services in wave 2, frontend in wave 3
-- Add finalizer: resources-finalizer.argocd.argoproj.io (safe delete)
+You are an AWS deployment engineer generating CodeDeploy artefacts for blue/green ECS deploys.
+For each service, generate:
+- An ECS-flavoured CodeDeploy appspec.yaml (version 0.0, Resources → TargetService → TaskDefinition
+  placeholder <TASK_DEFINITION>, LoadBalancerInfo with the container name + port)
+- A deployment group definition targeting the ECS service, with blue/green traffic shift
+  (deploymentConfig CodeDeployDefault.ECSAllAtOnce), auto-rollback on deployment failure or
+  alarm, and a 5-minute termination wait for the original (blue) task set
+- Lifecycle hooks: BeforeInstall, AfterInstall, AfterAllowTestTraffic, BeforeAllowTraffic,
+  AfterAllowTraffic (each a no-op stub the Coder Agent can later wire to a Lambda)
 
-Return ONLY valid Kubernetes YAML (one document per Application separated by ---).
+Ordering: data-layer-dependent services deploy first, API services next, frontend last.
+
+Return ONLY valid YAML (one appspec document per service, separated by ---).
 
 USER:
-ArgoCD server: {{ argocd_server }}
+CodeDeploy region: {{ aws_region }}
 Repo URL: {{ repo_url }}
 Target revision: HEAD
+ECS cluster: {{ ecs_cluster.cluster_name }}
 Services:
 {% for service in services %}
 - name: {{ service.name }}
-  chart_path: infra/helm/{{ service.name }}
-  namespace: {{ tenant_id }}
+  appspec_path: infra/codedeploy/{{ service.name }}/appspec.yaml
+  cluster: {{ ecs_cluster.cluster_name }}
 {% endfor %}
-Tenant ID: {{ tenant_id }}
+Organization ID: {{ organization_id }}
 Run ID: {{ run_id }}
 ```
 
 ### 5.6 `configure_monitoring` — CloudWatch + Prometheus Rules
 
 ```jinja2
-{# packages/agents/devops/prompts/configure_monitoring.j2 #}
+{# backend/app/agents/devops/prompts/configure_monitoring.j2 #}
 
 SYSTEM:
-You are a site reliability engineer configuring observability for a Kubernetes SaaS app.
+You are a site reliability engineer configuring observability for an ECS Fargate SaaS app.
 Generate:
 1. A list of CloudWatch alarms (boto3 put_metric_alarm parameters as JSON)
 2. Prometheus scrape config additions (YAML)
 3. Grafana dashboard provisioning config (JSON)
 
 Mandatory alarms (CloudWatch):
-- EKS node CPU > 80% for 5 min → SNS alert
-- EKS node memory > 85% for 5 min → SNS alert
-- RDS CPU > 75% for 5 min → SNS alert
-- RDS FreeStorageSpace < 2 GB → SNS alert (Critical)
+- ECS service CPUUtilization > 80% for 5 min → SNS alert
+- ECS service MemoryUtilization > 85% for 5 min → SNS alert
+- ECS RunningTaskCount < desiredCount for 5 min → SNS alert
+- Supabase Postgres CPU > 75% for 5 min → SNS alert (via Supabase metrics → CloudWatch)
+- Supabase Postgres free disk < 2 GB → SNS alert (Critical)
 - ALB 5XX rate > 1% for 2 min → SNS alert
 - ALB P99 latency > 1000ms for 2 min → SNS alert
 - ElastiCache cache hit rate < 80% for 10 min → SNS warning
 
-Prometheus scrape: add a ServiceMonitor for each app service (port: metrics, path: /metrics).
-CloudWatch log group: /autofounder/{{ tenant_id }}/{{ run_id }}, retention: 90 days.
+Prometheus scrape: add a scrape job for each app service's ECS task (port: metrics, path: /metrics),
+discovered via the ECS service-discovery namespace.
+CloudWatch log group: /autofounder/{{ organization_id }}/{{ run_id }}, retention: 90 days.
 
 Return JSON with keys: "cloudwatch_alarms" (list), "prometheus_scrape_yaml" (string),
 "log_group_name" (string), "grafana_dashboard_url" (null — will be set post-deploy).
 
 USER:
-Tenant ID: {{ tenant_id }}
+Organization ID: {{ organization_id }}
 Run ID: {{ run_id }}
 Region: {{ aws_region }}
 Services: {{ services | map(attribute='name') | join(', ') }}
 SNS topic ARN: {{ sns_topic_arn }}
-EKS cluster name: {{ eks_cluster.cluster_name }}
+ECS cluster name: {{ ecs_cluster.cluster_name }}
 ```
 
 ### 5.7 `configure_cicd` — GitHub Actions Workflow
 
 ```jinja2
-{# packages/agents/devops/prompts/configure_cicd.j2 #}
+{# backend/app/agents/devops/prompts/configure_cicd.j2 #}
 
 SYSTEM:
 You are a DevOps engineer generating a GitHub Actions workflow for continuous deployment.
@@ -1379,26 +1390,27 @@ The workflow must:
 - Jobs: lint → test → build-and-push → deploy
 - Build: docker buildx, push to ECR, tag with git SHA
 - ECR login via OIDC (no long-lived credentials — use aws-actions/configure-aws-credentials@v4)
-- Deploy: update the image tag in the Helm values file and commit back to the repo
-  (ArgoCD detects the change and syncs automatically)
+- Deploy: render the new image tag into the ECS task definition, register it with
+  aws ecs register-task-definition, then trigger an AWS CodeDeploy blue/green deployment
+  (aws deploy create-deployment) against the ECS service
 - Notification: post to Slack on success and failure
 - Cache: use GitHub Actions cache for Docker layers and pnpm/pip dependencies
 
 Security requirements:
 - Never hardcode secrets — use GitHub Secrets and OIDC role assumption
 - Required secrets: AWS_ACCOUNT_ID, ECR_REPOSITORY, SLACK_WEBHOOK_URL
-- IAM role: arn:aws:iam::{{ aws_account_id }}:role/autofounder-github-actions-{{ tenant_id }}
+- IAM role: arn:aws:iam::{{ aws_account_id }}:role/autofounder-github-actions-{{ organization_id }}
 
 Return ONLY valid GitHub Actions YAML (no markdown fences).
 
 USER:
-Tenant ID: {{ tenant_id }}
+Organization ID: {{ organization_id }}
 Run ID: {{ run_id }}
 AWS region: {{ aws_region }}
 AWS account ID: {{ aws_account_id }}
 ECR registry: {{ ecr_registry }}
 Services: {{ services | map(attribute='name') | join(', ') }}
-ArgoCD server: {{ argocd_server }}
+CodeDeploy application: {{ cicd_config.codedeploy_app }}
 Repo URL: {{ repo_url }}
 Slack webhook secret name: SLACK_WEBHOOK_URL
 ```
@@ -1406,7 +1418,7 @@ Slack webhook secret name: SLACK_WEBHOOK_URL
 ### 5.8 `render_deploy_report` — Deployment Report
 
 ```jinja2
-{# packages/agents/devops/prompts/render_deploy_report.j2 #}
+{# backend/app/agents/devops/prompts/render_deploy_report.j2 #}
 
 SYSTEM:
 You are a technical writer assembling a deployment completion report in Markdown.
@@ -1415,7 +1427,7 @@ Embed all relevant URLs. Use H2 sections. Target audience: Founder (non-technica
 and Marketer Agent (live URL + brand config for GTM).
 
 USER:
-Tenant: {{ tenant_id }}
+Organization: {{ organization_id }}
 Run ID: {{ run_id }}
 Idea: {{ idea_normalised }}
 Domain: {{ domain }}
@@ -1425,14 +1437,14 @@ Live URL: {{ live_url }}
 TLS cert status: {{ tls_certificate.status }}
 
 Infrastructure:
-- EKS cluster: {{ eks_cluster.cluster_name }} ({{ eks_cluster.kubernetes_version }})
-- RDS endpoint: {{ rds_instance.endpoint }}
+- ECS cluster: {{ ecs_cluster.cluster_name }} (Fargate platform {{ ecs_cluster.platform_version }})
+- Supabase project: {{ supabase_project.endpoint }}
 - ElastiCache endpoint: {{ elasticache_cluster.endpoint }}
 - S3 bucket: {{ s3_bucket.bucket_name }}
 - Region: {{ aws_region }}
 
 Services deployed:
-{% for app in argocd_apps %}
+{% for app in codedeploy_apps %}
 - {{ app.app_name }}: {{ app.health_status }}
 {% endfor %}
 
@@ -1462,7 +1474,7 @@ End with a machine-readable block for the Marketer Agent:
 {
   "marketer_handoff": {
     "run_id": "{{ run_id }}",
-    "tenant_id": "{{ tenant_id }}",
+    "organization_id": "{{ organization_id }}",
     "live_url": "{{ live_url }}",
     "idea_normalised": "{{ idea_normalised }}",
     "domain": "{{ domain }}"
@@ -1481,27 +1493,27 @@ End with a machine-readable block for the Marketer Agent:
 sequenceDiagram
     autonumber
     actor Founder
-    participant API    as NestJS API Gateway
+    participant API    as FastAPI API Gateway
     participant Graph  as LangGraph Orchestrator
     participant Ingest as ingest_input
     participant Gate   as hitl_spend_gate
     participant Redis  as Redis (session)
     participant TF     as Terraform CLI
-    participant EKS    as AWS EKS
-    participant RDS    as AWS RDS
+    participant ECS    as AWS ECS (Fargate)
+    participant SB     as Supabase (Postgres)
     participant Cache  as AWS ElastiCache
     participant SM     as AWS Secrets Manager
     participant ECR    as AWS ECR
-    participant Helm   as Helm CLI
-    participant Argo   as ArgoCD
+    participant TD     as ECS Task Defs
+    participant CD     as AWS CodeDeploy
     participant R53    as AWS Route53
-    participant CM     as cert-manager (k8s)
+    participant ACM    as AWS ACM
     participant CW     as AWS CloudWatch
     participant GH     as GitHub API
     participant Smoke  as HTTP Health Checks
     participant Mkt    as Marketer Agent
 
-    Mkt ->> API: gRPC CoderOutput { run_id, tenant_id, services[], repo_url }
+    Mkt ->> API: gRPC CoderOutput { run_id, organization_id, services[], repo_url }
     API ->> Graph: invoke(DevOpsState)
     Graph ->> Ingest: validate CoderOutput
     Ingest -->> Graph: { services[], deploy_strategy, estimated_monthly_cost_usd }
@@ -1520,45 +1532,45 @@ sequenceDiagram
 
     par Parallel infrastructure provisioning
         Graph ->> TF: terraform apply (compute module)
-        TF ->> EKS: create cluster + node groups
-        EKS -->> TF: cluster_arn, endpoint, oidc_provider_arn
-        TF -->> Graph: eks_cluster (status=READY)
+        TF ->> ECS: create cluster + Fargate capacity providers
+        ECS -->> TF: cluster_arn, endpoint, capacity_providers
+        TF -->> Graph: ecs_cluster (status=READY)
 
         Graph ->> TF: terraform apply (data-layer module)
-        TF ->> RDS: create db.t3.micro PostgreSQL 16
-        RDS -->> TF: endpoint, port
+        TF ->> SB: provision Supabase project (Postgres 16 + pgvector)
+        SB -->> TF: endpoint, port
         TF ->> Cache: create cache.t3.micro Redis 7.1
         Cache -->> TF: endpoint, port
         TF ->> TF: create S3 bucket with lifecycle policy
-        TF -->> Graph: rds_instance, elasticache_cluster, s3_bucket
+        TF -->> Graph: supabase_project, elasticache_cluster, s3_bucket
     end
 
-    Graph ->> SM: create_secret({tenant_id}/{run_id}/db-password)
-    Graph ->> SM: create_secret({tenant_id}/{run_id}/redis-url)
+    Graph ->> SM: create_secret({organization_id}/{run_id}/supabase-credentials)
+    Graph ->> SM: create_secret({organization_id}/{run_id}/redis-url)
     SM -->> Graph: secret_arns[]
 
-    par Parallel: Helm charts + ArgoCD config
-        Graph ->> Helm: helm lint for each service chart
-        Helm -->> Graph: helm_charts[] (validated)
+    par Parallel: ECS task defs + CodeDeploy config
+        Graph ->> TD: register task definition for each service
+        TD -->> Graph: ecs_services[] (task defs validated)
 
-        Graph ->> Graph: generate ArgoCD Application YAMLs
-        Graph -->> Graph: argocd_apps[]
+        Graph ->> Graph: generate CodeDeploy appspec + deployment groups
+        Graph -->> Graph: codedeploy_apps[]
     end
 
-    Graph ->> Argo: POST /api/v1/applications (each app)
-    Argo -->> Graph: apps registered
+    Graph ->> CD: create CodeDeploy application + deployment group (each app)
+    CD -->> Graph: apps registered
 
-    Graph ->> Argo: POST /api/v1/applications/{app}/sync
-    Argo ->> EKS: kubectl apply (Deployment, Service, HPA, PDB)
-    EKS -->> Argo: pods Running
-    Argo -->> Graph: { health_status: Healthy }
+    Graph ->> CD: create-deployment (blue/green)
+    CD ->> ECS: register-task-definition + update-service (green task set)
+    ECS -->> CD: tasks Running (target group healthy)
+    CD -->> Graph: { health_status: Healthy }
 
     Graph ->> R53: upsert A alias → ALB DNS
     R53 -->> Graph: { change_id, status: INSYNC }
 
-    Graph ->> CM: kubectl apply (Certificate resource)
-    CM ->> CM: Let's Encrypt ACME challenge
-    CM -->> Graph: TLS certificate Issued
+    Graph ->> ACM: request public certificate (DNS validation via Route53)
+    ACM ->> ACM: DNS validation
+    ACM -->> Graph: TLS certificate Issued
 
     Graph ->> Graph: live_url = "https://{{ record_name }}"
 
@@ -1591,7 +1603,7 @@ sequenceDiagram
     participant Slack as Slack Webhook
 
     Graph ->> TF: terraform apply (compute module) [attempt 1]
-    TF -->> Graph: returncode=1, stderr="Error: timeout waiting for EKS cluster active"
+    TF -->> Graph: returncode=1, stderr="Error: timeout waiting for ECS service to stabilize"
 
     Note over Graph: retry_count=1, sleep 30s
     Graph ->> TF: terraform apply (compute module) [attempt 2]
@@ -1601,7 +1613,7 @@ sequenceDiagram
     Graph ->> TF: terraform apply (compute module) [attempt 3]
     TF -->> Graph: returncode=0, stdout="Apply complete! Resources: 12 added"
 
-    Graph ->> State: eks_cluster.status = READY, retry_count logged
+    Graph ->> State: ecs_cluster.status = READY, retry_count logged
     State -->> Graph: infra_join → provision_secrets (continue)
 ```
 
@@ -1612,20 +1624,20 @@ sequenceDiagram
     autonumber
     participant Graph as LangGraph Orchestrator
     participant Smoke as smoke_test
-    participant Argo  as ArgoCD
+    participant CD    as AWS CodeDeploy
     participant EH    as error_handler
     participant Slack as Slack Webhook
-    participant API   as NestJS API Gateway
+    participant API   as FastAPI API Gateway
 
     Graph ->> Smoke: GET /health (api-gateway service)
     Smoke -->> Graph: { status_code: 503, latency_ms: 8200, passed: false }
 
     Graph ->> EH: smoke_tests_passed = false → error_handler
-    EH ->> Argo: POST /api/v1/applications/{app}/rollback
-    Argo ->> Argo: rollback to previous revision
-    Argo -->> EH: rollback initiated
+    EH ->> CD: stop-deployment --auto-rollback-enabled (deployment id)
+    CD ->> CD: shift traffic back to original (blue) task set
+    CD -->> EH: rollback initiated
 
-    EH ->> Slack: POST alert { run_id, tenant_id, failed_endpoint, status_code }
+    EH ->> Slack: POST alert { run_id, organization_id, failed_endpoint, status_code }
     EH -->> Graph: fatal_error = "Smoke test failed: api-gateway returned 503"
 
     Graph -->> API: DevOpsState { fatal_error, deploy_status: FAILED }
@@ -1638,7 +1650,7 @@ sequenceDiagram
 sequenceDiagram
     autonumber
     actor Founder
-    participant API   as NestJS API Gateway
+    participant API   as FastAPI API Gateway
     participant Graph as LangGraph Orchestrator
     participant Gate  as hitl_spend_gate
     participant EH    as error_handler
@@ -1669,25 +1681,25 @@ sequenceDiagram
 sequenceDiagram
     autonumber
     participant Graph as LangGraph Orchestrator
-    participant Argo  as ArgoCD
-    participant EKS   as AWS EKS
+    participant CD    as AWS CodeDeploy
+    participant ECS   as AWS ECS (Fargate)
     participant ALB   as AWS ALB (Target Groups)
     participant Smoke as smoke_test
 
     Note over Graph: deploy_strategy = blue_green
 
-    Graph ->> Argo: sync application (deploys to "green" target group)
-    Argo ->> EKS: create green Deployment (new version)
-    EKS -->> Argo: green pods Running
+    Graph ->> CD: create-deployment (deploys to "green" target group)
+    CD ->> ECS: create green task set (new task definition revision)
+    ECS -->> CD: green tasks Running
 
-    Graph ->> Smoke: GET {{ live_url }}/health (green pods via internal route)
+    Graph ->> Smoke: GET {{ live_url }}/health (green tasks via test listener)
     Smoke -->> Graph: { passed: true, latency_ms: 45 }
 
     Graph ->> ALB: modify listener rule — shift 100% traffic to green target group
     ALB -->> Graph: traffic shifted
 
-    Graph ->> EKS: delete blue Deployment (old version)
-    EKS -->> Graph: cleanup complete
+    Graph ->> ECS: terminate blue task set (old version)
+    ECS -->> Graph: cleanup complete
 
     Graph -->> Graph: deploy_status = HEALTHY
 ```
@@ -1702,12 +1714,12 @@ sequenceDiagram
 |---|---|---|
 | `ValidationError` | CoderOutput missing services[] | Reject with `fatal_error`, do not provision |
 | `TerraformPlanError` | Syntax error in generated HCL | LLM self-corrects HCL once; if still invalid, escalate |
-| `TerraformApplyError` | EKS cluster timeout, quota exceeded | Retry 3× with 30 s / 60 s back-off; destroy partial resources on final failure |
-| `HelmLintError` | Invalid Helm values.yaml | LLM self-corrects values; retry |
-| `ArgoCDSyncFailed` | Image pull error, OOMKilled | ArgoCD rollback to previous revision; Slack alert |
-| `SmokeTestFailed` | Service returns 5xx after deploy | ArgoCD rollback; `fatal_error` set; no Marketer handoff |
+| `TerraformApplyError` | ECS cluster/service stabilization timeout, quota exceeded | Retry 3× with 30 s / 60 s back-off; destroy partial resources on final failure |
+| `TaskDefError` | Invalid ECS task definition JSON | LLM self-corrects the task definition; retry |
+| `CodeDeployFailed` | Image pull error, task OOM, target group unhealthy | CodeDeploy auto-rollback to original (blue) task set; Slack alert |
+| `SmokeTestFailed` | Service returns 5xx after deploy | CodeDeploy rollback; `fatal_error` set; no Marketer handoff |
 | `DNSPropagationTimeout` | Route53 change not INSYNC in 60 s | Retry poll 5× at 15 s intervals; continue (DNS eventually consistent) |
-| `TLSIssuanceTimeout` | cert-manager ACME challenge > 3 min | Log warning; continue with HTTP-only live URL; alert ops |
+| `TLSIssuanceTimeout` | ACM certificate DNS validation > 3 min | Log warning; continue with HTTP-only live URL; alert ops |
 | `SpendApprovalRejected` | Founder clicks Reject | No AWS resources created; fatal_error + Slack |
 | `SpendApprovalTimeout` | No decision in 10 min | Slack + email alert; fatal_error; no provisioning |
 | `GitHubRateLimit` | 403 on workflow push | Wait 60 s; retry; if exhausted log warning and continue |
@@ -1716,7 +1728,7 @@ sequenceDiagram
 ### 7.2 Error handler node
 
 ```python
-# packages/agents/devops/nodes/error_handler.py
+# backend/app/agents/devops/nodes/error_handler.py
 
 import asyncio
 import logging
@@ -1758,8 +1770,8 @@ async def error_handler(state: DevOpsState) -> dict:
     else:
         reason = state.fatal_error or "Unknown error — check node_traces"
 
-    logger.error("DevOps agent fatal error [run=%s tenant=%s]: %s",
-                 state.run_id, state.tenant_id, reason)
+    logger.error("DevOps agent fatal error [run=%s org=%s]: %s",
+                 state.run_id, state.organization_id, reason)
     await _post_slack_alert(state, reason)
 
     return {
@@ -1772,20 +1784,20 @@ async def error_handler(state: DevOpsState) -> dict:
 def _infrastructure_partially_created(state: DevOpsState) -> bool:
     return (
         state.vpc_config is not None
-        or state.eks_cluster is not None
-        or state.rds_instance is not None
+        or state.ecs_cluster is not None
+        or state.supabase_project is not None
     )
 
 
 async def _terraform_destroy_partial(state: DevOpsState) -> None:
     """Best-effort Terraform destroy for any provisioned modules."""
     modules = []
-    if state.eks_cluster is not None:
-        modules.append(("compute", f"infra/terraform/tenants/{state.tenant_id}/compute"))
-    if state.rds_instance is not None or state.elasticache_cluster is not None:
-        modules.append(("data-layer", f"infra/terraform/tenants/{state.tenant_id}/data-layer"))
+    if state.ecs_cluster is not None:
+        modules.append(("compute", f"infra/terraform/organizations/{state.organization_id}/compute"))
+    if state.supabase_project is not None or state.elasticache_cluster is not None:
+        modules.append(("data-layer", f"infra/terraform/organizations/{state.organization_id}/data-layer"))
     if state.vpc_config is not None:
-        modules.append(("networking", f"infra/terraform/tenants/{state.tenant_id}/networking"))
+        modules.append(("networking", f"infra/terraform/organizations/{state.organization_id}/networking"))
 
     for module_name, module_path in modules:
         logger.warning("Destroying partial infra module: %s", module_name)
@@ -1813,7 +1825,7 @@ async def _post_slack_alert(state: DevOpsState, reason: str) -> None:
             f":rotating_light: *DevOps Agent Fatal Error*\n"
             f"*Run ID*: `{state.run_id}`\n"
             f"*Parent Run*: `{state.parent_run_id}`\n"
-            f"*Tenant*: `{state.tenant_id}`\n"
+            f"*Organization*: `{state.organization_id}`\n"
             f"*Idea*: {state.idea_normalised[:80]}\n"
             f"*Reason*: {reason}\n"
             f"*Partial infra created*: {_infrastructure_partially_created(state)}\n"
@@ -1830,7 +1842,7 @@ async def _post_slack_alert(state: DevOpsState, reason: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# packages/agents/devops/utils/retry.py
+# backend/app/agents/devops/utils/retry.py
 
 import asyncio
 import functools
@@ -1889,7 +1901,7 @@ def with_retry(node_name: str):
 ### 7.4 HITL spend gate with timeout
 
 ```python
-# packages/agents/devops/nodes/hitl_spend_gate.py
+# backend/app/agents/devops/nodes/hitl_spend_gate.py
 
 import asyncio
 import logging
@@ -1909,7 +1921,7 @@ APPROVAL_TIMEOUT_S       = 600   # 10 minutes
 async def hitl_spend_gate(state: DevOpsState) -> dict:
     """
     Polls Redis for Founder approval of the infrastructure spend estimate.
-    The NestJS API writes the decision to Redis when the Founder clicks
+    The FastAPI API writes the decision to Redis when the Founder clicks
     Approve or Reject in the dashboard. LangGraph interrupt_before fires
     before this node, surfacing the cost estimate in the UI.
     """
@@ -1941,7 +1953,7 @@ async def hitl_spend_gate(state: DevOpsState) -> dict:
 ### 7.5 SLA breach monitoring
 
 ```python
-# packages/agents/devops/utils/sla.py
+# backend/app/agents/devops/utils/sla.py
 
 import asyncio
 import logging
@@ -1954,8 +1966,8 @@ NODE_SLA_SECONDS: dict[str, int] = {
     "provision_compute":    240,
     "provision_data_layer": 180,
     "provision_secrets":    30,
-    "build_helm_charts":    120,
-    "configure_argocd":     60,
+    "build_task_defs":      120,
+    "configure_codedeploy": 60,
     "deploy_application":   180,
     "configure_dns_ssl":    60,
     "configure_monitoring": 60,
@@ -1979,15 +1991,15 @@ async def enforce_node_sla(node_name: str, coro):
 
 ### 7.6 Terraform state safety
 
-All Terraform state files are stored in S3 with DynamoDB locking to prevent concurrent applies for the same tenant:
+All Terraform state files are stored in S3 with DynamoDB locking to prevent concurrent applies for the same organization:
 
 ```hcl
-# infra/terraform/tenants/_shared/backend.tf
+# infra/terraform/organizations/_shared/backend.tf
 
 terraform {
   backend "s3" {
     bucket         = "autofounder-tf-state"
-    key            = "${var.tenant_id}/${var.run_id}/${var.module_name}.tfstate"
+    key            = "${var.organization_id}/${var.run_id}/${var.module_name}.tfstate"
     region         = "ap-south-1"
     encrypt        = true
     kms_key_id     = "alias/autofounder-tf-state"
@@ -1996,7 +2008,7 @@ terraform {
 }
 ```
 
-The DynamoDB lock prevents concurrent Terraform applies for the same tenant — a necessary guard when multiple agent retries or concurrent runs could otherwise corrupt state.
+The DynamoDB lock prevents concurrent Terraform applies for the same organization — a necessary guard when multiple agent retries or concurrent runs could otherwise corrupt state.
 
 ---
 
@@ -2013,7 +2025,7 @@ package autofounder.devops.v1;
 message DevOpsOutput {
   string run_id                  = 1;
   string parent_run_id           = 2;    // Coder Agent run_id
-  string tenant_id               = 3;
+  string organization_id         = 3;
   string idea_normalised         = 4;
   string domain                  = 5;
 
@@ -2022,8 +2034,8 @@ message DevOpsOutput {
   string deploy_strategy         = 7;    // "rolling" | "blue_green" | "canary"
 
   // Infrastructure identifiers
-  string eks_cluster_name        = 8;
-  string rds_endpoint            = 9;
+  string ecs_cluster_name        = 8;
+  string supabase_endpoint       = 9;
   string aws_region              = 10;
   string s3_bucket_name          = 11;
 
@@ -2045,14 +2057,14 @@ message DevOpsOutput {
   int32  cloudwatch_alarms_count = 20;
 
   // Deploy report
-  string deploy_report_s3_uri    = 21;   // s3://autofounder-artefacts/{tenant_id}/{run_id}/deploy-report.md
+  string deploy_report_s3_uri    = 21;   // s3://autofounder-artefacts/{organization_id}/{run_id}/deploy-report.md
 
   int64  completed_at_unix_ms    = 22;
   int32  total_llm_tokens_used   = 23;
 }
 ```
 
-**S3 artefact path convention**: `s3://autofounder-artefacts/{tenant_id}/{run_id}/` — never shared between tenants.
+**S3 artefact path convention**: `s3://autofounder-artefacts/{organization_id}/{run_id}/` — never shared between organizations.
 
 **Routing rules after output**:
 - `tls_cert_status != "Issued"` → surface HTTP-only warning in Marketer Agent dashboard; do NOT block GTM

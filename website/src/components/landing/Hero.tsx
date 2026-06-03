@@ -1,10 +1,10 @@
-import { ArrowRight, Sparkles, Clock, DollarSign } from 'lucide-react'
+import { ArrowRight, Sparkles, Clock, DollarSign } from "lucide-react";
 
 const stats = [
-  { icon: Clock, value: '~7 days', label: 'Idea → Live MVP' },
-  { icon: DollarSign, value: '$200–$700', label: 'Total COGS' },
-  { icon: Sparkles, value: '99%', label: 'Faster than traditional' },
-]
+  { icon: Clock, value: "~7 days", label: "Idea → Live MVP" },
+  { icon: DollarSign, value: "$200–$700", label: "Total COGS" },
+  { icon: Sparkles, value: "99%", label: "Faster than traditional" },
+];
 
 export default function Hero() {
   return (
@@ -23,8 +23,7 @@ export default function Hero() {
 
         {/* Headline */}
         <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.1]">
-          Your Idea.{' '}
-          <span className="gradient-text">Fully Built.</span>
+          Your Idea. <span className="gradient-text">Fully Built.</span>
           <br />
           In 7 Days.
         </h1>
@@ -57,10 +56,7 @@ export default function Hero() {
         {/* Stats row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
           {stats.map(({ icon: Icon, value, label }) => (
-            <div
-              key={label}
-              className="glass-card px-6 py-4 flex flex-col items-center gap-1"
-            >
+            <div key={label} className="glass-card px-6 py-4 flex flex-col items-center gap-1">
               <Icon size={18} className="text-blue-400 mb-1" />
               <span className="text-2xl font-bold text-white">{value}</span>
               <span className="text-xs text-slate-500">{label}</span>
@@ -74,5 +70,5 @@ export default function Hero() {
         </div>
       </div>
     </section>
-  )
+  );
 }
