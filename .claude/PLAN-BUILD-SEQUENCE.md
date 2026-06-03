@@ -3,6 +3,8 @@
 > **Status**: Active · **Phase**: 1 — Validation Engine  
 > **Date**: 2026-05-30 · **Target**: 10 pilot clients  
 > **Canonical authority**: `.claude/CLAUDE.md` overrides everything else (stack.md has stale GCP refs — ignore those)
+>
+> ⚠️ **PATHS IN THIS DOC ARE ILLUSTRATIVE/HISTORICAL.** This is the granular S0–S4 build-sequence companion to `.claude/PLAN.md` (master). The **authoritative** structure (see `.claude/CLAUDE.md` §40) is **one consolidated backend `AUTOFOUNDER-BACKEND/app/`** (api · orchestrator · agents · workers · db · guardrails · models · prompts · tools · core) + `AUTOFOUNDER-FRONTEND-WEB/` + `AUTOFOUNDER-ADMIN/` + `AUTOFOUNDER-MOBILE-APP/` + `AUTOFOUNDER-INFRA/` + `packages/{shared,api-client}` (TypeScript-only). Read every `backend/src/autofounder_ai/` below as **`AUTOFOUNDER-BACKEND/app/`**, `frontend/` as **`AUTOFOUNDER-FRONTEND-WEB/`**, and `infra/` as **`AUTOFOUNDER-INFRA/`**. The earlier 3-service split (api + orchestrator + ai-services) is now a single modular-monolith backend (split in Phase 4 if scale needs it). Canonical tenant key **`organization_id`**; auth **Supabase Auth**. Current plan: **`.claude/PLAN.md`** (master), **`.claude/PLAN_PHASE.md`** (active phase), **`.claude/TASKS.md`** (tasks).
 
 ---
 
@@ -27,9 +29,7 @@
 
 ## Directory Layout (Locked — No Reorganization)
 
-We use the **current folder names** (`frontend/`, `backend/`) throughout. All CLAUDE.md references to
-`apps/api/`, `apps/web/`, `packages/agents/` etc. are **Python module paths inside `backend/`** — not
-separate top-level directories.
+> ⚠️ **HISTORICAL TREE.** The authoritative tree is in `.claude/CLAUDE.md` §40 and `.claude/SUMMARY.md` §3: one consolidated **`AUTOFOUNDER-BACKEND/app/`** + `AUTOFOUNDER-FRONTEND-WEB/` + `AUTOFOUNDER-ADMIN/` + `AUTOFOUNDER-MOBILE-APP/` + `AUTOFOUNDER-INFRA/` + `packages/{shared,api-client}`. The `backend/`-rooted tree below is retained for historical context only.
 
 ```
 autofounder-ai/
@@ -135,7 +135,7 @@ Layer 9  (Compliance — minimal)      ← ninth: audit log, GDPR stubs
 #### S0.3 — Observability Skeleton (Layer 10)
 - [ ] `backend/src/autofounder_ai/core/telemetry.py`:
   - OTel SDK init (traces + metrics)
-  - Structured logger factory (mandatory fields: `tenant_id`, `pillar`, `agent_id`, `model`, `run_id`, `env`)
+  - Structured logger factory (mandatory fields: `organization_id`, `pillar`, `agent_id`, `model`, `run_id`, `env`)
   - Prometheus counters: `agent_invocations_total`, `llm_latency_seconds`, `run_duration_seconds`
 - [ ] LangSmith client init (reads `LANGSMITH_API_KEY`)
 - [ ] Sentry init stub
@@ -336,7 +336,7 @@ Layer 9  (Compliance — minimal)      ← ninth: audit log, GDPR stubs
 ## File Creation Order (exact sequence for backend)
 
 ```
-backend/src/autofounder_ai/
+AUTOFOUNDER-BACKEND/app/          (historical: shown as backend/src/autofounder_ai/)
 │
 ├── __init__.py
 ├── core/
@@ -402,15 +402,15 @@ backend/src/autofounder_ai/
 | Decision | Locked Choice |
 |---|---|
 | Compute | AWS ECS Fargate (NOT GCP Cloud Run — stack.md is stale) |
-| Folder layout | `frontend/` + `backend/` — no reorganization |
-| Backend structure | Single `backend/src/autofounder_ai/` Python package |
+| Folder layout | `AUTOFOUNDER-BACKEND` + `AUTOFOUNDER-FRONTEND-WEB` + `AUTOFOUNDER-ADMIN` + `AUTOFOUNDER-MOBILE-APP` + `AUTOFOUNDER-INFRA` + `packages/{shared,api-client}` (UPPERCASE dirs) |
+| Backend structure | One consolidated `AUTOFOUNDER-BACKEND/app/` (api · orchestrator · agents · workers); split in Phase 4 if needed |
 | LLM Primary | Gemini 3.5 Flash via LiteLLM |
 | Embeddings | `gemini-embedding-2` |
 | Vector store | Supabase pgvector |
 | Tenant isolation | Schema-per-org + RLS |
 | Agent framework | LangGraph (stateful DAG) |
 | Backend | FastAPI + Python 3.12 + uv |
-| Frontend | Next.js 14 + Tailwind + shadcn/ui (in `frontend/`) |
+| Frontend | Next.js 14 + Tailwind + shadcn/ui (in `AUTOFOUNDER-FRONTEND-WEB/`) |
 | Message bus | Confluent Kafka + EventBridge + SQS |
 | DB access | UDAL only — no direct SQLAlchemy in agents |
 | Auth | Supabase Auth |

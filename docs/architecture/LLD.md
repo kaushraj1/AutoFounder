@@ -40,16 +40,16 @@
    - 5.10 RAG pipeline
    - 5.11 Guardrails pipeline per agent call
 6. [Service-Level Component Breakdown](#6-service-level-component-breakdown)
-   - 6.1 `apps/api` — FastAPI API Gateway
-   - 6.2 `apps/orchestrator` — LangGraph Engine
-   - 6.3 `apps/ai-services` — FastAPI Agent Workers
+   - 6.1 `AUTOFOUNDER-BACKEND` — FastAPI API Gateway
+   - 6.2 `AUTOFOUNDER-BACKEND/app/orchestrator` — LangGraph Engine
+   - 6.3 `AUTOFOUNDER-BACKEND/app/workers` — FastAPI Agent Workers
    - 6.4 Supabase Realtime — WebSocket Fan-out (Managed)
-   - 6.5 `apps/web` — Next.js Founder Portal
-   - 6.6 `packages/db` — UDAL
-   - 6.7 `packages/agents` — Agent implementations
-   - 6.8 `packages/guardrails` — Guardrails pipeline
-   - 6.9 `packages/tools` — MCP tool registry
-   - 6.10 `packages/prompts` — Prompt registry
+   - 6.5 `AUTOFOUNDER-FRONTEND-WEB` — Next.js Founder Portal
+   - 6.6 `AUTOFOUNDER-BACKEND/app/db` — UDAL
+   - 6.7 `AUTOFOUNDER-BACKEND/app/agents` — Agent implementations
+   - 6.8 `AUTOFOUNDER-BACKEND/app/guardrails` — Guardrails pipeline
+   - 6.9 `AUTOFOUNDER-BACKEND/app/tools` — MCP tool registry
+   - 6.10 `AUTOFOUNDER-BACKEND/app/prompts` — Prompt registry
 7. [Key Design Decisions & Trade-offs](#7-key-design-decisions--trade-offs)
 8. [Dependency Matrix](#8-dependency-matrix)
 9. [Error Handling Specifications](#9-error-handling-specifications)
@@ -642,10 +642,10 @@ export interface PlatformEvent {
 }
 ```
 
-### 2.4 Python / Pydantic Models (`packages/agents/`)
+### 2.4 Python / Pydantic Models (`AUTOFOUNDER-BACKEND/app/agents/`)
 
 ```python
-# packages/agents/base_agent.py
+# AUTOFOUNDER-BACKEND/app/agents/base_agent.py
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
@@ -1036,7 +1036,7 @@ TTL:  120
 
 ## 3. API Contracts
 
-### 3.1 REST API — FastAPI (`apps/api`)
+### 3.1 REST API — FastAPI (`AUTOFOUNDER-BACKEND`)
 
 #### `POST /v1/ideas`
 ```
@@ -1408,7 +1408,7 @@ export interface VectorSearchResult {
 ### 4.2 Guardrails Pipeline Interface (Python)
 
 ```python
-# packages/guardrails/pipeline.py
+# AUTOFOUNDER-BACKEND/app/guardrails/pipeline.py
 
 from dataclasses import dataclass
 from enum import Enum
@@ -1479,7 +1479,7 @@ class GuardrailsPipeline:
 ### 4.3 Tool Registry Interface (Python)
 
 ```python
-# packages/tools/registry.py
+# AUTOFOUNDER-BACKEND/app/tools/registry.py
 
 from pydantic import BaseModel
 from typing import Any, Callable, Awaitable
@@ -1512,7 +1512,7 @@ class ToolRegistry:
 ### 4.4 Prompt Registry Interface (Python)
 
 ```python
-# packages/prompts/registry.py
+# AUTOFOUNDER-BACKEND/app/prompts/registry.py
 
 from pydantic import BaseModel
 
@@ -1932,7 +1932,7 @@ Agent Call           Stage 1 Policy       Stage 2 Input        Stage 3 Instructi
 
 ## 6. Service-Level Component Breakdown
 
-### 6.1 `apps/api` — FastAPI API Gateway
+### 6.1 `AUTOFOUNDER-BACKEND` — FastAPI API Gateway
 
 **Responsibilities**: JWT validation (Supabase Auth), tenant resolution, rate-limiting, OPA policy check, request routing to Orchestrator via gRPC. Realtime streaming handled by Supabase Realtime.
 
@@ -1961,7 +1961,7 @@ Agent Call           Stage 1 Policy       Stage 2 Input        Stage 3 Instructi
 }
 ```
 
-### 6.2 `apps/orchestrator` — LangGraph Engine
+### 6.2 `AUTOFOUNDER-BACKEND/app/orchestrator` — LangGraph Engine
 
 **Responsibilities**: Build and execute the per-run LangGraph StateGraph, manage checkpoints, handle HITL gate state machine, dispatch steps to AI Services, publish events.
 
@@ -1991,7 +1991,7 @@ class RunState(TypedDict):
 
 Resumption on failure: LangGraph's `interrupt_after` + Redis hot-restore within 30s; fall back to Postgres if Redis miss.
 
-### 6.3 `apps/ai-services` — FastAPI Agent Workers
+### 6.3 `AUTOFOUNDER-BACKEND/app/workers` — FastAPI Agent Workers
 
 **Responsibilities**: Host agent execution workers, LLM clients, RAG pipeline, sandbox launcher. Receives steps from Orchestrator via gRPC streaming.
 
@@ -2042,7 +2042,7 @@ supabase
 
 **Backpressure**: Supabase Realtime handles backpressure internally. Portal replays missed events by querying `step_events` table on reconnect.
 
-### 6.5 `apps/web` — Next.js Founder Portal
+### 6.5 `AUTOFOUNDER-FRONTEND-WEB` — Next.js Founder Portal
 
 **Key patterns**:
 
@@ -2052,7 +2052,7 @@ supabase
 - **Auth**: Supabase Auth (`@supabase/ssr`); session stored in HttpOnly cookie; `tenant_id` extracted from Supabase JWT on every API call.
 - **Error boundary**: per-surface React error boundary; Sentry `captureException` on unhandled errors.
 
-### 6.6 `packages/db` — UDAL
+### 6.6 `AUTOFOUNDER-BACKEND/app/db` — UDAL
 
 **Invariant**: no code outside this package may import `pg`, `pymongo`, `neo4j`, `boto3.s3`, or `ioredis` directly.
 
@@ -2068,7 +2068,7 @@ supabase
 
 **Python UDAL** mirrors the same lifecycle using `contextvars.ContextVar` for tenant propagation across async tasks.
 
-### 6.7 `packages/agents` — Agent Implementations
+### 6.7 `AUTOFOUNDER-BACKEND/app/agents` — Agent Implementations
 
 **All agents extend `BaseAgent`**. Key overrides per agent:
 
@@ -2082,7 +2082,7 @@ supabase
 | `DevOpsAgent` | Parse arch + repo → infra requirements | Dockerfile → Terraform → ECS → DNS DAG | terraform apply + smoke test | HTTP 200 + latency < 2s |
 | `MarketingAgent` | Extract brand/audience from strategy output | Brand → Page → SEO → Email → Social DAG | Parallel content gen; hallucination check per asset | Feature-list cross-reference |
 
-### 6.8 `packages/guardrails`
+### 6.8 `AUTOFOUNDER-BACKEND/app/guardrails`
 
 **Stage 1 OPA call** (`stages/policy.py`):
 ```python
@@ -2094,7 +2094,7 @@ supabase
   "resource": {"type": "...", "id": "..."},
   "context": {"tier": "startup", "cost_so_far": 0.42}
 }
-# OPA policy file: packages/guardrails/opa/policies/agent_policy.rego
+# OPA policy file: AUTOFOUNDER-BACKEND/app/guardrails/opa/policies/agent_policy.rego
 ```
 
 **Stage 5 output guardrail — Marketing Agent special case**:
@@ -2105,7 +2105,7 @@ Every marketing asset goes through `feature_list_crossref()`:
 
 **Audit log writes** are synchronous and happen after every stage regardless of outcome. The audit record is written by `audit.py` directly to PostgreSQL `platform.audit_log`, then asynchronously exported to S3 Object Lock by a nightly Lambda.
 
-### 6.9 `packages/tools` — MCP Tool Registry
+### 6.9 `AUTOFOUNDER-BACKEND/app/tools` — MCP Tool Registry
 
 **Tool call lifecycle**:
 ```
@@ -2128,7 +2128,7 @@ Every marketing asset goes through `feature_list_crossref()`:
 - Deploy tools: GitHub API, AWS service endpoints only
 - All other outbound: denied
 
-### 6.10 `packages/prompts` — Prompt Registry
+### 6.10 `AUTOFOUNDER-BACKEND/app/prompts` — Prompt Registry
 
 **Jinja2 template rendering** with strict variable validation:
 ```python
@@ -2227,57 +2227,57 @@ All prompts are Jinja2 templates stored in the prompt registry, never Python f-s
 ```
 Service / Package          Direct Dependencies
 ─────────────────────────────────────────────────────────────────────────────
-apps/api                   packages/shared, packages/db (Python + TS read-only)
+AUTOFOUNDER-BACKEND                   packages/shared, AUTOFOUNDER-BACKEND/app/db (Python + TS read-only)
                            Supabase Auth (JWT) (external)
                            OPA sidecar (gRPC localhost:8181)
-                           apps/orchestrator (gRPC)
+                           AUTOFOUNDER-BACKEND/app/orchestrator (gRPC)
                            Kafka producer (feedback topic publish)
 
-apps/orchestrator          packages/shared, packages/db (Python)
-                           apps/ai-services (gRPC)
+AUTOFOUNDER-BACKEND/app/orchestrator          packages/shared, AUTOFOUNDER-BACKEND/app/db (Python)
+                           AUTOFOUNDER-BACKEND/app/workers (gRPC)
                            Amazon EventBridge (publish)
                            Amazon SQS (pillar queues — consume + publish)
                            Redis (checkpoint hot cache)
                            PostgreSQL (checkpoint durable, runs, gates CRUD)
 
-apps/ai-services           packages/agents, packages/guardrails
-                           packages/tools, packages/prompts
-                           packages/db (Python)
+AUTOFOUNDER-BACKEND/app/workers           AUTOFOUNDER-BACKEND/app/agents, AUTOFOUNDER-BACKEND/app/guardrails
+                           AUTOFOUNDER-BACKEND/app/tools, AUTOFOUNDER-BACKEND/app/prompts
+                           AUTOFOUNDER-BACKEND/app/db (Python)
                            Google AI API (Gemini)
                            Supabase (pgvector + Storage)
                            Amazon ECR (sandbox image pull)
                            Amazon ECS (sandbox task launch)
                            Amazon EventBridge (publish traces)
 
-apps/web                   apps/api (REST)
+AUTOFOUNDER-FRONTEND-WEB                   AUTOFOUNDER-BACKEND (REST)
                            Supabase JS client (Realtime + Auth)
                            Sentry browser SDK
 
-packages/agents            packages/db (Python), packages/tools
-                           packages/prompts, packages/guardrails
+AUTOFOUNDER-BACKEND/app/agents            AUTOFOUNDER-BACKEND/app/db (Python), AUTOFOUNDER-BACKEND/app/tools
+                           AUTOFOUNDER-BACKEND/app/prompts, AUTOFOUNDER-BACKEND/app/guardrails
                            packages/shared
 
-packages/guardrails        OPA (HTTP policy evaluation)
+AUTOFOUNDER-BACKEND/app/guardrails        OPA (HTTP policy evaluation)
                            Llama Guard 3 (Bedrock or self-hosted)
                            Microsoft Presidio (PII)
                            TruLens (output eval)
                            PostgreSQL (audit_log — via UDAL)
 
-packages/db                Supabase PostgreSQL (pgvector + Storage)
+AUTOFOUNDER-BACKEND/app/db                Supabase PostgreSQL (pgvector + Storage)
                            Redis (ElastiCache)
                            Neo4j / Amazon Neptune
                            Amazon S3 (data lake / audit)
 
-packages/tools             External tool APIs (scoped egress per tool)
-                           packages/db (tool_registry read via UDAL)
+AUTOFOUNDER-BACKEND/app/tools             External tool APIs (scoped egress per tool)
+                           AUTOFOUNDER-BACKEND/app/db (tool_registry read via UDAL)
 
-packages/prompts           PostgreSQL (prompt_registry via UDAL)
+AUTOFOUNDER-BACKEND/app/prompts           PostgreSQL (prompt_registry via UDAL)
                            Amazon S3 (template artifacts)
 
-infra/terraform            AWS provider (~30 resources)
+AUTOFOUNDER-INFRA/terraform            AWS provider (~30 resources)
 ```
 
-**Circular dependency rule**: `packages/db` must not import `packages/agents`, `packages/guardrails`, or `packages/tools`. Enforced by `depcheck`/`pylint` in CI.
+**Circular dependency rule**: `AUTOFOUNDER-BACKEND/app/db` must not import `AUTOFOUNDER-BACKEND/app/agents`, `AUTOFOUNDER-BACKEND/app/guardrails`, or `AUTOFOUNDER-BACKEND/app/tools`. Enforced by `depcheck`/`pylint` in CI.
 
 ---
 
@@ -2380,7 +2380,7 @@ All non-secret config lives in AWS SSM Parameter Store (`/{env}/autofounder/{ser
 All secrets live in AWS Secrets Manager (`/{env}/autofounder/{service}/{secret_name}`).  
 **No `.env` files in the repository** (enforced by Gitleaks + semgrep rule `no-dotenv-in-repo`).
 
-### 10.1 `apps/api` (FastAPI)
+### 10.1 `AUTOFOUNDER-BACKEND` (FastAPI)
 
 | Variable | Source | Example |
 |---|---|---|
@@ -2393,7 +2393,7 @@ All secrets live in AWS Secrets Manager (`/{env}/autofounder/{service}/{secret_n
 | `THROTTLE_LIMIT_SOLO` | SSM | `10` |
 | `SENTRY_DSN` | Secrets Mgr | `https://...@sentry.io/...` |
 
-### 10.2 `apps/orchestrator` (Python)
+### 10.2 `AUTOFOUNDER-BACKEND/app/orchestrator` (Python)
 
 | Variable | Source | Example |
 |---|---|---|
@@ -2405,7 +2405,7 @@ All secrets live in AWS Secrets Manager (`/{env}/autofounder/{service}/{secret_n
 | `LANGSMITH_API_KEY` | Secrets Mgr | `lsv2_...` |
 | `LANGSMITH_PROJECT` | SSM | `autofounder-prod` |
 
-### 10.3 `apps/ai-services` (Python)
+### 10.3 `AUTOFOUNDER-BACKEND/app/workers` (Python)
 
 | Variable | Source | Example |
 |---|---|---|
@@ -2423,7 +2423,7 @@ All secrets live in AWS Secrets Manager (`/{env}/autofounder/{service}/{secret_n
 
 ### 10.4 Supabase Realtime (Managed — no env config required)
 
-Supabase Realtime is configured via the Supabase project dashboard and inherits the project's JWT secret. No separate service deployment or environment variables are needed beyond `SUPABASE_URL` and `SUPABASE_ANON_KEY` (already in `apps/web`).
+Supabase Realtime is configured via the Supabase project dashboard and inherits the project's JWT secret. No separate service deployment or environment variables are needed beyond `SUPABASE_URL` and `SUPABASE_ANON_KEY` (already in `AUTOFOUNDER-FRONTEND-WEB`).
 
 ### 10.5 Feature flags (GrowthBook / Statsig)
 

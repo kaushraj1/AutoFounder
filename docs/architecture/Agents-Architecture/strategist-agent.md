@@ -49,7 +49,7 @@ The agent runs as a LangGraph stateful graph, parallelises independent research 
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# packages/agents/strategist/schema.py
+# AUTOFOUNDER-BACKEND/app/agents/strategist/schema.py
 
 from __future__ import annotations
 
@@ -273,7 +273,7 @@ class StrategistState(BaseModel):
 ### 3.2 Graph definition
 
 ```python
-# packages/agents/strategist/graph.py
+# AUTOFOUNDER-BACKEND/app/agents/strategist/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -380,7 +380,7 @@ def build_strategist_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# packages/agents/strategist/routers.py
+# AUTOFOUNDER-BACKEND/app/agents/strategist/routers.py
 
 def route_after_normalize(state: StrategistState) -> str | list[str]:
     if state.fatal_error:
@@ -448,7 +448,7 @@ flowchart TD
 ### 4.1 Tool definitions (LangChain-compatible)
 
 ```python
-# packages/agents/strategist/tools.py
+# AUTOFOUNDER-BACKEND/app/agents/strategist/tools.py
 
 import os
 from langchain_community.tools.tavily_search import TavilySearchResults
@@ -658,7 +658,7 @@ All prompts use **Claude Sonnet** (complex reasoning) or **GPT-4o** (copy / clas
 ### 5.1 `normalize_idea` — Idea Normalisation
 
 ```jinja2
-{# packages/agents/strategist/prompts/normalize_idea.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/normalize_idea.j2 #}
 
 SYSTEM:
 You are the Strategist Agent for Auto-Founder AI, a platform that turns ideas into
@@ -688,7 +688,7 @@ Return a JSON object with keys:
 ### 5.2 `size_market` — TAM/SAM/SOM Sizing
 
 ```jinja2
-{# packages/agents/strategist/prompts/size_market.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/size_market.j2 #}
 
 SYSTEM:
 You are a market research analyst. Use the tool results provided to estimate
@@ -723,7 +723,7 @@ Constraints:
 ### 5.3 `discover_competitors` — Competitor Profiling
 
 ```jinja2
-{# packages/agents/strategist/prompts/discover_competitors.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/discover_competitors.j2 #}
 
 SYSTEM:
 You are a competitive intelligence analyst. Find REAL, existing companies only.
@@ -754,7 +754,7 @@ Return as: { "whitespace": string }
 ### 5.4 `mine_keywords` — SEO Keyword Mining
 
 ```jinja2
-{# packages/agents/strategist/prompts/mine_keywords.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/mine_keywords.j2 #}
 
 SYSTEM:
 You are an SEO strategist. Use SerpAPI and Google Trends data to identify high-value
@@ -780,7 +780,7 @@ Flag at least 2 "low-difficulty, high-intent" opportunities.
 ### 5.5 `generate_personas` — Buyer Persona Generation
 
 ```jinja2
-{# packages/agents/strategist/prompts/generate_personas.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/generate_personas.j2 #}
 
 SYSTEM:
 You are a UX researcher and B2B sales strategist. Ground personas in real market
@@ -810,7 +810,7 @@ Generate 2–3 buyer personas as a JSON array:
 ### 5.6 `analyze_trends` — Trend & Sentiment Analysis
 
 ```jinja2
-{# packages/agents/strategist/prompts/analyze_trends.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/analyze_trends.j2 #}
 
 SYSTEM:
 You are a market trend analyst. Synthesise signals from Google Trends,
@@ -837,7 +837,7 @@ Also return: { "overall_momentum": "accelerating" | "stable" | "declining" }
 ### 5.7 `audit_bias` — Bias Audit
 
 ```jinja2
-{# packages/agents/strategist/prompts/audit_bias.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/audit_bias.j2 #}
 
 SYSTEM:
 You are a bias auditor for an AI market research system. Your role is to identify
@@ -869,7 +869,7 @@ Return a JSON object:
 ### 5.8 `synthesize_canvas` — Lean Canvas
 
 ```jinja2
-{# packages/agents/strategist/prompts/synthesize_canvas.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/synthesize_canvas.j2 #}
 
 SYSTEM:
 You are a startup strategist synthesising a Lean Canvas from validated research.
@@ -902,7 +902,7 @@ Return a Lean Canvas as JSON:
 ### 5.9 `score_viability` — Viability Scoring
 
 ```jinja2
-{# packages/agents/strategist/prompts/score_viability.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/score_viability.j2 #}
 
 SYSTEM:
 You are a venture analyst scoring startup viability. Use the scoring rubric below.
@@ -939,7 +939,7 @@ Return:
 ### 5.10 `render_report` — 5-Page Markdown Report
 
 ```jinja2
-{# packages/agents/strategist/prompts/render_report.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/strategist/prompts/render_report.j2 #}
 
 SYSTEM:
 You are a professional business analyst. Render a clean, structured 5-page market
@@ -1132,7 +1132,7 @@ sequenceDiagram
 ### 7.2 Error handler node
 
 ```python
-# packages/agents/strategist/nodes/error_handler.py
+# AUTOFOUNDER-BACKEND/app/agents/strategist/nodes/error_handler.py
 
 import asyncio
 import logging
@@ -1201,7 +1201,7 @@ async def _post_slack_alert(state: StrategistState, error_summary: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# packages/agents/strategist/utils/retry.py
+# AUTOFOUNDER-BACKEND/app/agents/strategist/utils/retry.py
 
 import asyncio
 import functools
@@ -1261,7 +1261,7 @@ def with_retry(node_name: str):
 ### 7.4 LLM parse-error self-correction
 
 ```python
-# packages/agents/strategist/utils/llm_parse.py
+# AUTOFOUNDER-BACKEND/app/agents/strategist/utils/llm_parse.py
 
 import json
 import logging
@@ -1312,7 +1312,7 @@ async def parse_with_correction(
 ### 7.5 SLA breach monitoring
 
 ```python
-# packages/agents/strategist/utils/sla.py
+# AUTOFOUNDER-BACKEND/app/agents/strategist/utils/sla.py
 
 import asyncio
 import logging

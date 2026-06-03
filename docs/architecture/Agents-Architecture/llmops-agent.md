@@ -57,7 +57,7 @@ The LLMOps Agent is the **continuous learning and observability backbone** of th
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# packages/agents/llmops/schema.py
+# AUTOFOUNDER-BACKEND/app/agents/llmops/schema.py
 
 from __future__ import annotations
 
@@ -347,7 +347,7 @@ Not all nodes run in every pipeline mode. The `route_after_ingest` router select
 ### 3.3 Graph definition
 
 ```python
-# packages/agents/llmops/graph.py
+# AUTOFOUNDER-BACKEND/app/agents/llmops/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -473,7 +473,7 @@ def build_llmops_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# packages/agents/llmops/routers.py
+# AUTOFOUNDER-BACKEND/app/agents/llmops/routers.py
 
 from .schema import LLMOpsState, PipelineMode, DriftSeverity
 
@@ -578,7 +578,7 @@ flowchart TD
 ### 4.1 Tool definitions
 
 ```python
-# packages/agents/llmops/tools.py
+# AUTOFOUNDER-BACKEND/app/agents/llmops/tools.py
 
 import os
 from datetime import datetime, timedelta, timezone
@@ -859,7 +859,7 @@ All prompts are stored as Jinja2 templates. Complex reasoning nodes use **Claude
 ### 5.1 `detect_drift` — Quality Drift Detection
 
 ```jinja2
-{# packages/agents/llmops/prompts/detect_drift.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/llmops/prompts/detect_drift.j2 #}
 
 SYSTEM:
 You are an LLM quality monitoring system for Auto-Founder AI.
@@ -896,7 +896,7 @@ Only include entries where abs(delta_pct) >= 5.
 ### 5.2 `track_hallucinations` — LLM-as-Judge Hallucination Detection
 
 ```jinja2
-{# packages/agents/llmops/prompts/track_hallucinations.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/llmops/prompts/track_hallucinations.j2 #}
 
 SYSTEM:
 You are an LLM-as-judge evaluator. Your role is to identify hallucinations in
@@ -941,7 +941,7 @@ Return:
 ### 5.3 `prepare_rlhf_dataset` — RLHF Pair Formatting
 
 ```jinja2
-{# packages/agents/llmops/prompts/prepare_rlhf_dataset.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/llmops/prompts/prepare_rlhf_dataset.j2 #}
 
 SYSTEM:
 You are an RLHF dataset curator. Convert raw accept/reject user signals into
@@ -974,7 +974,7 @@ Return a JSON array of RLHF samples:
 ### 5.4 `update_routing_rules` — Model Routing Decision
 
 ```jinja2
-{# packages/agents/llmops/prompts/update_routing_rules.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/llmops/prompts/update_routing_rules.j2 #}
 
 SYSTEM:
 You are the model routing controller for Auto-Founder AI.
@@ -1008,7 +1008,7 @@ Return a JSON array of routing rule updates. Only include rules that CHANGE:
 ### 5.5 `alert_dispatcher` — Alert Content Generation
 
 ```jinja2
-{# packages/agents/llmops/prompts/alert_dispatcher.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/llmops/prompts/alert_dispatcher.j2 #}
 
 SYSTEM:
 You are an on-call alert formatter. Generate clear, actionable Slack alerts.
@@ -1209,7 +1209,7 @@ sequenceDiagram
 ### 7.2 Error handler node
 
 ```python
-# packages/agents/llmops/nodes/error_handler.py
+# AUTOFOUNDER-BACKEND/app/agents/llmops/nodes/error_handler.py
 
 import logging
 from datetime import datetime, timezone
@@ -1285,7 +1285,7 @@ async def _trigger_pagerduty(state: LLMOpsState, error_summary: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# packages/agents/llmops/utils/retry.py
+# AUTOFOUNDER-BACKEND/app/agents/llmops/utils/retry.py
 
 import asyncio
 import functools
@@ -1350,7 +1350,7 @@ def with_retry(node_name: str):
 ### 7.4 Hallucination rate circuit breaker
 
 ```python
-# packages/agents/llmops/utils/circuit_breaker.py
+# AUTOFOUNDER-BACKEND/app/agents/llmops/utils/circuit_breaker.py
 
 import logging
 
@@ -1393,7 +1393,7 @@ def check_circuit_breakers(state: LLMOpsState) -> list[str]:
 ### 7.5 SLA enforcement
 
 ```python
-# packages/agents/llmops/utils/sla.py
+# AUTOFOUNDER-BACKEND/app/agents/llmops/utils/sla.py
 
 import asyncio
 import logging

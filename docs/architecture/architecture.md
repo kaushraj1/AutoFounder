@@ -34,19 +34,19 @@ flowchart TD
 
     %% ── Application Layer ────────────────────────────────────────────────────
     subgraph APP["Application Layer  —  ECS Fargate  (private subnets)"]
-        WEB["apps/web\nNext.js 14 · Founder Portal\nValidation · Architecture · Code · Deploy · Launch · LLMOps"]:::app
-        API["apps/api\nFastAPI API Gateway\nAuth · Tenancy · Rate-limits · OPA"]:::app
+        WEB["AUTOFOUNDER-FRONTEND-WEB\nNext.js 14 · Founder Portal\nValidation · Architecture · Code · Deploy · Launch · LLMOps"]:::app
+        API["AUTOFOUNDER-BACKEND\nFastAPI API Gateway\nAuth · Tenancy · Rate-limits · OPA"]:::app
         RT["Supabase Realtime\nManaged WebSocket Service\nToken stream · Step events · Live logs"]:::app
     end
 
     %% ── Orchestration Layer ───────────────────────────────────────────────────
     subgraph ORCH_LAYER["Agent Orchestration Layer  —  ECS Fargate"]
-        ORCH["apps/orchestrator\nLangGraph Engine\nDAG execution · Checkpoints · HITL gates · AutoGen fallback"]:::orch
-        AISVR["apps/ai-services\nFastAPI Agent Workers\nLLM clients · RAG pipeline · Sandbox launcher"]:::orch
+        ORCH["AUTOFOUNDER-BACKEND/app/orchestrator\nLangGraph Engine\nDAG execution · Checkpoints · HITL gates · AutoGen fallback"]:::orch
+        AISVR["AUTOFOUNDER-BACKEND/app/workers\nFastAPI Agent Workers\nLLM clients · RAG pipeline · Sandbox launcher"]:::orch
     end
 
     %% ── AI Agents ────────────────────────────────────────────────────────────
-    subgraph AGENTS["AI Agents Layer  —  packages/agents"]
+    subgraph AGENTS["AI Agents Layer  —  AUTOFOUNDER-BACKEND/app/agents"]
         STR["Strategy & Ideation\nPillar 1\nMarket sizing · Lean Canvas\nViability score · Personas · Pivot options"]:::agent
         RES["Research\nPillar 1\nTavily · SerpAPI · Crunchbase\nG2 · SimilarWeb · Google Trends"]:::agent
         PPL["Product Planner\nPillar 1.5\nPRDs · Roadmaps\nUser stories · Requirements"]:::agent
@@ -59,7 +59,7 @@ flowchart TD
     end
 
     %% ── Guardrails ────────────────────────────────────────────────────────────
-    subgraph GUARD["Guardrails & Governance Pipeline  —  packages/guardrails"]
+    subgraph GUARD["Guardrails & Governance Pipeline  —  AUTOFOUNDER-BACKEND/app/guardrails"]
         G12["Stage 1–2\nPolicy OPA/Cedar · Permissions\nInput Llama Guard · Presidio PII redaction\nInjection detection · Content filters"]:::guard
         G34["Stage 3–4\nInstruction validators · System prompt constraints\nExecution guard · Tool schema validation\nCost caps · Rate limits · Allow-list enforcement"]:::guard
         G56["Stage 5–6\nOutput guard · TruLens groundedness\nHallucination check · Citation cross-ref\nMonitoring · Anomaly · Drift · Abuse detection"]:::guard
@@ -76,7 +76,7 @@ flowchart TD
 
     %% ── Data Layer ────────────────────────────────────────────────────────────
     subgraph DATA["Data & Knowledge Layer  —  all access via UDAL"]
-        UDAL["UDAL  packages/db\nudal.relational / vector / graph / object\nTenant-scoped · Lineage events · No raw DB access from agents"]:::data
+        UDAL["UDAL  AUTOFOUNDER-BACKEND/app/db\nudal.relational / vector / graph / object\nTenant-scoped · Lineage events · No raw DB access from agents"]:::data
         PG[("Supabase\nPostgreSQL + pgvector + Storage\nSchema-per-tenant + RLS\nruns · artifacts · gates · episodes")]:::data
         VEC[("Supabase pgvector\nvector(768) HNSW index\nSchema-per-tenant\nmarket_intel · code_patterns · brand_voice")]:::data
         GDB[("Neo4j / Neptune\nEntity graph\nCompetitor to Market\nto Persona relationships")]:::data
@@ -280,9 +280,9 @@ flowchart LR
     classDef vector fill:#2d1b2e,stroke:#bc8cff,color:#ffa8e0
     classDef graphdb fill:#162032,stroke:#58a6ff,color:#79c0ff
 
-    AGENTS["All Agents\npackages/agents"]:::agent
+    AGENTS["All Agents\nAUTOFOUNDER-BACKEND/app/agents"]:::agent
 
-    UDAL["UDAL  packages/db\nudal.relational\nudal.vector\nudal.graph\nudal.object\n\nEnforces tenant_id\nEmits lineage events\nNo raw DB access allowed"]:::udal
+    UDAL["UDAL  AUTOFOUNDER-BACKEND/app/db\nudal.relational\nudal.vector\nudal.graph\nudal.object\n\nEnforces tenant_id\nEmits lineage events\nNo raw DB access allowed"]:::udal
 
     subgraph RELATIONAL["Relational — PostgreSQL 16  RDS Multi-AZ"]
         direction TB

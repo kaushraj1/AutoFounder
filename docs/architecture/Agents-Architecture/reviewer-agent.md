@@ -55,7 +55,7 @@ When failures are detected the agent enters a **self-healing loop** (max 5 cycle
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# packages/agents/reviewer/schema.py
+# AUTOFOUNDER-BACKEND/app/agents/reviewer/schema.py
 
 from __future__ import annotations
 
@@ -354,7 +354,7 @@ class ReviewerState(BaseModel):
 ### 3.2 Graph definition
 
 ```python
-# packages/agents/reviewer/graph.py
+# AUTOFOUNDER-BACKEND/app/agents/reviewer/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -473,7 +473,7 @@ def build_reviewer_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# packages/agents/reviewer/routers.py
+# AUTOFOUNDER-BACKEND/app/agents/reviewer/routers.py
 
 from .schema import ReviewerState, ReviewDecision, MAX_HEAL_CYCLES
 
@@ -566,7 +566,7 @@ flowchart TD
 ### 4.1 Tool definitions
 
 ```python
-# packages/agents/reviewer/tools.py
+# AUTOFOUNDER-BACKEND/app/agents/reviewer/tools.py
 
 import asyncio
 import os
@@ -922,7 +922,7 @@ All prompts follow the model routing policy. Templates are stored as Jinja2 file
 ### 5.1 `llm_judge` — Readability & Maintainability Scoring
 
 ```jinja2
-{# packages/agents/reviewer/prompts/llm_judge.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/reviewer/prompts/llm_judge.j2 #}
 
 SYSTEM:
 You are a senior software engineer conducting a code review for an AI-generated
@@ -972,7 +972,7 @@ Return a JSON object:
 ### 5.2 `triage_failures` — Failure Classification
 
 ```jinja2
-{# packages/agents/reviewer/prompts/triage_failures.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/reviewer/prompts/triage_failures.j2 #}
 
 SYSTEM:
 You are a senior QA engineer triaging automated test failures.
@@ -1030,7 +1030,7 @@ Escalate if: any CRITICAL security finding is not auto-fixable, OR cycles exhaus
 ### 5.3 `auto_heal` — Patch Generation
 
 ```jinja2
-{# packages/agents/reviewer/prompts/auto_heal.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/reviewer/prompts/auto_heal.j2 #}
 
 SYSTEM:
 You are a senior software engineer tasked with patching auto-fixable code failures.
@@ -1078,7 +1078,7 @@ Return a JSON array of patches:
 ### 5.4 `emit_report` — Markdown Review Report
 
 ```jinja2
-{# packages/agents/reviewer/prompts/emit_report.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/reviewer/prompts/emit_report.j2 #}
 
 SYSTEM:
 You are a senior engineer writing an automated code review report.
@@ -1304,7 +1304,7 @@ sequenceDiagram
 ### 7.2 Error handler node
 
 ```python
-# packages/agents/reviewer/nodes/error_handler.py
+# AUTOFOUNDER-BACKEND/app/agents/reviewer/nodes/error_handler.py
 
 import asyncio
 import logging
@@ -1425,7 +1425,7 @@ async def _post_slack_alert(state: ReviewerState, error_reason: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# packages/agents/reviewer/utils/retry.py
+# AUTOFOUNDER-BACKEND/app/agents/reviewer/utils/retry.py
 
 import asyncio
 import functools
@@ -1484,7 +1484,7 @@ def with_retry(node_name: str):
 ### 7.4 OWASP hard-block logic
 
 ```python
-# packages/agents/reviewer/utils/owasp.py
+# AUTOFOUNDER-BACKEND/app/agents/reviewer/utils/owasp.py
 
 from ..schema import ReviewerState, SecurityFinding, SeverityLevel
 
@@ -1519,7 +1519,7 @@ def coverage_gate_passed(state: ReviewerState, threshold: float = 80.0) -> bool:
 ### 7.5 SLA breach monitoring
 
 ```python
-# packages/agents/reviewer/utils/sla.py
+# AUTOFOUNDER-BACKEND/app/agents/reviewer/utils/sla.py
 
 import asyncio
 import logging

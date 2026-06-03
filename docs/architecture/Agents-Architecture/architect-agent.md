@@ -57,7 +57,7 @@ Ideas scored `reject` by the Strategist Agent are never forwarded here. Ideas sc
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# packages/agents/architect/schema.py
+# AUTOFOUNDER-BACKEND/app/agents/architect/schema.py
 
 from __future__ import annotations
 
@@ -418,7 +418,7 @@ class ArchitectState(BaseModel):
 ### 3.2 Graph definition
 
 ```python
-# packages/agents/architect/graph.py
+# AUTOFOUNDER-BACKEND/app/agents/architect/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -565,7 +565,7 @@ def build_architect_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# packages/agents/architect/routers.py
+# AUTOFOUNDER-BACKEND/app/agents/architect/routers.py
 
 def route_after_ingest(state: ArchitectState) -> str:
     if state.fatal_error:
@@ -671,7 +671,7 @@ flowchart TD
 ### 4.1 Tool definitions (LangChain-compatible)
 
 ```python
-# packages/agents/architect/tools.py
+# AUTOFOUNDER-BACKEND/app/agents/architect/tools.py
 
 import os
 import httpx
@@ -856,7 +856,7 @@ All prompts use **Claude Sonnet** (architecture reasoning) or **GPT-4o** (struct
 ### 5.1 `extract_requirements` — Requirements Extraction
 
 ```jinja2
-{# packages/agents/architect/prompts/extract_requirements.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/extract_requirements.j2 #}
 
 SYSTEM:
 You are a senior software architect extracting requirements for a SaaS product.
@@ -907,7 +907,7 @@ admin panel, billing, and any domain-specific features evident from the Lean Can
 ### 5.2 `design_db_schema` — Database Schema Design
 
 ```jinja2
-{# packages/agents/architect/prompts/design_db_schema.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/design_db_schema.j2 #}
 
 SYSTEM:
 You are a principal database engineer designing a production PostgreSQL schema.
@@ -953,7 +953,7 @@ Design constraints:
 ### 5.3 `design_api_contract` — OpenAPI 3.1 Specification
 
 ```jinja2
-{# packages/agents/architect/prompts/design_api_contract.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/design_api_contract.j2 #}
 
 SYSTEM:
 You are a senior API designer. Generate a complete OpenAPI 3.1 specification for
@@ -996,7 +996,7 @@ Return:
 ### 5.4 `select_tech_stack` — Technology Stack Selection
 
 ```jinja2
-{# packages/agents/architect/prompts/select_tech_stack.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/select_tech_stack.j2 #}
 
 SYSTEM:
 You are a staff engineer selecting a production tech stack. Apply the model routing policy:
@@ -1044,7 +1044,7 @@ Return:
 ### 5.5 `plan_auth_strategy` — Authentication & Authorisation Strategy
 
 ```jinja2
-{# packages/agents/architect/prompts/plan_auth_strategy.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/plan_auth_strategy.j2 #}
 
 SYSTEM:
 You are a security architect designing the auth system for a multi-tenant SaaS platform.
@@ -1089,7 +1089,7 @@ Return:
 ### 5.6 `define_microservice_boundaries` — Service Decomposition
 
 ```jinja2
-{# packages/agents/architect/prompts/define_microservice_boundaries.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/define_microservice_boundaries.j2 #}
 
 SYSTEM:
 You are a distributed systems architect decomposing a SaaS app into services.
@@ -1133,7 +1133,7 @@ Return:
 ### 5.7 `forecast_aws_costs` — AWS Cost Forecasting
 
 ```jinja2
-{# packages/agents/architect/prompts/forecast_aws_costs.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/forecast_aws_costs.j2 #}
 
 SYSTEM:
 You are a FinOps engineer estimating AWS costs for a seed-stage SaaS startup.
@@ -1178,7 +1178,7 @@ If cost_within_target is false, append a "cost_optimisation_suggestions" key wit
 ### 5.8 `plan_scaling` — Scaling Plan
 
 ```jinja2
-{# packages/agents/architect/prompts/plan_scaling.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/plan_scaling.j2 #}
 
 SYSTEM:
 You are a platform engineer designing the auto-scaling configuration for a SaaS on AWS EKS.
@@ -1216,7 +1216,7 @@ Return:
 ### 5.9 `llm_judge_review` — LLM-as-Judge Quality Gate
 
 ```jinja2
-{# packages/agents/architect/prompts/llm_judge_review.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/llm_judge_review.j2 #}
 
 SYSTEM:
 You are an independent principal architect reviewing architecture artefacts for a SaaS platform.
@@ -1270,7 +1270,7 @@ Return:
 ### 5.10 `render_architecture_doc` — Architecture Document
 
 ```jinja2
-{# packages/agents/architect/prompts/render_architecture_doc.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/architect/prompts/render_architecture_doc.j2 #}
 
 SYSTEM:
 You are a technical writer assembling a complete architecture document in Markdown.
@@ -1541,7 +1541,7 @@ sequenceDiagram
 ### 7.2 Error handler node
 
 ```python
-# packages/agents/architect/nodes/error_handler.py
+# AUTOFOUNDER-BACKEND/app/agents/architect/nodes/error_handler.py
 
 import asyncio
 import logging
@@ -1614,7 +1614,7 @@ async def _post_slack_alert(state: ArchitectState, reason: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# packages/agents/architect/utils/retry.py
+# AUTOFOUNDER-BACKEND/app/agents/architect/utils/retry.py
 
 import asyncio
 import functools
@@ -1670,7 +1670,7 @@ def with_retry(node_name: str):
 ### 7.4 LLM parse-error self-correction
 
 ```python
-# packages/agents/architect/utils/llm_parse.py
+# AUTOFOUNDER-BACKEND/app/agents/architect/utils/llm_parse.py
 
 import json
 import logging
@@ -1717,7 +1717,7 @@ async def parse_with_correction(
 ### 7.5 Founder approval gate with timeout
 
 ```python
-# packages/agents/architect/nodes/founder_approval_gate.py
+# AUTOFOUNDER-BACKEND/app/agents/architect/nodes/founder_approval_gate.py
 
 import asyncio
 import logging
@@ -1765,7 +1765,7 @@ async def founder_approval_gate(state: ArchitectState) -> dict:
 ### 7.6 SLA breach monitoring
 
 ```python
-# packages/agents/architect/utils/sla.py
+# AUTOFOUNDER-BACKEND/app/agents/architect/utils/sla.py
 
 import asyncio
 import logging

@@ -80,13 +80,13 @@ Think of the project like building a house. You can't paint a room (build your a
 | AF-001 | Team | Init pnpm workspace (`pnpm-workspace.yaml`) + Turborepo (`turbo.json`) with `dev`, `lint`, `build` pipelines | `feature/monorepo-init` | ✅ |
 | AF-002 | Team | Root `package.json` — `turbo dev`, unified `lint`, `format:check` scripts wiring Ruff + ESLint | `feature/root-scripts` | ✅ |
 | AF-003 | Team | `docker-compose.yml` — Redis 7 (AOF persistence) with named volumes; Supabase CLI manages PostgreSQL + pgvector + Auth + Storage + Realtime locally via `supabase start` | `feature/docker-compose-setup` | ✅ |
-| AF-004 | Team | Backend scaffold — `backend/` with `pyproject.toml`, `uv.lock`, Ruff + isort, `src/` layout, `Dockerfile` | `feature/backend-scaffold` | ✅ |
-| AF-005 | Team | Frontend scaffold — `frontend/` TypeScript + React placeholder, `tsconfig.json`, `package.json` | `feature/frontend-scaffold` | ✅ |
-| AF-006 | Team | Mobile scaffold — `mobile-app/` Expo + TypeScript placeholder | `feature/mobile-scaffold` | ✅ |
+| AF-004 | Team | Backend scaffold — `AUTOFOUNDER-BACKEND/` with `pyproject.toml`, `uv.lock`, Ruff + mypy + pytest, `app/` layout, Alembic, `Dockerfile` | `feature/backend-scaffold` | ✅ |
+| AF-005 | Team | Frontend scaffold — `AUTOFOUNDER-FRONTEND-WEB/` TypeScript + React placeholder, `tsconfig.json`, `package.json` | `feature/frontend-scaffold` | ✅ |
+| AF-006 | Team | Mobile scaffold — `AUTOFOUNDER-MOBILE-APP/` Expo + TypeScript placeholder | `feature/mobile-scaffold` | ✅ |
 | AF-007 | Team | VS Code Extension scaffold — `vscode-extension/` TypeScript placeholder | `feature/vscode-extension-scaffold` | ✅ |
 | AF-008 | Team | ESLint v9 flat config (`eslint.config.mjs`) + Prettier — shared rules across all JS/TS workspaces | `feature/lint-config` | ✅ |
 | AF-009 | Team | `Makefile` — `install`, `stack`, `stack-down`, `dev`, `backend-lint`, `js-lint`, `quality` targets | `feature/makefile-scripts` | ✅ |
-| AF-010 | Team | `scripts/dev-setup.sh` + `scripts/dev-setup.ps1` — cross-platform one-command local environment setup | `feature/dev-setup-scripts` | ✅ |
+| AF-010 | Team | `scripts/setup-dev.sh` + `scripts/setup-dev.ps1` — cross-platform one-command local environment setup | `feature/dev-setup-scripts` | ✅ |
 | AF-011 | Team | `.env.example` + `README.md` — env var documentation and project onboarding guide | `feature/env-and-readme` | ✅ |
 
 ## Phase 2 — Infrastructure & Cloud 🟢 (Owner: Asit — can start now)
@@ -106,7 +106,7 @@ Think of the project like building a house. You can't paint a room (build your a
 | AF-020 | Asit | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ❌ |
 | AF-021 | Asit | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ❌ |
 | AF-022 | Asit | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ❌ |
-| AF-023 | Asit (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · tenant_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ❌ |
+| AF-023 | Asit (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ❌ |
 | AF-024 | Asit (← Purnima support) | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ❌ |
 
 ## Phase 3 — Backend (FastAPI + LangGraph + Agents)
@@ -119,9 +119,9 @@ Think of the project like building a house. You can't paint a room (build your a
 |----|-------|------|--------|------------|:----:|:----:|
 | AF-025 | Asit | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟡 | ❌ |
 | AF-026 | Asit | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟡 | ❌ |
-| AF-027 | Asit | **⭐ UDAL** — `packages/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ❌ |
+| AF-027 | Asit | **⭐ UDAL** — `AUTOFOUNDER-BACKEND/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ❌ |
 | AF-028 | Asit | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ❌ |
-| AF-029 | Asit | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `TenantContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🔴 | ❌ |
+| AF-029 | Asit | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🔴 | ❌ |
 | AF-030 | Asit | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🔴 | ❌ |
 | AF-031 | Asit | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ❌ |
 | AF-032 | Asit | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🔴 | ❌ |
@@ -184,7 +184,7 @@ Think of the project like building a house. You can't paint a room (build your a
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-063 | Yogesh | Expo Router scaffold — TS strict, Supabase Auth (`@supabase/supabase-js` + `ExpoSecureStoreAdapter`), secure token storage in `expo-secure-store`, shared API client from `packages/shared` | `feature/expo-setup` | Phase 1 | 🟢 | ❌ |
+| AF-063 | Yogesh | Expo Router scaffold — TS strict, Supabase Auth (`@supabase/supabase-js` + `ExpoSecureStoreAdapter`), secure token storage in `expo-secure-store`, shared API client from `packages/api-client` | `feature/expo-setup` | Phase 1 | 🟢 | ❌ |
 | AF-064 | Yogesh | Push notifications — Expo Push → SNS → realtime; deep-link on tap to gate or run screen | `feature/push-notifications` | AF-017 (SNS) | 🔴 | ❌ |
 | AF-065 | Yogesh | Idea Intake screen — text input, voice record (Expo AV), file attach; submit to `POST /v1/ideas` | `feature/mobile-idea-intake` | AF-030 | 🟡 | ❌ |
 | AF-066 | Yogesh | Run Dashboard screen — live run list with status badges + cost; pull-to-refresh; realtime updates | `feature/mobile-run-dashboard` | AF-030, AF-031 | 🟡 | ❌ |
@@ -200,7 +200,7 @@ Think of the project like building a house. You can't paint a room (build your a
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-072 | ⚪ | Extension core — activation event, command palette scaffold, `ExtensionContext` lifecycle, Auth0 PKCE flow with token in `SecretStorage` | `feature/vscode-extension-core` | Phase 1 | 🟢 | ❌ |
+| AF-072 | ⚪ | Extension core — activation event, command palette scaffold, `ExtensionContext` lifecycle, Supabase Auth PKCE flow with token in `SecretStorage` | `feature/vscode-extension-core` | Phase 1 | 🟢 | ❌ |
 | AF-073 | ⚪ | Sidebar tree view — run list with status icons, pillar progress, live cost badge; refreshes via WebSocket | `feature/vscode-sidebar` | AF-030, AF-031 | 🔴 | ❌ |
 | AF-074 | ⚪ | HITL gate notifications — VS Code banner on `gate.required`; inline approve/reject buttons | `feature/vscode-gate-notifications` | AF-034 | 🔴 | ❌ |
 | AF-075 | ⚪ | Code-gen commands — `Generate Component`, `Generate API Endpoint`; invokes Coder Agent, streams tokens into editor tab | `feature/vscode-code-gen` | AF-041 | 🔴 | ❌ |
@@ -235,7 +235,7 @@ _Phase 2 — Infrastructure & Cloud_
 | AF-020 | Asit | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ❌ |
 | AF-021 | Asit | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ❌ |
 | AF-022 | Asit | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ❌ |
-| AF-023 | Asit (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · tenant_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ❌ |
+| AF-023 | Asit (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ❌ |
 | AF-024 | Asit (← Purnima support) | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ❌ |
 
 _Phase 3a — Core API & Data Layer_
@@ -244,9 +244,9 @@ _Phase 3a — Core API & Data Layer_
 |----|-------|------|--------|------------|:----:|:----:|
 | AF-025 | Asit | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟡 | ❌ |
 | AF-026 | Asit | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟡 | ❌ |
-| AF-027 | Asit | **⭐ UDAL** — `packages/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ❌ |
+| AF-027 | Asit | **⭐ UDAL** — `AUTOFOUNDER-BACKEND/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ❌ |
 | AF-028 | Asit | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ❌ |
-| AF-029 | Asit | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `TenantContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🔴 | ❌ |
+| AF-029 | Asit | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🔴 | ❌ |
 | AF-030 | Asit | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🔴 | ❌ |
 | AF-031 | Asit | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ❌ |
 | AF-032 | Asit | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🔴 | ❌ |
@@ -428,7 +428,7 @@ Those turn **7 pillar owners from 🟡 to 🟢**.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-063 | Yogesh | Expo Router scaffold — TS strict, Supabase Auth (`@supabase/supabase-js` + `ExpoSecureStoreAdapter`), secure token storage in `expo-secure-store`, shared API client from `packages/shared` | `feature/expo-setup` | Phase 1 | 🟢 | ❌ |
+| AF-063 | Yogesh | Expo Router scaffold — TS strict, Supabase Auth (`@supabase/supabase-js` + `ExpoSecureStoreAdapter`), secure token storage in `expo-secure-store`, shared API client from `packages/api-client` | `feature/expo-setup` | Phase 1 | 🟢 | ❌ |
 | AF-064 | Yogesh | Push notifications — Expo Push → SNS → realtime; deep-link on tap to gate or run screen | `feature/push-notifications` | AF-017 (SNS) | 🔴 | ❌ |
 | AF-065 | Yogesh | Idea Intake screen — text input, voice record (Expo AV), file attach; submit to `POST /v1/ideas` | `feature/mobile-idea-intake` | AF-030 | 🟡 | ❌ |
 | AF-066 | Yogesh | Run Dashboard screen — live run list with status badges + cost; pull-to-refresh; realtime updates | `feature/mobile-run-dashboard` | AF-030, AF-031 | 🟡 | ❌ |

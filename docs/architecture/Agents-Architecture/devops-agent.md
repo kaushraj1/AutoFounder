@@ -49,7 +49,7 @@ The agent runs as a LangGraph stateful graph with a mandatory **Human-in-the-Loo
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# packages/agents/devops/schema.py
+# AUTOFOUNDER-BACKEND/app/agents/devops/schema.py
 
 from __future__ import annotations
 
@@ -434,7 +434,7 @@ class DevOpsState(BaseModel):
 ### 3.2 Graph definition
 
 ```python
-# packages/agents/devops/graph.py
+# AUTOFOUNDER-BACKEND/app/agents/devops/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -633,7 +633,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# packages/agents/devops/routers.py
+# AUTOFOUNDER-BACKEND/app/agents/devops/routers.py
 
 from .schema import DevOpsState, ApprovalStatus, DeployStatus, InfraStatus
 
@@ -772,7 +772,7 @@ flowchart TD
 ### 4.1 Tool definitions (LangChain-compatible)
 
 ```python
-# packages/agents/devops/tools.py
+# AUTOFOUNDER-BACKEND/app/agents/devops/tools.py
 
 import os
 import json
@@ -1143,7 +1143,7 @@ All prompts use **Claude Sonnet** (infrastructure reasoning, Terraform plan gene
 ### 5.1 `provision_networking` — Terraform VPC Plan
 
 ```jinja2
-{# packages/agents/devops/prompts/provision_networking.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/devops/prompts/provision_networking.j2 #}
 
 SYSTEM:
 You are a senior cloud infrastructure engineer generating Terraform for AWS.
@@ -1178,7 +1178,7 @@ Generate main.tf, variables.tf, and outputs.tf as a single HCL block with file h
 ### 5.2 `provision_compute` — Terraform EKS Plan
 
 ```jinja2
-{# packages/agents/devops/prompts/provision_compute.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/devops/prompts/provision_compute.j2 #}
 
 SYSTEM:
 You are a Kubernetes infrastructure engineer generating Terraform for AWS EKS.
@@ -1215,7 +1215,7 @@ Generate main.tf, variables.tf, and outputs.tf.
 ### 5.3 `provision_data_layer` — Terraform RDS + ElastiCache + S3
 
 ```jinja2
-{# packages/agents/devops/prompts/provision_data_layer.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/devops/prompts/provision_data_layer.j2 #}
 
 SYSTEM:
 You are a database and storage infrastructure engineer generating Terraform for AWS.
@@ -1261,7 +1261,7 @@ Generate main.tf, variables.tf, and outputs.tf.
 ### 5.4 `build_helm_charts` — Helm values.yaml Generation
 
 ```jinja2
-{# packages/agents/devops/prompts/build_helm_charts.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/devops/prompts/build_helm_charts.j2 #}
 
 SYSTEM:
 You are a Kubernetes engineer generating Helm chart values for a SaaS application.
@@ -1303,7 +1303,7 @@ Namespace: {{ tenant_id }}
 ### 5.5 `configure_argocd` — ArgoCD Application Manifests
 
 ```jinja2
-{# packages/agents/devops/prompts/configure_argocd.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/devops/prompts/configure_argocd.j2 #}
 
 SYSTEM:
 You are a GitOps engineer generating ArgoCD Application manifests in Kubernetes YAML.
@@ -1334,7 +1334,7 @@ Run ID: {{ run_id }}
 ### 5.6 `configure_monitoring` — CloudWatch + Prometheus Rules
 
 ```jinja2
-{# packages/agents/devops/prompts/configure_monitoring.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/devops/prompts/configure_monitoring.j2 #}
 
 SYSTEM:
 You are a site reliability engineer configuring observability for a Kubernetes SaaS app.
@@ -1370,7 +1370,7 @@ EKS cluster name: {{ eks_cluster.cluster_name }}
 ### 5.7 `configure_cicd` — GitHub Actions Workflow
 
 ```jinja2
-{# packages/agents/devops/prompts/configure_cicd.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/devops/prompts/configure_cicd.j2 #}
 
 SYSTEM:
 You are a DevOps engineer generating a GitHub Actions workflow for continuous deployment.
@@ -1406,7 +1406,7 @@ Slack webhook secret name: SLACK_WEBHOOK_URL
 ### 5.8 `render_deploy_report` — Deployment Report
 
 ```jinja2
-{# packages/agents/devops/prompts/render_deploy_report.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/devops/prompts/render_deploy_report.j2 #}
 
 SYSTEM:
 You are a technical writer assembling a deployment completion report in Markdown.
@@ -1716,7 +1716,7 @@ sequenceDiagram
 ### 7.2 Error handler node
 
 ```python
-# packages/agents/devops/nodes/error_handler.py
+# AUTOFOUNDER-BACKEND/app/agents/devops/nodes/error_handler.py
 
 import asyncio
 import logging
@@ -1781,11 +1781,11 @@ async def _terraform_destroy_partial(state: DevOpsState) -> None:
     """Best-effort Terraform destroy for any provisioned modules."""
     modules = []
     if state.eks_cluster is not None:
-        modules.append(("compute", f"infra/terraform/tenants/{state.tenant_id}/compute"))
+        modules.append(("compute", f"AUTOFOUNDER-INFRA/terraform/tenants/{state.tenant_id}/compute"))
     if state.rds_instance is not None or state.elasticache_cluster is not None:
-        modules.append(("data-layer", f"infra/terraform/tenants/{state.tenant_id}/data-layer"))
+        modules.append(("data-layer", f"AUTOFOUNDER-INFRA/terraform/tenants/{state.tenant_id}/data-layer"))
     if state.vpc_config is not None:
-        modules.append(("networking", f"infra/terraform/tenants/{state.tenant_id}/networking"))
+        modules.append(("networking", f"AUTOFOUNDER-INFRA/terraform/tenants/{state.tenant_id}/networking"))
 
     for module_name, module_path in modules:
         logger.warning("Destroying partial infra module: %s", module_name)
@@ -1830,7 +1830,7 @@ async def _post_slack_alert(state: DevOpsState, reason: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# packages/agents/devops/utils/retry.py
+# AUTOFOUNDER-BACKEND/app/agents/devops/utils/retry.py
 
 import asyncio
 import functools
@@ -1889,7 +1889,7 @@ def with_retry(node_name: str):
 ### 7.4 HITL spend gate with timeout
 
 ```python
-# packages/agents/devops/nodes/hitl_spend_gate.py
+# AUTOFOUNDER-BACKEND/app/agents/devops/nodes/hitl_spend_gate.py
 
 import asyncio
 import logging
@@ -1941,7 +1941,7 @@ async def hitl_spend_gate(state: DevOpsState) -> dict:
 ### 7.5 SLA breach monitoring
 
 ```python
-# packages/agents/devops/utils/sla.py
+# AUTOFOUNDER-BACKEND/app/agents/devops/utils/sla.py
 
 import asyncio
 import logging
@@ -1982,7 +1982,7 @@ async def enforce_node_sla(node_name: str, coro):
 All Terraform state files are stored in S3 with DynamoDB locking to prevent concurrent applies for the same tenant:
 
 ```hcl
-# infra/terraform/tenants/_shared/backend.tf
+# AUTOFOUNDER-INFRA/terraform/tenants/_shared/backend.tf
 
 terraform {
   backend "s3" {

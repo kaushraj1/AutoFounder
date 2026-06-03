@@ -2,7 +2,7 @@
 
 > **AutoFounder AI** converts a single text idea into a validated, built, deployed, and marketed software business autonomously — cutting the traditional 4–7 month, $20–60K founder journey down to **~7 days at < ₹500 COGS** per MVP.
 >
-> **This file** = the strategic master plan: the *vision*, the *roadmap*, the *milestones*, and the *order of build*. It ties together the other planning docs (see [Document Map](#document-map)). For granular task status use `.claude/TASKS.md`; for who-owns-what use `task_assigned.md`; for the active phase's execution detail use `.claude/PLAN_PHASE.md`.
+> **This file** = the strategic master plan: the *vision*, the *roadmap*, the *milestones*, and the *order of build*. It ties together the other planning docs (see [Document Map](#document-map)). For granular task status use `.claude/TASKS.md`; for who-owns-what use `.claude/task_assigned.md`; for the active phase's execution detail use `.claude/PLAN_PHASE.md`.
 >
 > **Date**: 2026-06-03 · **Active product phase**: Phase 1 — Validation Engine · **Canonical authority**: `.claude/CLAUDE.md` overrides everything if any doc conflicts.
 
@@ -16,8 +16,8 @@
 | **`.claude/PLAN.md`** ← you are here | Strategic master plan | Vision, roadmap, milestones, build order |
 | `.claude/PLAN_PHASE.md` | Active phase deep-dive | Executing the **current** phase, sprint by sprint |
 | `.claude/TASKS.md` | 78-task tracker (AF-001…AF-078) | Per-task status & dependencies |
-| `task_assigned.md` | Per-person ownership + independence + gaps | Who builds what, what's blocked |
-| `PLAN.md` (repo root) | From-scratch build sequence (S0–S4, file order) | The granular engineering bring-up of the platform |
+| `.claude/task_assigned.md` | Per-person ownership + independence + gaps | Who builds what, what's blocked |
+| `.claude/PLAN-BUILD-SEQUENCE.md` | From-scratch build sequence (S0–S4, file order) | The granular engineering bring-up of the platform |
 | `.claude/MEMORY.md` | Quick-reference (stack, dirs, commands, branches) | Fast onboarding / day-to-day lookups |
 | `.claude/SKILL.md` | Dev skill (conventions + checklists) | Rules to follow while coding |
 
@@ -146,8 +146,8 @@ There are **two independent ways** the work is phased. Keeping them distinct avo
 - **Architecture / SLAs / agents** → `.claude/CLAUDE.md`
 - **Active phase execution** → `.claude/PLAN_PHASE.md`
 - **Task status (AF-IDs)** → `.claude/TASKS.md`
-- **Ownership / dependencies / gaps** → `task_assigned.md`
-- **Granular bring-up (file order, sprints S0–S4)** → `PLAN.md` (repo root)
+- **Ownership / dependencies / gaps** → `.claude/task_assigned.md`
+- **Granular bring-up (file order, sprints S0–S4)** → `.claude/PLAN-BUILD-SEQUENCE.md`
 - **Stack / commands / branches** → `.claude/MEMORY.md`
 - **Coding conventions / checklists** → `.claude/SKILL.md`
 

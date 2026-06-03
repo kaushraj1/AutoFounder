@@ -421,7 +421,7 @@ graph TB
 
 ```mermaid
 graph LR
-    UDAL["Unified Data Access Layer\n(packages/db)\nEnforces tenant_id · Routes calls\nEmits lineage events"]
+    UDAL["Unified Data Access Layer\n(AUTOFOUNDER-BACKEND/app/db)\nEnforces tenant_id · Routes calls\nEmits lineage events"]
 
     UDAL -->|"udal.relational()"| PG["PostgreSQL 16\nRDS Multi-AZ\nSchema-per-tenant + RLS\nruns · artifacts · gates\nmemory.episodes · prompt_registry"]
     UDAL -->|"udal.vector()"| VEC["Supabase pgvector\nPGVECTOR extension\nvector(768) HNSW index\nSchema-per-tenant\n7 collections"]
@@ -470,10 +470,10 @@ graph TB
     MOBILE[Mobile / Webhooks] -->|"REST HTTPS"| GW
     ADMIN[Admin Dashboard] -->|"REST HTTPS"| GW
 
-    GW["FastAPI API Gateway\napps/api :8000\nAuth · Tenancy · Rate-limits\nJWT validation"]
+    GW["FastAPI API Gateway\nAUTOFOUNDER-BACKEND :8000\nAuth · Tenancy · Rate-limits\nJWT validation"]
 
-    GW -->|"gRPC"| ORCH[LangGraph Orchestrator\napps/orchestrator]
-    GW -->|"gRPC"| AI[FastAPI Agent Workers\napps/ai-services]
+    GW -->|"gRPC"| ORCH[LangGraph Orchestrator\nAUTOFOUNDER-BACKEND/app/orchestrator]
+    GW -->|"gRPC"| AI[FastAPI Agent Workers\nAUTOFOUNDER-BACKEND/app/workers]
     GW -->|"WebSocket /v1/runs/{id}/stream"| RT[Supabase Realtime\nManaged WebSocket]
 
     ORCH -->|"gRPC"| AI
@@ -493,7 +493,7 @@ graph TB
 | `GET` | `/v1/llmops/cost?tenant_id=…` | Per-tenant cost telemetry |
 | `POST` | `/v1/feedback` | Accept/reject signal for RLHF |
 
-All new endpoints require an OpenAPI 3.1 entry in `apps/api/openapi.yaml`. Breaking changes use `/v2/` namespacing.
+All new endpoints require an OpenAPI 3.1 entry in `AUTOFOUNDER-BACKEND/openapi.yaml`. Breaking changes use `/v2/` namespacing.
 
 ---
 
@@ -539,10 +539,10 @@ graph TB
         end
 
         subgraph PRIVATE_APP["Private App Subnets (AZ-a, AZ-b)"]
-            ECS_WEB["ECS Fargate\napps/web :3000\nFounder Portal"]
-            ECS_API["ECS Fargate\napps/api :8000\nFastAPI API GW"]
-            ECS_AI["ECS Fargate\napps/ai-services :8000\nFastAPI Agent Workers"]
-            ECS_ORCH["ECS Fargate\napps/orchestrator\nLangGraph Engine"]
+            ECS_WEB["ECS Fargate\nAUTOFOUNDER-FRONTEND-WEB :3000\nFounder Portal"]
+            ECS_API["ECS Fargate\nAUTOFOUNDER-BACKEND :8000\nFastAPI API GW"]
+            ECS_AI["ECS Fargate\nAUTOFOUNDER-BACKEND/app/workers :8000\nFastAPI Agent Workers"]
+            ECS_ORCH["ECS Fargate\nAUTOFOUNDER-BACKEND/app/orchestrator\nLangGraph Engine"]
             ECS_RT["Supabase Realtime\nManaged WebSocket\npg_notify broadcast"]
         end
 

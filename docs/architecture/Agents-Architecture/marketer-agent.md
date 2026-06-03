@@ -55,7 +55,7 @@ All content passes a **Hallucination Check** (cross-referenced against the Archi
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# packages/agents/marketer/schema.py
+# AUTOFOUNDER-BACKEND/app/agents/marketer/schema.py
 
 from __future__ import annotations
 
@@ -408,7 +408,7 @@ class MarketerState(BaseModel):
 ### 3.2 Graph definition
 
 ```python
-# packages/agents/marketer/graph.py
+# AUTOFOUNDER-BACKEND/app/agents/marketer/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -564,7 +564,7 @@ def build_marketer_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# packages/agents/marketer/routers.py
+# AUTOFOUNDER-BACKEND/app/agents/marketer/routers.py
 
 def route_after_ingest(state: MarketerState) -> str:
     if state.fatal_error or not state.live_url:
@@ -672,7 +672,7 @@ flowchart TD
 ### 4.1 Tool definitions (LangChain-compatible)
 
 ```python
-# packages/agents/marketer/tools.py
+# AUTOFOUNDER-BACKEND/app/agents/marketer/tools.py
 
 import os
 import httpx
@@ -897,7 +897,7 @@ All prompts use **GPT-4o** (copy writing, long-form content) or **Claude Sonnet*
 ### 5.1 `analyse_brand` — Brand Voice & Positioning
 
 ```jinja2
-{# packages/agents/marketer/prompts/analyse_brand.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/marketer/prompts/analyse_brand.j2 #}
 
 SYSTEM:
 You are a brand strategist for a SaaS product launch. Analyse the idea, Lean Canvas,
@@ -933,7 +933,7 @@ Return:
 ### 5.2 `generate_landing_page` — Landing Page Copy
 
 ```jinja2
-{# packages/agents/marketer/prompts/generate_landing_page.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/marketer/prompts/generate_landing_page.j2 #}
 
 SYSTEM:
 You are a conversion copywriter writing a SaaS landing page. Every claim must be
@@ -986,7 +986,7 @@ For the "faq" section: 4–6 Q&A pairs addressing common objections.
 ### 5.3 `generate_seo_blogs` — SEO Blog Drafts
 
 ```jinja2
-{# packages/agents/marketer/prompts/generate_seo_blogs.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/marketer/prompts/generate_seo_blogs.j2 #}
 
 SYSTEM:
 You are an SEO content strategist and long-form writer. Write blog posts that rank
@@ -1029,7 +1029,7 @@ Post topics must cover: (1) problem-aware readers, (2) solution-aware readers,
 ### 5.4 `generate_product_hunt_kit` — Product Hunt Launch Assets
 
 ```jinja2
-{# packages/agents/marketer/prompts/generate_product_hunt_kit.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/marketer/prompts/generate_product_hunt_kit.j2 #}
 
 SYSTEM:
 You are a Product Hunt launch specialist. Write copy that is concise, benefit-focused,
@@ -1068,7 +1068,7 @@ Return:
 ### 5.5 `generate_social_posts` — Social Media Copy
 
 ```jinja2
-{# packages/agents/marketer/prompts/generate_social_posts.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/marketer/prompts/generate_social_posts.j2 #}
 
 SYSTEM:
 You are a social media copywriter. Write platform-native content — do NOT copy the
@@ -1115,7 +1115,7 @@ Return:
 ### 5.6 `generate_email_sequences` — Email Drip Campaigns
 
 ```jinja2
-{# packages/agents/marketer/prompts/generate_email_sequences.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/marketer/prompts/generate_email_sequences.j2 #}
 
 SYSTEM:
 You are an email marketing specialist writing high-deliverability drip sequences.
@@ -1169,7 +1169,7 @@ Return a JSON array with two sequence objects:
 ### 5.7 `generate_visual_assets` — DALL-E 3 Brand Visuals
 
 ```jinja2
-{# packages/agents/marketer/prompts/generate_visual_assets.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/marketer/prompts/generate_visual_assets.j2 #}
 
 SYSTEM:
 You are a brand designer writing DALL-E 3 prompts for SaaS product visuals.
@@ -1206,7 +1206,7 @@ For each asset call the generate_image tool and return:
 ### 5.8 `hallucination_check` — Feature Cross-Reference
 
 ```jinja2
-{# packages/agents/marketer/prompts/hallucination_check.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/marketer/prompts/hallucination_check.j2 #}
 
 SYSTEM:
 You are a content accuracy auditor for a SaaS marketing team. Your job is to find
@@ -1259,7 +1259,7 @@ Return:
 ### 5.9 `render_gtm_report` — GTM Report
 
 ```jinja2
-{# packages/agents/marketer/prompts/render_gtm_report.j2 #}
+{# AUTOFOUNDER-BACKEND/app/agents/marketer/prompts/render_gtm_report.j2 #}
 
 SYSTEM:
 You are a technical writer assembling a Go-To-Market launch report in Markdown.
@@ -1564,7 +1564,7 @@ sequenceDiagram
 ### 7.2 Error handler node
 
 ```python
-# packages/agents/marketer/nodes/error_handler.py
+# AUTOFOUNDER-BACKEND/app/agents/marketer/nodes/error_handler.py
 
 import logging
 import os
@@ -1648,7 +1648,7 @@ async def _post_slack_alert(state: MarketerState, reason: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# packages/agents/marketer/utils/retry.py
+# AUTOFOUNDER-BACKEND/app/agents/marketer/utils/retry.py
 
 import asyncio
 import functools
@@ -1706,7 +1706,7 @@ def with_retry(node_name: str):
 ### 7.4 LLM parse-error self-correction
 
 ```python
-# packages/agents/marketer/utils/llm_parse.py
+# AUTOFOUNDER-BACKEND/app/agents/marketer/utils/llm_parse.py
 
 import json
 import logging
@@ -1757,7 +1757,7 @@ async def parse_with_correction(
 ### 7.5 Launch Control Center with partial-approval support
 
 ```python
-# packages/agents/marketer/nodes/launch_control_center.py
+# AUTOFOUNDER-BACKEND/app/agents/marketer/nodes/launch_control_center.py
 
 import asyncio
 import logging
@@ -1817,7 +1817,7 @@ async def launch_control_center(state: MarketerState) -> dict:
 ### 7.6 SLA breach monitoring
 
 ```python
-# packages/agents/marketer/utils/sla.py
+# AUTOFOUNDER-BACKEND/app/agents/marketer/utils/sla.py
 
 import asyncio
 import logging
