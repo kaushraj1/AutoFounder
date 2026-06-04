@@ -16,6 +16,7 @@ dependencies = [
   "alembic>=1.13.0",
   "structlog>=24.4.0",
   "httpx>=0.27.0",
+  "pyjwt>=2.8.0",
 ]
 
 [dependency-groups]
@@ -53,7 +54,8 @@ extend-exclude = ["alembic"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 # B008: FastAPI's `param: T = Depends(...)` is the idiomatic DI pattern, not a bug.
-ignore = ["B008"]
+# UP046: Support Generic[T] classes without forcing Python 3.12-only type parameter syntax.
+ignore = ["B008", "UP046"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
