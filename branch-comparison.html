@@ -220,6 +220,21 @@
   .vfoot .vc b{display:block;font-family:var(--serif);font-size:1.3rem;color:var(--gold);margin-bottom:6px}
   .vfoot .vc span{font-size:.88rem;color:var(--muted);line-height:1.45}
 
+  /* ---------- team roster ---------- */
+  .roster{display:grid;grid-template-columns:repeat(2,1fr);gap:2px 30px}
+  @media(max-width:820px){.roster{grid-template-columns:1fr}}
+  .owner{display:flex;gap:12px;align-items:baseline;border-bottom:1px solid var(--line-soft);padding:8px 0}
+  .owner .pn{font-family:var(--mono);font-size:.66rem;color:var(--teal);flex:none;width:34px;letter-spacing:.04em}
+  .owner .who{font-weight:700;color:var(--ink);font-size:.92rem;flex:none;min-width:122px}
+  .owner .area{color:var(--muted);font-size:.83rem;line-height:1.3}
+  .ruleband{margin-top:20px;border:1px solid var(--line);border-left:3px solid var(--teal);border-radius:12px;padding:16px 20px;background:rgba(82,199,156,.05)}
+  .ruleband .rt{font-weight:700;color:var(--ink);margin-bottom:5px;font-size:.96rem}
+  .ruleband p{color:var(--muted);font-size:.88rem;line-height:1.5}
+  .phasepills{display:flex;gap:10px;margin-top:13px;flex-wrap:wrap}
+  .phasepills span{font-family:var(--mono);font-size:.74rem;padding:6px 12px;border-radius:999px;border:1px solid var(--line)}
+  .phasepills .done{color:var(--add);border-color:rgba(92,201,138,.3);background:var(--add-bg)}
+  .phasepills .todo{color:var(--amber);border-color:rgba(231,154,82,.3);background:rgba(231,154,82,.06)}
+
   /* ---------- chrome: progress, dots, counter, hint ---------- */
   .progress{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--amber),var(--gold),var(--teal));z-index:20;transition:width .5s ease}
   .counter{position:fixed;bottom:26px;left:clamp(20px,4vw,52px);z-index:20;font-family:var(--mono);font-size:.78rem;color:var(--muted);letter-spacing:.1em}
@@ -255,7 +270,7 @@
     <div class="slide-inner title-wrap">
       <div class="kicker" data-reveal>Branch comparison · architecture changelog</div>
       <h1 data-reveal><span class="amber">dev</span><span class="branch-arrow">→</span><span class="teal">vishal-test</span></h1>
-      <p class="lede" data-reveal>The Phase-1 <span class="serif-em gold">reconciliation</span> — bringing the repository's structure, docs, and tooling in line with decisions the team had <span class="serif-em">already made</span>, and pouring the first runnable backend foundation.</p>
+      <p class="lede" data-reveal>The Phase-1 <span class="serif-em gold">reconciliation</span> — bringing the repository's structure, docs, and tooling in line with decisions the team had <span class="serif-em">already made</span>, pouring the first runnable backend, purging years of repo debt, and handing every pillar to a <span class="serif-em">named owner</span>.</p>
       <svg class="graph" data-reveal width="560" height="86" viewBox="0 0 560 86" fill="none">
         <line x1="20" y1="43" x2="150" y2="43" stroke="#6f6250" stroke-width="2"/>
         <path d="M150 43 C 220 43, 240 18, 320 18 L 540 18" stroke="var(--teal)" stroke-width="2.5" fill="none"/>
@@ -264,14 +279,14 @@
         <circle cx="540" cy="18" r="7" fill="var(--teal)"/>
         <circle cx="540" cy="68" r="6" fill="var(--amber)"/>
         <text x="150" y="34" fill="#a8987f" font-family="JetBrains Mono" font-size="11" text-anchor="middle">merge-base 8d574b2</text>
-        <text x="540" y="13" fill="var(--teal)" font-family="JetBrains Mono" font-size="11" text-anchor="end">vishal-test · +31 commits</text>
+        <text x="540" y="13" fill="var(--teal)" font-family="JetBrains Mono" font-size="11" text-anchor="end">vishal-test · +32 commits</text>
         <text x="540" y="84" fill="var(--amber)" font-family="JetBrains Mono" font-size="11" text-anchor="end">dev @ 5ca394c (pre-refactor)</text>
       </svg>
       <div class="title-meta" data-reveal>
         <span class="chip"><span class="dot a"></span>dev @ 5ca394c = the older stage</span>
-        <span class="chip"><span class="dot t"></span>vishal-test = the refactor</span>
-        <span class="chip mono">482 files · +4,367 / −2,488</span>
-        <span class="chip"><span class="dot t"></span>since merged → dev (PR #7)</span>
+        <span class="chip"><span class="dot t"></span>vishal-test = refactor + cleanup + team plans</span>
+        <span class="chip mono">169 source files · node_modules 2,982 → 0</span>
+        <span class="chip"><span class="dot t"></span>merged → dev (PR #7) · now +17 ahead</span>
       </div>
     </div>
   </section>
@@ -313,32 +328,32 @@
   <section class="slide">
     <div class="slide-inner">
       <div class="kicker teal" data-reveal>02 · By the numbers</div>
-      <h2 data-reveal>What the refactor moved</h2>
+      <h2 data-reveal>What 32 commits moved</h2>
       <div class="stat-row">
         <div class="stat" data-reveal>
-          <div class="num teal" data-count="482" data-suffix="">0</div>
-          <div class="lab">files changed</div>
-          <div class="sub">303 deleted · 72 added · 99 modified · 8 renamed</div>
+          <div class="num teal" data-count="169" data-suffix="">0</div>
+          <div class="lab">real files changed</div>
+          <div class="sub">+14,296 / −2,998 — code, docs &amp; team plans</div>
         </div>
         <div class="stat" data-reveal>
-          <div class="num addc" data-count="3758" data-prefix="+">0</div>
-          <div class="lab">real lines added</div>
-          <div class="sub">code · docs · config (excludes vendored)</div>
+          <div class="num rmc" data-count="2982" data-prefix="−">0</div>
+          <div class="lab">node_modules files purged</div>
+          <div class="sub">2,982 → 0 · ≈881k lines · now gitignored</div>
         </div>
         <div class="stat" data-reveal>
-          <div class="num rmc" data-count="2002" data-prefix="−">0</div>
-          <div class="lab">real lines removed</div>
-          <div class="sub">across 141 hand-edited files</div>
+          <div class="num addc" data-count="7563" data-prefix="+">0</div>
+          <div class="lab">lines of team plans</div>
+          <div class="sub">14 per-developer execution blueprints</div>
         </div>
       </div>
       <div class="splitbar" data-reveal>
-        <i class="real" style="width:29%"></i><i class="vend" style="width:71%"></i>
+        <i class="real" style="width:5%"></i><i class="vend" style="width:95%"></i>
       </div>
       <div class="splitlegend" data-reveal>
-        <span><span class="sq" style="background:var(--teal)"></span>141 real files — the actual work (+3,758 / −2,002)</span>
-        <span><span class="sq" style="background:#6b5538"></span>341 vendored files — node_modules &amp; lockfile churn (+609 / −486)</span>
+        <span><span class="sq" style="background:var(--teal)"></span>169 real files — backend, migrated docs &amp; team plans</span>
+        <span><span class="sq" style="background:#6b5538"></span>3,009 vendored files — the one-time node_modules purge</span>
       </div>
-      <p class="sub" data-reveal style="margin-top:24px;max-width:72ch">Headline diff is 482 files across 31 commits — but most is lockfile / vendored noise. The <b class="teal">signal</b> is ~141 files: a new backend, migrated docs, and project tooling.</p>
+      <p class="sub" data-reveal style="margin-top:24px;max-width:74ch">Raw diff is 3,178 files — but ~3,000 are the <b>one-time node_modules purge</b>. The <b class="teal">signal</b> is ~169 files: a runnable backend, migrated docs, hardened tooling, and a 10-person execution plan.</p>
     </div>
   </section>
 
@@ -451,10 +466,12 @@
         <div data-reveal>
           <div class="tree old" style="font-size:.84rem">
             <h5><span class="dot a"></span>removed / relocated</h5>
+            <div class="rmln">✗ node_modules/ <span class="d">2,982 files · ≈881k lines</span></div>
+            <div class="rmln">✗ every .DS_Store <span class="d">(repo-wide)</span></div>
             <div class="rmln">✗ test.py · test.txt · test_file.py</div>
-            <div class="rmln">✗ projectstructure-steps.txt</div>
-            <div class="rmln">✗ mobile-app/.DS_Store</div>
-            <div class="rmln">✗ scripts/dev-setup.* <span class="d">(dupes)</span></div>
+            <div class="rmln">✗ projectstructure-steps.txt · dev-setup.* dupes</div>
+            <div class="rmln">✗ packages/agents/** <span class="d">11 retired .gitkeep stubs</span></div>
+            <div class="rmln">✗ website/dist/ <span class="d">build output · now untracked</span></div>
             <div class="adln">↳ PLAN.md → .claude/PLAN-BUILD-SEQUENCE.md</div>
             <div class="adln">↳ task_assigned.md → .claude/</div>
           </div>
@@ -462,7 +479,7 @@
         <div data-reveal style="display:flex;flex-direction:column;gap:16px;justify-content:center">
           <div class="kitem"><span class="ico">✓</span><div><div class="kt">Lowercase directories</div><div class="kd">Standard <span class="mono">backend/ frontend/</span> naming — after an interim <span class="mono">UPPERCASE</span> experiment was tried and deliberately reversed.</div></div></div>
           <div class="kitem"><span class="ico">✓</span><div><div class="kt">admin de-duplicated</div><div class="kd">The separate <span class="mono">apps/admin</span> shell is gone; admin is now a role-guarded <span class="mono">/admin</span> route group inside the frontend.</div></div></div>
-          <div class="kitem warn"><span class="ico">~</span><div><div class="kt">node_modules trimmed, not purged</div><div class="kd">281 vendored files dropped (with the deleted apps); ~2,701 are <b>still tracked</b> — a known follow-up.</div></div></div>
+          <div class="kitem"><span class="ico">✓</span><div><div class="kt">node_modules fully purged</div><div class="kd">All <b>2,982 → 0</b> tracked vendored files gone (≈881k lines), now in <span class="mono">.gitignore</span> with <span class="mono">__pycache__</span> · <span class="mono">.venv</span> · <span class="mono">.DS_Store</span>.</div></div></div>
         </div>
       </div>
     </div>
@@ -502,7 +519,7 @@
       <div class="klist" style="margin-top:20px">
         <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">The brand &amp; the npm scope</div><div class="kd">“AutoFounder AI” and the <span class="mono">@autofounder-ai</span> scope stay — only <span class="mono">frontend-web</span> → <span class="mono">frontend</span> was renamed.</div></div></div>
         <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">The stack decisions themselves</div><div class="kd">FastAPI, Supabase, ECS, Gemini were <b>already correct</b> in dev's specs. This refactor reconciles reality to them — it does not re-litigate them.</div></div></div>
-        <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">packages/ as a TypeScript home</div><div class="kd">Kept for <span class="mono">shared</span> + <span class="mono">api-client</span>; <span class="mono">agents/db/eval/guardrails/prompts/tools</span> remain as <span class="mono">.gitkeep</span> placeholders for later.</div></div></div>
+        <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">packages/ as a TypeScript home</div><div class="kd">Kept strictly for <span class="mono">shared</span> + <span class="mono">api-client</span> — the retired per-domain <span class="mono">agents/…</span> <span class="mono">.gitkeep</span> stubs have since been removed to match the canonical structure.</div></div></div>
         <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">mobile-app · website · vscode-extension · infra</div><div class="kd">Out of Phase-1 scope — left intact rather than churned.</div></div></div>
         <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">coder-agent.md's <span class="mono">apps/*</span> references</div><div class="kd">Intentionally not migrated — they describe the <b>generated client app</b>, not this platform's own layout.</div></div></div>
       </div>
@@ -514,12 +531,11 @@
     <div class="slide-inner">
       <div class="kicker" data-reveal>10 · Why <em style="font-style:italic">not</em> everything changed — deferred on purpose</div>
       <h2 data-reveal>A foundation, not the finished house</h2>
-      <p class="sub" data-reveal style="margin-bottom:20px;max-width:70ch">Phase 1 = ship a runnable, tested skeleton first; fill it in sprint by sprint. So plenty is intentionally still stubbed:</p>
+      <p class="sub" data-reveal style="margin-bottom:20px;max-width:72ch">Phase 1 = ship a runnable, tested skeleton first; fill it in sprint by sprint. So plenty is intentionally still stubbed — but each piece now has a <b class="teal">named owner</b> (next slide):</p>
       <div class="klist">
-        <div class="kitem warn" data-reveal><span class="ico">~</span><div><div class="kt">frontend/ is still a stub</div><div class="kd">Only <span class="mono">placeholder.ts</span> exists — the <span class="mono">/admin</span> route group is a recorded <b>decision</b>, not yet built UI.</div></div></div>
-        <div class="kitem warn" data-reveal><span class="ico">~</span><div><div class="kt">Agents are skeletons</div><div class="kd">Base contract + Strategy / Research / Product-Planner stubs; orchestrator &amp; guardrails are scaffolds, not full implementations.</div></div></div>
-        <div class="kitem warn" data-reveal><span class="ico">~</span><div><div class="kt">packages/* domains are placeholders</div><div class="kd">Empty <span class="mono">.gitkeep</span> folders reserved for future sprints.</div></div></div>
-        <div class="kitem warn" data-reveal><span class="ico">~</span><div><div class="kt">node_modules still tracked (~2,701 files)</div><div class="kd">Remaining hygiene debt to purge + .gitignore — a clean follow-up, kept out of this structural PR.</div></div></div>
+        <div class="kitem warn" data-reveal><span class="ico">~</span><div><div class="kt">frontend/ is still a stub</div><div class="kd">Only <span class="mono">placeholder.ts</span> exists — the <span class="mono">/admin</span> route group is a recorded <b>decision</b>, not yet built UI. → <b class="teal">Raunak (web) · Yogesh (mobile)</b>, on mock data.</div></div></div>
+        <div class="kitem warn" data-reveal><span class="ico">~</span><div><div class="kt">Agents are skeletons</div><div class="kd">Base contract + Strategy / Research / Product-Planner stubs; orchestrator &amp; guardrails are scaffolds. → <b class="teal">Somesh, Kaushlendra, Kartik, Vishal, Prasenjit, Pallavi, Purnima</b> (Pillars 1–7).</div></div></div>
+        <div class="kitem warn" data-reveal><span class="ico">~</span><div><div class="kt">Shared foundation lands first</div><div class="kd">UDAL, BaseAgent, the LLM Router &amp; Prompt Registry are still stubs — the platform groundwork every pillar depends on. → <b class="teal">Asit + Purnima</b>.</div></div></div>
       </div>
     </div>
   </section>
@@ -542,25 +558,51 @@
     </div>
   </section>
 
-  <!-- 13 · WHERE IT STANDS NOW -->
+  <!-- 13 · TEAM EXECUTION PLAN -->
   <section class="slide">
     <div class="slide-inner">
-      <div class="kicker teal" data-reveal>12 · Where it stands now</div>
-      <h2 data-reveal>The refactor was accepted — and merged</h2>
-      <p class="sub" data-reveal style="margin-bottom:22px;max-width:76ch">This deck compares <b class="amber">dev at its pre-refactor snapshot</b> (commit <span class="mono">5ca394c</span>) against <b class="teal">vishal-test</b>. Since that snapshot, the work has landed in <span class="mono">dev</span> itself:</p>
-      <div class="klist">
-        <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">PR #7 merged vishal-test → dev</div><div class="kd">Live <span class="mono">dev</span> (<span class="mono">6d34c41</span>) now ships <span class="mono">backend/app</span> and no longer carries <span class="mono">apps/api</span>.</div></div></div>
-        <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">The branches are now in sync</div><div class="kd">Today <span class="mono">dev</span> and <span class="mono">vishal-test</span> differ by just <b>3 trivial files</b> — a README, a placeholder server, and package.json.</div></div></div>
-        <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">“Why the change?” — answered by adoption</div><div class="kd">It wasn't merely proposed; it was reviewed and accepted as the project's real structure.</div></div></div>
+      <div class="kicker teal" data-reveal>12 · How the rest gets built</div>
+      <h2 data-reveal>From a foundation to a 10-person plan</h2>
+      <p class="sub" data-reveal style="margin-bottom:18px;max-width:80ch">The latest commit adds <span class="mono">.claude/developer-plans/</span> — <b>14 per-developer technical blueprints</b> (+7,563 lines), each a 10-section + 3-appendix spec. Every pillar and surface now has a named owner.</p>
+      <div class="roster" data-reveal>
+        <div class="owner"><span class="pn">LEAD</span><span class="who">Asit Piri</span><span class="area">Platform · Guardrails · VS Code ext · Finance/Ops-Risk</span></div>
+        <div class="owner"><span class="pn">P5</span><span class="who">Prasenjit</span><span class="area">Deployment &amp; Infrastructure</span></div>
+        <div class="owner"><span class="pn">P1</span><span class="who">Somesh</span><span class="area">Idea Validation &amp; Market Research</span></div>
+        <div class="owner"><span class="pn">P6</span><span class="who">Pallavi</span><span class="area">Marketing &amp; Launch Automation</span></div>
+        <div class="owner"><span class="pn">P2</span><span class="who">Kaushlendra</span><span class="area">Architecture &amp; Tech-Stack Design</span></div>
+        <div class="owner"><span class="pn">P7</span><span class="who">Purnima</span><span class="area">LLMOps + shared Router / Prompt / Eval</span></div>
+        <div class="owner"><span class="pn">P3</span><span class="who">Kartik</span><span class="area">Autonomous Code Generation</span></div>
+        <div class="owner"><span class="pn">WEB</span><span class="who">Raunak</span><span class="area">Web Founder Portal (on mock data)</span></div>
+        <div class="owner"><span class="pn">P4</span><span class="who">Vishal Prasad</span><span class="area">Testing &amp; Self-Healing</span></div>
+        <div class="owner"><span class="pn">APP</span><span class="who">Yogesh</span><span class="area">Mobile app · Expo (on mock data)</span></div>
       </div>
-      <p class="pull" data-reveal style="margin-top:26px">The “older stage” is now history — dev caught up to vishal-test.</p>
+      <div class="ruleband" data-reveal>
+        <div class="rt">The one rule that orders every dependency</div>
+        <p>Every pillar (1–7) needs the <b>shared backend foundation first</b> — UDAL, BaseAgent, the LLM Router + Prompt Registry, and the Orchestrator (Asit + Purnima). Until those land, owners build <span class="mono">offline</span> — prompts, tools, schemas, mocked tests; web &amp; mobile run on mock data and swap in the real API client later.</p>
+        <div class="phasepills"><span class="done">Phase 1 ✓ done — Validation Engine</span><span class="todo">Phase 2 ✗ not started</span><span class="done">Target: 10 pilot clients</span></div>
+      </div>
     </div>
   </section>
 
-  <!-- 14 · VERDICT -->
+  <!-- 14 · WHERE IT STANDS NOW -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="kicker teal" data-reveal>13 · Where it stands now</div>
+      <h2 data-reveal>dev caught up once — vishal-test is already a lap ahead</h2>
+      <p class="sub" data-reveal style="margin-bottom:22px;max-width:78ch">This deck compares <b class="amber">dev at its pre-refactor snapshot</b> (commit <span class="mono">5ca394c</span>) against <b class="teal">vishal-test</b>. The branch history since:</p>
+      <div class="klist">
+        <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">PR #7 merged the refactor → dev</div><div class="kd">Live <span class="mono">dev</span> (<span class="mono">6d34c41</span>) now ships <span class="mono">backend/app</span> and dropped <span class="mono">apps/api</span>. The structure was reviewed and adopted.</div></div></div>
+        <div class="kitem warn" data-reveal><span class="ico">~</span><div><div class="kt">vishal-test then moved on again</div><div class="kd">It's <b>+17 commits / 53 files</b> ahead of dev: the node_modules purge, 14 team plans, and the fleshed-out specs — dev's <b>next</b> merge.</div></div></div>
+        <div class="kitem warn" data-reveal><span class="ico">~</span><div><div class="kt">dev still carries the old debt for now</div><div class="kd"><span class="mono">origin/dev</span> still tracks <b>2,701 node_modules</b> + 5 <span class="mono">.DS_Store</span> until this cleanup wave lands.</div></div></div>
+      </div>
+      <p class="pull" data-reveal style="margin-top:24px">The refactor is now the project's real structure — and the cleanup is right behind it.</p>
+    </div>
+  </section>
+
+  <!-- 15 · VERDICT -->
   <section class="slide verdict">
     <div class="slide-inner">
-      <div class="kicker teal" data-reveal>13 · Verdict</div>
+      <div class="kicker teal" data-reveal>14 · Verdict</div>
       <p class="big" data-reveal>The repo now tells <span class="gold">one story</span> end-to-end — structure, docs, and tooling finally agree with the decisions.</p>
       <div class="vfoot">
         <div class="vc" data-reveal><b>Aligned</b><span>Physical structure now equals the decided stack. No more lying map.</span></div>
@@ -575,7 +617,7 @@
 
 <!-- chrome -->
 <div class="dots" id="dots"></div>
-<div class="counter"><b id="cur">01</b> / <span id="total">14</span></div>
+<div class="counter"><b id="cur">01</b> / <span id="total">15</span></div>
 <div class="hint" id="hint">← → · space · scroll · tap dots to navigate</div>
 <div class="nav">
   <button id="prev" aria-label="Previous">←</button>
