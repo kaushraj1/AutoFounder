@@ -10,11 +10,11 @@
 |-------|-------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | 11 | 11 | 0 |
 | Phase 2 | Infrastructure & Cloud | 13 | 0 | 13 |
-| Phase 3 | Backend — FastAPI + Agents | 22 | 0 | 22 |
+| Phase 3 | Backend — FastAPI + Agents | 26 | 0 | 26 |
 | Phase 4 | Frontend — Next.js 14 | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | 9 | 0 | 9 |
 | Phase 6 | VS Code Extension | 7 | 0 | 7 |
-| **Total** | | **74** | **11** | **63** |
+| **Total** | | **78** | **11** | **67** |
 
 ---
 
@@ -214,3 +214,4 @@ Phase 3 sub-phases: 3a (API + DB) → 3b (Orchestrator) → 3c (Agents) → 3d (
 |------|---------|--------|-------------|
 | 2026-05-20 | 1.0.0 | Team | Initial TASKS.md — 74 tasks across 6 phases; Phase 1 marked complete from existing monorepo scaffold |
 | 2026-05-26 | 1.1.0 | Team | Tech stack alignment: Supabase (PostgreSQL + pgvector + Realtime) replaces RDS + MongoDB Atlas + Go WebSocket; Gemini 3.5 Flash replaces Claude Sonnet / GPT-4o; Supabase Auth replaces Auth0; Confluent Kafka added as primary event bus; SQLAlchemy replaces Prisma |
+| 2026-06-04 | 1.1.1 | Team | Count fix: Phase 3 corrected 22 → 26 (3a 8 + 3b 3 + 3c 10 + 3d 5); total 74 → 78 (AF-001…AF-078). Now matches `task_assigned.md`. |
