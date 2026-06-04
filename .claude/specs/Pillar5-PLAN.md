@@ -69,7 +69,7 @@ A validated `CoderOutput` (proto in `docs/architecture/Agents-Architecture/coder
 - has ≥ 80% coverage,
 - passes Trivy / Semgrep / Snyk,
 - exposes its services + images via ECR URIs,
-- carries `tenant_id`, `parent_run_id`, `grandparent_run_id` (Architect), and `idea_normalised`/`domain`.
+- carries `organization_id`, `parent_run_id`, `grandparent_run_id` (Architect), and `idea_normalised`/`domain`.
 
 For local development you will use `.claude/specs/pillar5-dummy-input.json` (created alongside this plan).
 
@@ -81,7 +81,7 @@ A `DevOpsOutput` (proto in `docs/architecture/Agents-Architecture/devops-agent.m
 - CI/CD workflow path + repo URL,
 - smoke-test summary (all green, P99 latency),
 - monitoring handles (CloudWatch log group, Grafana URL, alarm count),
-- a Markdown deploy report at `s3://autofounder-artefacts/{tenant_id}/{run_id}/deploy-report.md`.
+- a Markdown deploy report at `s3://autofounder-artefacts/{organization_id}/{run_id}/deploy-report.md`.
 
 ### 2.3 Sub-tasks (canonical node list — match these names)
 
@@ -105,12 +105,18 @@ A `DevOpsOutput` (proto in `docs/architecture/Agents-Architecture/devops-agent.m
 
 ### 2.4 Non-negotiables
 
-- **Tenant isolation**: every resource tagged `Tenant={tenant_id}` `RunId={run_id}`; S3 paths and Secret names prefixed `{tenant_id}/{run_id}/...`; per-tenant Terraform state in S3 with DynamoDB lock.
+- **Canonical identifier (MANDATORY)**: use `organization_id` everywhere as the tenant identifier — in schemas, paths, variables, prompts, examples, log fields, JWT claims, RLS policies, proto field names. **Do NOT use `tenant_id` anywhere.** The AWS resource **tag key** stays `Tenant=` (preserved for FinOps/observability filters) but its value source is `{{ organization_id }}`. The concept words "tenant", "multi-tenant", "per-tenant" remain in prose. See `docs/learning-log.md` (2026-06-04, Option B).
+- **Coding conventions (MANDATORY)**:
+  - Use the latest stable library versions and idiomatic patterns of the day. Don't pin old majors out of caution.
+  - Simplicity first. No over-engineering, no speculative defensive code, no extra features beyond what the task requires. Validate only at system boundaries (HTTP, queue, external API); trust internal call sites.
+  - READMEs and docstrings stay minimal — one line unless a non-obvious *why* justifies more.
+  - **No emojis** anywhere: code, comments, READMEs, commit messages, PR descriptions, Slack/email templates, log lines.
+- **Tenant isolation**: every resource tagged `Tenant={organization_id}` `RunId={run_id}`; S3 paths and Secret names prefixed `{organization_id}/{run_id}/...`; per-tenant Terraform state in S3 with DynamoDB lock.
 - **No agent touches AWS or DB directly** — all state writes go through UDAL (`packages/db`); all infra calls go through the registered tools in `packages/agents/engineering/devops/tools.py`.
 - **Guardrails wrap every call**: input (validate CoderOutput), execution (tool allow-list + cost cap), output (no leaked secrets in report).
 - **HITL spend gate is mandatory** — never `terraform apply` before approval.
 - **Idempotency**: each node must be safe to re-run from a LangGraph checkpoint (no double-create on retry).
-- **Observability tags on every signal**: `tenant_id · pillar=5 · agent_id=devops · model · run_id · env`.
+- **Observability tags on every signal**: `organization_id · pillar=5 · agent_id=devops · model · run_id · env`.
 - **Zero-downtime**: production deploys are blue/green via CodeDeploy; rollback < 60 s.
 
 ### 2.5 Definition of done
@@ -253,7 +259,7 @@ You are 🟡 blocked on AF-036 `BaseAgent`, AF-027 UDAL, AF-048 Prompt Registry,
 14. Implement `agent.py` — `DevOpsAgent` subclass of `BaseAgent` (stub the import; replace once AF-036 lands). `execute()` delegates to the compiled graph.
 15. Write unit tests for every node + router. Golden tests (Promptfoo) for prompt outputs.
 16. Write the LocalStack integration test (`tests/integration/test_localstack_e2e.py`) — spins up LocalStack, runs the full graph with a fake LLM that returns recorded fixtures, asserts a `DevOpsOutput` is produced.
-17. Write the multi-tenant isolation test — two `run_local` invocations with different `tenant_id` produce non-overlapping resource names, secret names, S3 paths, Terraform state keys.
+17. Write the multi-tenant isolation test — two `run_local` invocations with different `organization_id` produce non-overlapping resource names, secret names, S3 paths, Terraform state keys.
 
 ### When platform foundation lands
 
@@ -283,7 +289,7 @@ Use this as the PR template for `feature/devops-agent`:
 **Prompts**
 - [ ] 8 templates, all use strict Jinja2 (no undefined variables).
 - [ ] Resource tags emitted in every Terraform prompt.
-- [ ] All secret/bucket/cluster names are `{tenant_id}`-scoped.
+- [ ] All secret/bucket/cluster names are `{organization_id}`-scoped.
 
 **Tools**
 - [ ] Each tool has a `StructuredTool` + Pydantic input schema.
@@ -298,16 +304,16 @@ Use this as the PR template for `feature/devops-agent`:
 
 **Security & tenancy**
 - [ ] No `*:*` IAM in any HCL.
-- [ ] Every S3 path prefixed with `{tenant_id}/{run_id}/`.
-- [ ] Every Secrets Manager name prefixed with `{tenant_id}/{run_id}/` (incl. `{tenant_id}/{run_id}/rds`).
-- [ ] Terraform state key = `{tenant_id}/{run_id}/{module}.tfstate`; DynamoDB lock present.
+- [ ] Every S3 path prefixed with `{organization_id}/{run_id}/`.
+- [ ] Every Secrets Manager name prefixed with `{organization_id}/{run_id}/` (incl. `{organization_id}/{run_id}/rds`).
+- [ ] Terraform state key = `{organization_id}/{run_id}/{module}.tfstate`; DynamoDB lock present.
 - [ ] ECS API endpoints accessed via VPC endpoints / private routing where applicable.
 - [ ] RDS: `publicly_accessible = false`, SG inbound 5432 from ECS tasks SG only, storage encrypted, master credentials sourced from Secrets Manager (no plaintext in HCL).
 - [ ] ECS task definitions inject `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` via `secrets[]` `valueFrom` against the RDS secret ARN (never `environment[]`).
 
 **Observability**
 - [ ] OTel spans on every node.
-- [ ] Mandatory log fields: `tenant_id · pillar=5 · agent_id=devops · model · run_id · env`.
+- [ ] Mandatory log fields: `organization_id · pillar=5 · agent_id=devops · model · run_id · env`.
 - [ ] Per-tenant cost emitted to the FinOps Prometheus counter.
 
 **Tests**
@@ -336,7 +342,7 @@ A realistic `CoderOutput` (post-Reviewer) is provided at:
 
 **`.claude/specs/pillar5-dummy-input.json`**
 
-Use it via `python run_local.py --input ../../.claude/specs/pillar5-dummy-input.json`. The file is shaped exactly to the proto in `docs/architecture/Agents-Architecture/coder-agent.md` (~L2095) and contains two services (`api-gateway`, `web`) with ECR URIs, all the IDs you need (`run_id`, `parent_run_id`, `grandparent_run_id`, `tenant_id`), and the upstream artefact pointers (Architect's ERD + OpenAPI).
+Use it via `python run_local.py --input ../../.claude/specs/pillar5-dummy-input.json`. The file is shaped exactly to the proto in `docs/architecture/Agents-Architecture/coder-agent.md` (~L2095) and contains two services (`api-gateway`, `web`) with ECR URIs, all the IDs you need (`run_id`, `parent_run_id`, `grandparent_run_id`, `organization_id`), and the upstream artefact pointers (Architect's ERD + OpenAPI).
 
 Modify it freely while developing — keep the field names stable.
 

@@ -1,0 +1,1 @@
+"""HTTP health check against the deployed ALB."""
