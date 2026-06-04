@@ -75,10 +75,10 @@ There are **two independent ways** the work is phased. Keeping them distinct avo
 |-------------|-------|--------|----------|
 | 1 — Monorepo & Boilerplate | AF-001 → AF-011 | ✅ Done (11/11) | Team |
 | 2 — Infrastructure & Cloud | AF-012 → AF-024 | ❌ Pending | Asit |
-| 3 — Backend (FastAPI + Agents) | AF-025 → AF-050 | ❌ Pending | Asit (3a/3b) · Pillar owners (3c) · Purnima (3d) |
+| 3 — Backend (FastAPI + Agents) | AF-025 → AF-050 | ❌ Pending | Somesh (3a) · Asit (3b) · Pillar owners (3c) · Purnima (3d) |
 | 4 — Frontend (Next.js 14) | AF-051 → AF-062 | ❌ Pending | Raunak |
 | 5 — Mobile (Expo) | AF-063 → AF-071 | ❌ Pending | Yogesh |
-| 6 — VS Code Extension | AF-072 → AF-078 | ❌ Pending (⚪ no owner) | — |
+| 6 — VS Code Extension | AF-072 → AF-078 | ❌ Pending | Asit |
 
 **The link between them:** Product **P1 (Validation Engine)** is delivered by completing Build Phases **2 + 3a/3b + the Pillar-1 slice of 3c/3d + the validation slice of Phase 4**. You do not need all build phases to ship P1 — only the vertical slice that makes idea→Lean Canvas→PRD work end to end. The detail lives in `.claude/PLAN_PHASE.md`.
 
@@ -119,12 +119,12 @@ There are **two independent ways** the work is phased. Keeping them distinct avo
 |------|-------|
 | Build Phase 1 (Monorepo) | ✅ Complete (AF-001 → AF-011) |
 | Build Phase 2 (Infra) | ❌ Not started — **critical path, owner Asit** |
-| Foundation (UDAL, BaseAgent, FastAPI, orchestrator) | ❌ Not started — blocks all agents |
+| Foundation (UDAL, BaseAgent, FastAPI, orchestrator) | 🔄 In progress — UDAL + FastAPI complete; BaseAgent/orchestrator pending |
 | Pillar-1 agents (Strategy / Research / Product Planner) | 🟡 Offline prep only (prompts, schemas, tools) until foundation lands |
 | Frontend / Mobile | 🟡 Design on mock data can start now (Raunak / Yogesh) |
-| Supabase | Connected (project linked); migrations not yet applied |
+| Supabase | Connected (project linked); migrations applied ✅ |
 | Kafka | Confluent Cloud provisioned |
-| Open gaps | VS Code Extension unowned; Guardrails (AF-046) unowned; Pillar-1 overloaded (3 agents on one owner) — see `task_assigned.md § Part D` |
+| Open gaps | Guardrails (AF-046) unowned; Pillar-1 overloaded (3 agents on one owner) — see `task_assigned.md § Part D` |
 
 ---
 
