@@ -1,4 +1,4 @@
-#  AI — Product Requirements Document
+# AutoFounder AI — Product Requirements Document
 
 > **Version**: 1.0 | **Status**: Draft / For Review | **Date**: May 2026  
 > **Prepared by**: Euron AutoFounder AI Product Team, Bengaluru, Karnataka, India  
