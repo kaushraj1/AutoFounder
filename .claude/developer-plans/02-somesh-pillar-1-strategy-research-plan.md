@@ -73,7 +73,7 @@ Pillar 1 is the **validation engine** — the very first thing the platform does
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
 | BaseAgent ABC | AF-036 | Asit | All 3 agents subclass it | 🔴 Blocked |
-| UDAL | AF-027 | Asit | Read/write market intel + canvas via UDAL | 🔴 Blocked |
+| UDAL | AF-027 | Somesh | Read/write market intel + canvas via UDAL | ✅ Done |
 | Prompt Registry | AF-048 | Purnima | Versioned Jinja2 templates | 🟡 |
 | LLM Router | AF-049 | Purnima | Route to Gemini 3.5 Flash + RAG | 🟡 |
 | Tool Registry | AF-047 | Asit | Research tools registered | 🟡 |
@@ -114,7 +114,7 @@ Pillar 1 is the **validation engine** — the very first thing the platform does
 Input Layer (/v1/ideas)
    |
    v
-Asit AF-036 BaseAgent + AF-027 UDAL  +  Purnima AF-048/049 (Prompt Reg / Router)
+Asit's AF-036 BaseAgent + Somesh's AF-027 UDAL  +  Purnima AF-048/049 (Prompt Reg / Router)
    |                                          |
    +------------------------------------------+
                           v
@@ -330,7 +330,7 @@ normalise_idea -> idea_normalised, domain
 
 | Store | Usage | Path / Key |
 |---|---|---|
-| PostgreSQL (UDAL) | canvas, viability, personas, run artifacts | `tenant_uuid.artifacts` |
+| **Somesh (AF-027 UDAL)** | database relational/vector clients | **Completed** | Read/write runs/artifacts | `tenant_uuid.artifacts` |
 | pgvector | `market_intelligence`, `competitor_features` collections | 768-dim HNSW |
 | Redis | research result cache, session | `strategy:cache:{sha256}` |
 | S3 | 5-page market analysis PDF | `s3://.../{org}/{run}/market-analysis.pdf` |
@@ -576,7 +576,7 @@ message StrategyOutput {
 |---|---|---|---|
 | **Kaushlendra (Pillar 2)** | Agree `lean_canvas_json` + persona + PRD schema (he consumes them) | Immediately | ⬜ Pending |
 | **Pallavi (Pillar 6)** | Confirm persona + competitor format for positioning | Soon | ⬜ Pending |
-| **Asit (Platform)** | BaseAgent + UDAL + Tool Registry; flag the 3-agent load | When AF-036 starts | ⬜ Pending |
+| **Asit/Somesh (Platform)** | BaseAgent + UDAL + Tool Registry; flag the 3-agent load | When AF-036 starts | ⬜ Pending |
 | **Purnima (Pillar 7)** | Register strategy prompts (AF-048) + routing (AF-049) | When shells exist | ⬜ Pending |
 | **Raunak (Frontend)** | Validation Studio data contract (AF-055) | When mock data ready | ⬜ Pending |
 
