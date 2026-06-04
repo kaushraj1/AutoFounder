@@ -93,7 +93,7 @@ This is the thinnest *end-to-end vertical slice* that proves the platform: real 
 ## 5. Critical Path & Wiring Order
 
 ```
-Asit: AF-027 UDAL → AF-036 BaseAgent → AF-028 FastAPI → AF-030 REST contracts
+Somesh/Asit: ~~AF-027 UDAL~~ ✅ → AF-036 BaseAgent → ~~AF-028 FastAPI~~ ✅ → ~~AF-030 REST contracts~~ ✅
         │                                   └─ Raunak swaps mock data → real API client (AF-052)
         ▼
 Purnima: AF-048 Prompt Registry + AF-049 LLM Router  (+ AF-046 guardrails)
@@ -139,11 +139,11 @@ Orchestrator (AF-033) runs the DAG: Research → Strategy → [HITL gate] → Pr
 
 ## 8. Current Status & Next Action
 
-**Status**: Build Phase 1 (monorepo) ✅ done. Foundation not started.
+**Status**: Build Phase 1 (monorepo) ✅ done. Foundation: UDAL, FastAPI app, auth middleware, REST endpoints, migrations, and Supabase Realtime (AF-025–031) ✅ completed by Somesh.
 
 **Next action (unblocks the most people):**
-1. Asit: stand up Terraform networking + ECS + Supabase (AF-012–014), apply migrations (AF-025/026), build **UDAL (AF-027)** and **BaseAgent (AF-036)**.
-2. Asit: publish Pillar-1 Pydantic I/O schemas + OpenAPI spec so Somesh / Raunak / Purnima build against a frozen contract.
+1. Asit: stand up Terraform networking + ECS + Supabase (AF-012–014), build **BaseAgent (AF-036)**.
+2. Purnima: build Prompt Registry (AF-048), LiteLLM Router + RAG (AF-049), and Eval harness (AF-050).
 3. Everyone else: start the offline work listed in `§5 Do-now-in-parallel` immediately — do not idle waiting on the foundation.
 
 ---
