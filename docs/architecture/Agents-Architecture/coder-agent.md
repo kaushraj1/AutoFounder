@@ -27,9 +27,9 @@ Outputs per run:
 
 - A **GitHub repository** with full monorepo structure
 - **Next.js 14 (App Router) frontend** — auth flows, core feature pages, admin panel
-- **NestJS API** — typed controllers, services, DTOs, guards for every endpoint in the OpenAPI spec
-- **Prisma migrations** — from the Architect Agent's schema, with seed data
-- **Third-party integrations** — Stripe billing, Auth0, SendGrid transactional email
+- **FastAPI (Python 3.12) backend** — typed routers, services, schemas, dependencies for every endpoint in the OpenAPI spec
+- **SQLAlchemy models + Alembic migrations** — from the Architect Agent's schema, with seed data
+- **Third-party integrations** — Stripe billing, Supabase Auth, SendGrid transactional email
 - **CI/CD scaffolding** — Dockerfiles, docker-compose, GitHub Actions workflows
 - **Test scaffolding** — Jest unit tests (≥ 80% coverage skeleton), pytest stubs
 - A **GitHub Pull Request** targeting `main`, labelled for the Reviewer Agent
@@ -43,9 +43,9 @@ The agent parallelises frontend, backend, DB layer, integrations, and admin pane
 | Ingest + validate ArchitectOutput, fetch S3 artefacts | `ingest_input` | < 30 s |
 | GitHub repo creation + monorepo skeleton | `scaffold_repo` | < 90 s |
 | Next.js 14 frontend generation | `generate_frontend` | < 8 min |
-| NestJS API generation (all modules) | `generate_backend` | < 8 min |
-| Prisma migrations + seed script | `generate_db_layer` | < 3 min |
-| Stripe + Auth0 + SendGrid integrations | `generate_integrations` | < 5 min |
+| FastAPI backend generation (all modules) | `generate_backend` | < 8 min |
+| SQLAlchemy models + Alembic migrations + seed script | `generate_db_layer` | < 3 min |
+| Stripe + Supabase Auth + SendGrid integrations | `generate_integrations` | < 5 min |
 | Admin dashboard pages | `generate_admin_panel` | < 5 min |
 | Barrier — wait for all parallel generators | `parallel_join` | — |
 | Dockerfiles + docker-compose + GitHub Actions | `generate_ci_cd` | < 3 min |
@@ -58,7 +58,7 @@ The agent parallelises frontend, backend, DB layer, integrations, and admin pane
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# packages/agents/coder/schema.py
+# backend/app/agents/coder/schema.py
 
 from __future__ import annotations
 
@@ -87,7 +87,7 @@ class NodeStatus(StrEnum):
 class FileLanguage(StrEnum):
     TYPESCRIPT = "typescript"
     PYTHON     = "python"
-    PRISMA     = "prisma"
+    SQL        = "sql"
     YAML       = "yaml"
     JSON       = "json"
     DOCKERFILE = "dockerfile"
@@ -102,7 +102,7 @@ class LintTool(StrEnum):
     PRETTIER        = "prettier"
     BLACK           = "black"
     RUFF            = "ruff"
-    PRISMA_VALIDATE = "prisma_validate"
+    ALEMBIC_CHECK   = "alembic_check"
     TYPESCRIPT      = "tsc"
 
 
@@ -117,7 +117,7 @@ class PRStatus(StrEnum):
 # ---------------------------------------------------------------------------
 
 class GeneratedFile(BaseModel):
-    path: str            = Field(..., description="Relative path from repo root, e.g. apps/web/app/page.tsx")
+    path: str            = Field(..., description="Relative path from repo root, e.g. frontend/app/page.tsx")
     content: str         = Field(..., description="Full UTF-8 file content")
     language: FileLanguage
     size_bytes: int      = 0
@@ -247,23 +247,23 @@ class CoderState(BaseModel):
     # Identity
     run_id: UUID          = Field(default_factory=uuid4)
     parent_run_id: UUID   = Field(..., description="Architect Agent run_id")
-    tenant_id: str        = Field(..., description="Validated from JWT claims")
+    organization_id: str  = Field(..., description="Validated from JWT claims")
 
     # Input from Architect Agent (inline from gRPC payload)
     idea_normalised: str
     domain: str
     overall_pattern: str  = Field(..., description="modular_monolith | microservices")
-    auth_provider: str    = "Auth0"
+    auth_provider: str    = "Supabase Auth"
     cogs_per_mvp_inr: float | None = None
 
     # S3 artefact URIs (resolved at ingest)
     architecture_doc_s3_uri: str
-    prisma_schema_s3_uri: str
+    sqlalchemy_models_s3_uri: str
     openapi_yaml_s3_uri: str
     stack_json_s3_uri: str
 
     # Fetched artefact content (populated by ingest_input)
-    prisma_schema: str | None     = None
+    sqlalchemy_models: str | None = None
     openapi_yaml: str | None      = None
     stack_json: dict | None       = None
     functional_requirements: list[dict] = Field(default_factory=list)
@@ -324,23 +324,23 @@ class CoderState(BaseModel):
 | Node ID | Type | Description | Model |
 |---|---|---|---|
 | `ingest_input` | Sequential | Validate gRPC payload, fetch S3 artefacts | — (I/O only) |
-| `scaffold_repo` | Sequential | Create GitHub repo + monorepo root files | GPT-4o |
-| `generate_frontend` | Parallel branch | Next.js 14 App Router — pages, components, API client | Claude Sonnet |
-| `generate_backend` | Parallel branch | NestJS modules per entity/feature from OpenAPI spec | Claude Sonnet |
-| `generate_db_layer` | Parallel branch | Prisma migrations, seed script | GPT-4o |
-| `generate_integrations` | Parallel branch | Stripe billing, Auth0 middleware, SendGrid templates | Claude Sonnet |
-| `generate_admin_panel` | Parallel branch | Admin dashboard pages (Next.js) | GPT-4o |
+| `scaffold_repo` | Sequential | Create GitHub repo + monorepo root files | Gemini 3.5 Flash |
+| `generate_frontend` | Parallel branch | Next.js 14 App Router — pages, components, API client | Gemini 3.5 Flash |
+| `generate_backend` | Parallel branch | FastAPI modules per entity/feature from OpenAPI spec | Gemini 3.5 Flash |
+| `generate_db_layer` | Parallel branch | SQLAlchemy models + Alembic migrations, seed script | Gemini 3.5 Flash |
+| `generate_integrations` | Parallel branch | Stripe billing, Supabase Auth middleware, SendGrid templates | Gemini 3.5 Flash |
+| `generate_admin_panel` | Parallel branch | Admin dashboard pages (Next.js) | Gemini 3.5 Flash |
 | `parallel_join` | Barrier | Waits for all 5 parallel generators | — |
-| `generate_ci_cd` | Sequential | Dockerfiles, docker-compose, GitHub Actions CI + deploy | GPT-4o |
-| `generate_tests` | Sequential | Jest unit tests, pytest stubs, coverage config | GPT-4o |
-| `lint_and_format` | Sequential + loop | ESLint/Prettier/Black/Ruff/tsc; LLM self-corrects on failure | Claude Sonnet |
+| `generate_ci_cd` | Sequential | Dockerfiles, docker-compose, GitHub Actions CI + deploy | Gemini 3.5 Flash |
+| `generate_tests` | Sequential | Jest unit tests, pytest stubs, coverage config | Gemini 3.5 Flash |
+| `lint_and_format` | Sequential + loop | ESLint/Prettier/Black/Ruff/tsc; LLM self-corrects on failure | Gemini 3.5 Flash |
 | `push_to_github` | Sequential | Git tree API batch push, commit, open PR | — (API only) |
 | `error_handler` | Error sink | Retries or escalates failed nodes | — |
 
 ### 3.2 Graph definition
 
 ```python
-# packages/agents/coder/graph.py
+# backend/app/agents/coder/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -470,10 +470,10 @@ def build_coder_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# packages/agents/coder/routers.py
+# backend/app/agents/coder/routers.py
 
 def route_after_ingest(state: CoderState) -> str:
-    if state.fatal_error or not state.prisma_schema or not state.openapi_yaml:
+    if state.fatal_error or not state.sqlalchemy_models or not state.openapi_yaml:
         return "error_handler"
     return "scaffold_repo"
 
@@ -566,7 +566,7 @@ flowchart TD
 ### 4.1 Tool definitions (LangChain-compatible)
 
 ```python
-# packages/agents/coder/tools.py
+# backend/app/agents/coder/tools.py
 
 import os
 import subprocess
@@ -879,7 +879,7 @@ run_eslint = StructuredTool.from_function(
 def _run_prettier(workspace_path: str, fix: bool = True) -> dict:
     check_flag = "--write" if fix else "--check"
     result = subprocess.run(
-        ["npx", "prettier", check_flag, "apps/web/**/*.{ts,tsx,css}", "apps/api/**/*.ts"],
+        ["npx", "prettier", check_flag, "frontend/**/*.{ts,tsx,css}"],
         capture_output=True, text=True, cwd=workspace_path, timeout=60,
     )
     return {
@@ -900,7 +900,7 @@ run_prettier = StructuredTool.from_function(
 def _run_black(workspace_path: str, fix: bool = True) -> dict:
     check_flag = [] if fix else ["--check"]
     result = subprocess.run(
-        ["python", "-m", "black", *check_flag, "apps/ai-services/"],
+        ["python", "-m", "black", *check_flag, "backend/"],
         capture_output=True, text=True, cwd=workspace_path, timeout=60,
     )
     return {
@@ -913,7 +913,7 @@ def _run_black(workspace_path: str, fix: bool = True) -> dict:
 run_black = StructuredTool.from_function(
     func=_run_black,
     name="run_black",
-    description="Run Black formatter on Python files in apps/ai-services/.",
+    description="Run Black formatter on Python files in backend/.",
     args_schema=LintInput,
 )
 
@@ -921,7 +921,7 @@ run_black = StructuredTool.from_function(
 def _run_ruff(workspace_path: str, fix: bool = True) -> dict:
     fix_flag = ["--fix"] if fix else []
     result = subprocess.run(
-        ["python", "-m", "ruff", "check", *fix_flag, "apps/ai-services/"],
+        ["python", "-m", "ruff", "check", *fix_flag, "backend/"],
         capture_output=True, text=True, cwd=workspace_path, timeout=60,
     )
     return {
@@ -934,19 +934,21 @@ def _run_ruff(workspace_path: str, fix: bool = True) -> dict:
 run_ruff = StructuredTool.from_function(
     func=_run_ruff,
     name="run_ruff",
-    description="Run Ruff linter (with optional --fix) on Python files in apps/ai-services/.",
+    description="Run Ruff linter (with optional --fix) on Python files in backend/.",
     args_schema=LintInput,
 )
 
 
-class PrismaLintInput(BaseModel):
-    schema_path: str = Field(..., description="Absolute path to schema.prisma file")
+class AlembicCheckInput(BaseModel):
+    workspace_path: str = Field(..., description="Absolute path to the local workspace directory")
 
 
-def _run_prisma_validate(schema_path: str) -> dict:
+def _run_alembic_check(workspace_path: str) -> dict:
+    # Verify SQLAlchemy models compile and that Alembic migrations are in sync
+    # with the model metadata (no un-generated schema drift).
     result = subprocess.run(
-        ["npx", "prisma", "validate", "--schema", schema_path],
-        capture_output=True, text=True, timeout=30,
+        ["python", "-m", "alembic", "check"],
+        capture_output=True, text=True, cwd=f"{workspace_path}/backend", timeout=30,
     )
     return {
         "passed": result.returncode == 0,
@@ -954,11 +956,12 @@ def _run_prisma_validate(schema_path: str) -> dict:
     }
 
 
-run_prisma_validate = StructuredTool.from_function(
-    func=_run_prisma_validate,
-    name="run_prisma_validate",
-    description="Run `prisma validate` on a schema.prisma file.",
-    args_schema=PrismaLintInput,
+run_alembic_check = StructuredTool.from_function(
+    func=_run_alembic_check,
+    name="run_alembic_check",
+    description="Run `alembic check` to validate SQLAlchemy models compile and migrations "
+                "are in sync with model metadata.",
+    args_schema=AlembicCheckInput,
 )
 
 
@@ -996,7 +999,7 @@ TOOL_REGISTRY: dict[str, list] = {
     "generate_ci_cd":        [],
     "generate_tests":        [],
     "lint_and_format":       [run_eslint, run_prettier, run_black, run_ruff,
-                              run_prisma_validate, run_tsc],
+                              run_alembic_check, run_tsc],
     "push_to_github":        [github_push_tree, github_create_pr],
 }
 ```
@@ -1015,19 +1018,19 @@ TOOL_REGISTRY: dict[str, list] = {
 | `run_prettier` | 60 s | Local process | Log warning, continue |
 | `run_black` | 60 s | Local process | Log warning, continue |
 | `run_ruff` | 60 s | Local process | Log warning, continue |
-| `run_prisma_validate` | 30 s | Local process | Log warning, continue |
+| `run_alembic_check` | 30 s | Local process | Log warning, continue |
 | `run_tsc` | 120 s | Local process | Log warning, mark as non-blocking |
 
 ---
 
 ## 5. Prompt Templates
 
-All prompts use **Claude Sonnet** (complex code generation) or **GPT-4o** (structured boilerplate, config files, test stubs) per the model routing policy. Each generation prompt returns a **JSON object with a `files` array** — path + content pairs parsed into `FileManifest`.
+All prompts use **Gemini 3.5 Flash** (complex code generation, structured boilerplate, config files, test stubs) per the model routing policy. Each generation prompt returns a **JSON object with a `files` array** — path + content pairs parsed into `FileManifest`.
 
 ### 5.1 `scaffold_repo` — Monorepo Root Files
 
 ```jinja2
-{# packages/agents/coder/prompts/scaffold_repo.j2 #}
+{# backend/app/agents/coder/prompts/scaffold_repo.j2 #}
 
 SYSTEM:
 You are a senior full-stack engineer setting up a pnpm monorepo for a SaaS product.
@@ -1035,11 +1038,10 @@ Generate ONLY root-level configuration files — no application code yet.
 Every file must be production-quality with zero placeholder values.
 
 Tech stack constraints (mandatory, do not deviate):
-- Package manager: pnpm with workspaces
+- Package manager: pnpm with workspaces (TypeScript) + uv (Python backend)
 - Frontend: Next.js 14 (App Router), TypeScript strict mode
-- Backend: NestJS, TypeScript strict mode
-- AI services: FastAPI + Python 3.11 (only if domain requires AI features)
-- DB: PostgreSQL 16 via Prisma 5.x
+- Backend: FastAPI + Python 3.12
+- DB: Supabase (PostgreSQL 16 + pgvector) via SQLAlchemy 2.x + Alembic
 - Linting: ESLint (eslint-config-next + @typescript-eslint), Prettier
 - Python linting: Black + Ruff
 - Container: Docker multi-stage builds
@@ -1063,16 +1065,16 @@ Generate these root files:
 - tsconfig.base.json (base TypeScript config)
 - .eslintrc.js (root ESLint config extending eslint-config-next)
 - .prettierrc (Prettier config: singleQuote, trailingComma all, tabWidth 2)
-- .gitignore (Node, Python, Docker, .env, Prisma client, build artefacts)
+- .gitignore (Node, Python, Docker, .env, SQLAlchemy/Alembic artefacts, build artefacts)
 - .env.example (all required env vars, empty values, commented explanations)
-- docker-compose.yml (postgres:16, redis:7-alpine, api, web services)
+- docker-compose.yml (postgres:16 with pgvector, redis:7-alpine, backend, frontend services)
 - README.md (setup instructions, env var table, available scripts)
 ```
 
 ### 5.2 `generate_frontend` — Next.js 14 App Router
 
 ```jinja2
-{# packages/agents/coder/prompts/generate_frontend.j2 #}
+{# backend/app/agents/coder/prompts/generate_frontend.j2 #}
 
 SYSTEM:
 You are a senior React/Next.js engineer. Generate a complete Next.js 14 App Router
@@ -1082,8 +1084,8 @@ Mandatory constraints:
 - Use TypeScript strict mode everywhere.
 - Use Tailwind CSS + shadcn/ui for all UI components.
 - Use Zustand for client state; React Query (TanStack) for server state.
-- All pages under /dashboard require Auth0 session — redirect to /login if unauthenticated.
-- API calls must send Authorization: Bearer {accessToken} + x-tenant-id: {tenantId} headers.
+- All pages under /dashboard require a Supabase Auth session — redirect to /login if unauthenticated.
+- API calls must send Authorization: Bearer {accessToken} + x-organization-id: {organizationId} headers.
 - Use Next.js Server Components by default; Client Components only for interactivity.
 - Implement dark mode via Tailwind's class strategy.
 - All forms must use react-hook-form + zod for validation.
@@ -1093,7 +1095,7 @@ Mandatory constraints:
 
 Rules:
 - Return ONLY valid JSON: { "files": [{"path": string, "content": string}] }
-- Paths relative to repo root, starting with apps/web/.
+- Paths relative to repo root, starting with frontend/.
 - Do not emit placeholder TODO comments — generate real, working code.
 - Every page must have metadata export (title, description) for SEO.
 
@@ -1109,20 +1111,20 @@ Auth flows: {{ auth_flows | join(', ') }}
 Stripe enabled: {{ stripe_enabled }}
 
 Generate the following files (minimum):
-apps/web/
+frontend/
   app/
-    layout.tsx              — root layout with Auth0Provider, QueryClientProvider, ThemeProvider
+    layout.tsx              — root layout with SupabaseProvider, QueryClientProvider, ThemeProvider
     page.tsx                — landing / marketing page
-    login/page.tsx          — Auth0 login redirect
+    login/page.tsx          — Supabase Auth login redirect
     dashboard/
       layout.tsx            — dashboard shell with sidebar navigation
       page.tsx              — dashboard home (KPI cards, recent activity)
-      settings/page.tsx     — profile + tenant settings
+      settings/page.tsx     — profile + organization settings
       billing/page.tsx      — Stripe billing portal redirect + plan info
       [feature]/page.tsx    — primary feature page derived from FRs (generate 1–3 feature pages)
     admin/
       layout.tsx            — admin role guard
-      page.tsx              — tenant management, audit log viewer
+      page.tsx              — organization management, audit log viewer
   components/
     ui/                     — shadcn/ui re-exports
     layout/Sidebar.tsx
@@ -1131,15 +1133,15 @@ apps/web/
     billing/PlanBadge.tsx
   lib/
     api-client.ts           — typed fetch wrapper with auth headers
-    auth.ts                 — Auth0 config + session helpers
+    auth.ts                 — Supabase Auth client config + session helpers
     query-client.ts         — TanStack Query client singleton
     utils.ts                — cn(), formatCurrency(), formatDate()
   hooks/
-    use-tenant.ts
+    use-organization.ts
     use-auth.ts
   types/
     api.ts                  — generated from OpenAPI endpoints (hand-craft from spec)
-  package.json              — Next.js 14, tailwindcss, shadcn/ui, Auth0, react-query, zustand
+  package.json              — Next.js 14, tailwindcss, shadcn/ui, @supabase/supabase-js, react-query, zustand
   tsconfig.json
   next.config.ts
   tailwind.config.ts
@@ -1147,139 +1149,128 @@ apps/web/
   .dockerignore
 ```
 
-### 5.3 `generate_backend` — NestJS API Modules
+### 5.3 `generate_backend` — FastAPI Modules
 
 ```jinja2
-{# packages/agents/coder/prompts/generate_backend.j2 #}
+{# backend/app/agents/coder/prompts/generate_backend.j2 #}
 
 SYSTEM:
-You are a principal NestJS engineer. Generate a complete, production-quality NestJS API
-from an OpenAPI 3.1 specification and a Prisma schema.
+You are a principal FastAPI engineer. Generate a complete, production-quality FastAPI (Python 3.12)
+backend from an OpenAPI 3.1 specification and a set of SQLAlchemy models.
 
 Mandatory constraints:
-- TypeScript strict mode. Every public function must have return type annotations.
-- Generate one NestJS module per OpenAPI tag group (e.g. UsersModule, BillingModule).
-- Each module: Controller, Service, DTOs (create/update/response), Module file.
-- Use class-validator + class-transformer on all DTOs.
-- All controllers must apply: JwtAuthGuard, TenantGuard (validates x-tenant-id header),
-  and ThrottlerGuard (100 req/min default).
-- Inject PrismaService into every service — no raw SQL.
-- Never use `any` type. Use `unknown` + type guards where necessary.
-- Implement global exception filter (RFC 7807 Problem Details format).
-- Implement global response interceptor (wraps responses in { data, meta }).
+- Python 3.12 with full type hints. Every public function must have return type annotations.
+- Generate one router module per OpenAPI tag group (e.g. users router, billing router).
+- Each module: APIRouter, service layer, Pydantic schemas (create/update/response).
+- Use Pydantic v2 models for all request/response validation.
+- All routes must apply, via FastAPI dependencies: get_current_user (JWT auth),
+  organization_dependency (validates x-organization-id header), and a rate limiter
+  (100 req/min default, e.g. slowapi backed by Redis).
+- Inject an async SQLAlchemy session into every service — no raw SQL.
+- Never use bare `Any`. Use precise types and type guards where necessary.
+- Implement a global exception handler (RFC 7807 Problem Details format).
+- Wrap responses in a consistent { data, meta } envelope.
 - Health endpoint: GET /health returns { status: "ok", db: "ok", cache: "ok" }.
-- All endpoints must emit structured logs via Pino logger.
-- Soft-delete: use `deletedAt IS NULL` filter on all query methods.
-- Multi-tenancy: every Prisma query must include `where: { tenantId: tenantId }`.
+- All endpoints must emit structured logs via structlog.
+- Soft-delete: use `deleted_at IS NULL` filter on all query methods.
+- Multi-tenancy: every SQLAlchemy query must filter on `organization_id == organization_id`.
 
 Rules:
 - Return ONLY valid JSON: { "files": [{"path": string, "content": string}] }
-- Paths relative to repo root, starting with apps/api/.
+- Paths relative to repo root, starting with backend/.
 - Generate complete files — no stubs, no TODOs.
-- Every service method must have JSDoc @param and @returns (one line each max).
+- Every service method must have a one-line docstring describing params and return.
 
 USER:
 Idea: {{ idea_normalised }}
 Domain: {{ domain }}
 OpenAPI YAML:
 {{ openapi_yaml }}
-Prisma schema:
-{{ prisma_schema }}
+SQLAlchemy models:
+{{ sqlalchemy_models }}
 Auth strategy: {{ auth_strategy | tojson }}
 
 Generate the following structure (minimum):
-apps/api/
-  src/
-    main.ts                       — bootstrap with Pino, Helmet, CORS, Swagger UI
-    app.module.ts
-    prisma/
-      prisma.service.ts
-      prisma.module.ts
-    common/
-      guards/
-        jwt-auth.guard.ts
-        tenant.guard.ts
-        roles.guard.ts
-      decorators/
-        current-user.decorator.ts
-        tenant-id.decorator.ts
-        roles.decorator.ts
-      filters/
-        http-exception.filter.ts  — RFC 7807 Problem Details
-      interceptors/
-        response.interceptor.ts
-      pipes/
-        zod-validation.pipe.ts
-    auth/
-      auth.module.ts
-      auth.controller.ts          — /auth/login, /auth/refresh, /auth/logout
-      auth.service.ts
-      strategies/
-        jwt.strategy.ts
-        auth0.strategy.ts
-    [one module per OpenAPI tag — generate all modules from spec]
-    health/
-      health.controller.ts
-      health.module.ts
-    billing/
-      billing.module.ts
-      billing.controller.ts       — Stripe checkout, portal, webhooks
-      billing.service.ts
-  package.json
-  tsconfig.json
-  tsconfig.build.json
-  nest-cli.json
-  Dockerfile                      — multi-stage: builder + runner (node:20-alpine)
+backend/
+  app/
+    main.py                       — FastAPI app factory with structlog, CORS, security headers, OpenAPI
+    core/
+      config.py                   — pydantic-settings config module
+      logging.py
+      security.py
+    db/
+      session.py                  — async SQLAlchemy session factory
+      base.py                     — declarative base + UDAL helpers
+    api/
+      deps.py                     — get_current_user, organization_dependency, rate limiter
+      v1/
+        router.py                 — aggregates all routers
+        [one router per OpenAPI tag — generate all routers from spec]
+        health.py
+        auth.py                   — /auth/login, /auth/refresh, /auth/logout (Supabase Auth)
+        billing.py                — Stripe checkout, portal, webhooks
+    services/
+      auth_service.py
+      billing_service.py
+      [one service per router]
+    schemas/
+      [pydantic request/response schemas per module]
+    models/
+      [SQLAlchemy models — mirror Architect Agent output]
+  pyproject.toml                  — FastAPI, SQLAlchemy 2.x, alembic, pydantic, uvicorn, structlog
+  Dockerfile                      — multi-stage: builder + runner (python:3.12-slim)
   .dockerignore
 ```
 
-### 5.4 `generate_db_layer` — Prisma Migrations + Seed
+### 5.4 `generate_db_layer` — SQLAlchemy Models + Alembic Migrations + Seed
 
 ```jinja2
-{# packages/agents/coder/prompts/generate_db_layer.j2 #}
+{# backend/app/agents/coder/prompts/generate_db_layer.j2 #}
 
 SYSTEM:
-You are a database engineer generating Prisma migration files and seed data for a
-PostgreSQL 16, schema-per-tenant SaaS deployment.
+You are a database engineer generating SQLAlchemy models, Alembic migration files, and seed
+data for a Supabase (PostgreSQL 16 + pgvector), schema-per-tenant SaaS deployment.
 
 Rules:
 - Return ONLY valid JSON: { "files": [{"path": string, "content": string}] }
-- Paths start with packages/db/.
-- The schema.prisma must match exactly what the Architect Agent produced — do not alter it.
-- Migration SQL: generate one initial migration (0001_init) that creates all tables,
+- Paths start with backend/.
+- The SQLAlchemy models must match exactly what the Architect Agent produced — do not alter them.
+- Alembic migration: generate one initial migration (0001_init) that creates all tables,
   indexes, RLS policies, and audit triggers.
 - Seed script: generate realistic but clearly synthetic data (company names like "Acme Corp",
-  email like "alice@example.com"). Seed 1 tenant, 2 users (admin + member), and 5–10
+  email like "alice@example.com"). Seed 1 organization, 2 users (admin + member), and 5–10
   sample records per core entity.
 - Add a db:reset script that drops and recreates the public schema, then re-seeds.
 
 USER:
-Prisma schema:
-{{ prisma_schema }}
+SQLAlchemy models:
+{{ sqlalchemy_models }}
 Domain: {{ domain }}
 DB entities: {{ db_entity_names | join(', ') }}
 Multi-tenancy strategy: schema_per_tenant
 
 Generate:
-packages/db/
-  schema.prisma
-  migrations/
-    0001_init/
-      migration.sql             — CREATE TABLE, indexes, RLS ENABLE, audit triggers
-  seed.ts                       — ts-node seed script using PrismaClient
-  seed-helpers.ts               — faker-style data generators per entity
-  package.json                  — prisma, @prisma/client, ts-node, typescript
-  tsconfig.json
+backend/
+  app/models/                   — SQLAlchemy declarative models (one file per entity)
+  alembic/
+    env.py                      — Alembic environment wired to the SQLAlchemy metadata
+    versions/
+      0001_init.py              — CREATE TABLE, indexes, RLS ENABLE, audit triggers
+  alembic.ini
+  scripts/
+    seed.py                     — seed script using the async SQLAlchemy session
+    seed_helpers.py             — faker-style data generators per entity
+  pyproject.toml                — sqlalchemy, alembic, asyncpg, faker
 ```
 
-### 5.5 `generate_integrations` — Stripe, Auth0, SendGrid
+### 5.5 `generate_integrations` — Stripe, Supabase Auth, SendGrid
 
 ```jinja2
-{# packages/agents/coder/prompts/generate_integrations.j2 #}
+{# backend/app/agents/coder/prompts/generate_integrations.j2 #}
 
 SYSTEM:
 You are a senior integration engineer. Generate production-ready integration code
-for Stripe billing, Auth0 authentication, and SendGrid transactional email.
+for Stripe billing, Supabase Auth authentication, and SendGrid transactional email.
 
 Stripe requirements:
 - Create Checkout session: POST /billing/checkout → redirect to Stripe hosted page
@@ -1289,10 +1280,10 @@ Stripe requirements:
 - Idempotency keys on all Stripe API calls (use run_id + event type)
 - Verify webhook signature using STRIPE_WEBHOOK_SECRET env var
 
-Auth0 requirements:
-- NestJS passport strategy: Auth0JwtStrategy (validates RS256 JWT from Auth0)
-- Auth0 Management API client: for user management (create, update role)
-- Auth guard that extracts tenantId from JWT custom claim (app_metadata.tenant_id)
+Supabase Auth requirements:
+- FastAPI dependency: verify_supabase_jwt (validates the RS256 Supabase JWT)
+- Supabase Admin API client: for user management (create, update role)
+- Auth dependency that extracts organization_id from the Supabase JWT claim (organization_id)
 
 SendGrid requirements:
 - Transactional email service: send welcome email, password reset, billing receipt
@@ -1316,50 +1307,46 @@ Pricing tiers from CLAUDE.md:
   - Enterprise: Custom
 
 Generate:
-apps/api/src/
-  billing/
-    stripe.service.ts           — checkout, portal, webhook handler
-    stripe.webhook.service.ts   — event dispatch router
-    dto/
-      create-checkout.dto.ts
-      billing-portal.dto.ts
-  auth/
-    strategies/
-      auth0-jwt.strategy.ts
-    auth0-management.service.ts
-  notifications/
-    notifications.module.ts
-    sendgrid.service.ts
-    templates/
-      welcome.ts
-      billing-receipt.ts
-      password-reset.ts
+backend/app/
+  services/
+    stripe_service.py           — checkout, portal, webhook handler
+    stripe_webhook_service.py   — event dispatch router
+    supabase_admin_service.py
+    sendgrid_service.py
+  schemas/
+    create_checkout.py
+    billing_portal.py
+  api/v1/deps.py                — verify_supabase_jwt dependency (organization_id extraction)
+  templates/
+    welcome.py
+    billing_receipt.py
+    password_reset.py
 ```
 
 ### 5.6 `generate_admin_panel` — Admin Dashboard
 
 ```jinja2
-{# packages/agents/coder/prompts/generate_admin_panel.j2 #}
+{# backend/app/agents/coder/prompts/generate_admin_panel.j2 #}
 
 SYSTEM:
 You are a Next.js engineer building an internal admin dashboard for a SaaS platform.
-The admin panel is accessible only to users with role "super_admin" or "tenant_admin".
-It is part of the main Next.js app under /admin.
+The admin panel is accessible only to users with role "super_admin" or "organization_admin".
+It is the role-guarded /admin route group inside the main Next.js app.
 
 Admin panel must include:
-- Tenant list with usage metrics (builds consumed, plan, status)
+- Organization list with usage metrics (builds consumed, plan, status)
 - User management: list, role change, deactivate
-- Audit log viewer: paginated table with filter by tenant, date range, action type
+- Audit log viewer: paginated table with filter by organization, date range, action type
 - Billing overview: MRR, active subscriptions, recent Stripe events
 - System health: API latency chart, error rate, LLM token usage (mocked with realistic data)
 
 Rules:
 - Return ONLY valid JSON: { "files": [{"path": string, "content": string}] }
-- Paths start with apps/web/app/admin/.
+- Paths start with frontend/app/admin/.
 - Use shadcn/ui DataTable (TanStack Table v8) for all list views.
 - Use Recharts for charts.
-- All admin API calls go through /api/admin/* routes (separate NestJS AdminModule).
-- Protect with RoleGuard — reject non-admin users with 403 before render.
+- All admin API calls go through /api/v1/admin/* routes (a FastAPI admin router).
+- Protect with a role guard — reject non-admin users with 403 before render.
 
 USER:
 Idea: {{ idea_normalised }}
@@ -1367,12 +1354,12 @@ Admin roles: {{ auth_strategy.rbac_roles | join(', ') }}
 DB entities: {{ db_entity_names | join(', ') }}
 
 Generate:
-apps/web/app/admin/
+frontend/app/admin/
   layout.tsx                    — role guard + admin sidebar
   page.tsx                      — dashboard overview (stats cards)
-  tenants/
-    page.tsx                    — tenant list + DataTable
-    [id]/page.tsx               — tenant detail + usage + billing
+  organizations/
+    page.tsx                    — organization list + DataTable
+    [id]/page.tsx               — organization detail + usage + billing
   users/
     page.tsx                    — user list
     [id]/page.tsx               — user detail + role assignment
@@ -1382,37 +1369,36 @@ apps/web/app/admin/
     page.tsx                    — Stripe MRR overview + event log
   system/
     page.tsx                    — health metrics + LLM token cost chart
-apps/api/src/admin/
-  admin.module.ts
-  admin.controller.ts           — /admin/* routes, super_admin guard
-  admin.service.ts
-  dto/
-    tenant-summary.dto.ts
-    user-management.dto.ts
+backend/app/api/v1/
+  admin.py                      — /admin/* routes, super_admin dependency guard
+  ../services/admin_service.py
+  ../schemas/
+    organization_summary.py
+    user_management.py
 ```
 
 ### 5.7 `generate_ci_cd` — CI/CD Scaffolding
 
 ```jinja2
-{# packages/agents/coder/prompts/generate_ci_cd.j2 #}
+{# backend/app/agents/coder/prompts/generate_ci_cd.j2 #}
 
 SYSTEM:
-You are a DevOps engineer generating CI/CD configuration for a pnpm monorepo
-deployed to AWS EKS via ArgoCD.
+You are a DevOps engineer generating CI/CD configuration for a pnpm + uv monorepo
+deployed to Amazon ECS on Fargate via AWS CodeDeploy (blue/green).
 
 CI pipeline must:
 - Trigger on: push to any branch, pull_request to main
 - Jobs (parallel where possible): lint, type-check, unit-tests, security-scan
 - Security scan: Trivy (Docker image scan) + Semgrep (SAST, auto ruleset)
-- Test job: run pnpm test --filter web --filter api in parallel
-- Build job (PR only): docker build --target runner for each app
+- Test job: run pnpm test --filter frontend and pytest on backend/ in parallel
+- Build job (PR only): docker build --target runner for each service
 - Required status checks before merge: lint, type-check, unit-tests, security-scan
 
 CD pipeline must:
 - Trigger on: push to main after all checks pass
 - Build + push Docker images to ECR (tagged with git SHA)
-- Update Helm values.yaml with new image tags
-- ArgoCD auto-sync picks up the values.yaml change (GitOps pattern)
+- Render new ECS Fargate task definitions with the new image tags
+- AWS CodeDeploy performs a blue/green deploy to the ECS services (triggered by GitHub Actions)
 
 Rules:
 - Return ONLY valid JSON: { "files": [{"path": string, "content": string}] }
@@ -1431,72 +1417,75 @@ Generate:
 .github/
   workflows/
     ci.yml                      — lint, type-check, test, security-scan jobs
-    cd.yml                      — build, push ECR, update Helm values
+    cd.yml                      — build, push ECR, render task defs, trigger CodeDeploy
   actions/
     setup-pnpm/action.yml       — composite: install Node 20 + pnpm + cache
     docker-build/action.yml     — composite: ECR login + build + push
 infra/
-  helm/
-    values.yaml                 — image tags, replicas, resource limits
-    values.staging.yaml
-    Chart.yaml
-apps/
-  web/Dockerfile                — (already generated by generate_frontend)
-  api/Dockerfile                — (already generated by generate_backend)
+  codedeploy/
+    appspec.yaml                — ECS blue/green appspec (task def + container/port)
+    taskdef.frontend.json       — Fargate task definition (frontend service)
+    taskdef.backend.json        — Fargate task definition (backend service)
+frontend/Dockerfile             — (already generated by generate_frontend)
+backend/Dockerfile              — (already generated by generate_backend)
 docker-compose.yml              — (already generated by scaffold_repo, update if needed)
 ```
 
 ### 5.8 `generate_tests` — Test Scaffolding
 
 ```jinja2
-{# packages/agents/coder/prompts/generate_tests.j2 #}
+{# backend/app/agents/coder/prompts/generate_tests.j2 #}
 
 SYSTEM:
 You are a QA engineer generating test scaffolding. The goal is ≥ 80% unit test
 coverage skeleton — tests must be structurally complete with correct imports
-and at least one meaningful assertion per test case. No `expect(true).toBe(true)` stubs.
+and at least one meaningful assertion per test case. No `expect(true).toBe(true)` /
+`assert True` stubs.
 
-Jest (TypeScript) rules:
+Jest (TypeScript, frontend) rules:
 - Use jest.config.ts with ts-jest transformer.
-- Mock PrismaService using jest-mock-extended.
-- Mock external services (Stripe, Auth0, SendGrid) with manual mocks.
-- Use @nestjs/testing createTestingModule for controller and service tests.
-- Each service method gets: happy path test + one edge case (e.g. not found, forbidden).
+- Mock the api-client fetch wrapper using jest-mock-extended.
+- Mock external browser-facing services (Stripe.js, SendGrid links) with manual mocks.
+- Use React Testing Library (render + screen) for component tests.
+- Each component/hook gets: happy path test + one edge case (e.g. empty state, error).
 
-Pytest (Python) rules:
+Pytest (Python, backend) rules:
 - Use pytest + pytest-asyncio for FastAPI routes.
 - Use httpx.AsyncClient as the test client.
-- Fixtures in conftest.py: test DB session, mock Auth0 token.
-- Each route: 200 happy path + 401 (missing token) + 403 (wrong tenant).
+- Mock the async SQLAlchemy session and external services (Stripe, Supabase Auth, SendGrid).
+- Fixtures in conftest.py: test SQLAlchemy session, mock Supabase JWT token.
+- Each route: 200 happy path + 401 (missing token) + 403 (wrong organization).
 
 Rules:
 - Return ONLY valid JSON: { "files": [{"path": string, "content": string}] }
-- Tests in __tests__/ adjacent to source files (Jest) or tests/ directory (pytest).
+- Frontend tests in __tests__/ adjacent to source files (Jest); backend tests in tests/ (pytest).
 - Do not generate placeholder tests — generate real assertions against real return values.
 
 USER:
 Idea: {{ idea_normalised }}
-NestJS modules generated: {{ backend_modules | join(', ') }}
+FastAPI routers generated: {{ backend_modules | join(', ') }}
 DB entities: {{ db_entity_names | join(', ') }}
 API endpoints (sample): {{ api_endpoints_summary[:5] | tojson }}
-FastAPI routes (if domain requires): {{ has_ai_services }}
 
 Generate tests for (minimum):
-apps/api/src/
-  auth/__tests__/auth.service.spec.ts
-  billing/__tests__/billing.service.spec.ts
-  [module]/__tests__/[module].service.spec.ts   — one per module
-  [module]/__tests__/[module].controller.spec.ts — one per module
-  common/__tests__/tenant.guard.spec.ts
-packages/db/
-  __tests__/seed.test.ts        — verifies seed script creates expected records
-jest.config.ts                  — root Jest config with coverage thresholds
+backend/tests/
+  test_auth_service.py
+  test_billing_service.py
+  test_[module]_service.py        — one per service
+  test_[module]_routes.py         — one per router
+  test_organization_dependency.py — verifies organization_id isolation guard
+  test_seed.py                    — verifies seed script creates expected records
+  conftest.py                     — test SQLAlchemy session + mock Supabase JWT fixtures
+frontend/__tests__/
+  [component].test.tsx            — React Testing Library component tests
+jest.config.ts                    — frontend Jest config with coverage thresholds
+pyproject.toml                    — pytest coverage thresholds (--cov-fail-under=80)
 ```
 
 ### 5.9 `lint_self_correct` — LLM Lint Error Self-Correction
 
 ```jinja2
-{# packages/agents/coder/prompts/lint_self_correct.j2 #}
+{# backend/app/agents/coder/prompts/lint_self_correct.j2 #}
 
 SYSTEM:
 You are a TypeScript/Python engineer fixing lint errors in generated code.
@@ -1538,7 +1527,7 @@ Fix all errors listed above and return the corrected file contents.
 sequenceDiagram
     autonumber
     actor Founder
-    participant API    as NestJS API Gateway
+    participant API    as FastAPI API Gateway
     participant Graph  as LangGraph Orchestrator
     participant Ingest as ingest_input
     participant Sca    as scaffold_repo
@@ -1552,15 +1541,15 @@ sequenceDiagram
     participant Push   as push_to_github
     participant Rev    as Reviewer Agent
 
-    API ->> Graph: gRPC ArchitectOutput { run_id, prisma_schema_s3_uri, openapi_yaml_s3_uri, ... }
+    API ->> Graph: gRPC ArchitectOutput { run_id, sqlalchemy_models_s3_uri, openapi_yaml_s3_uri, ... }
     Graph ->> Ingest: validate payload + fetch S3 artefacts
-    Ingest ->> S3: GET prisma_schema_s3_uri
-    S3 -->> Ingest: prisma_schema content
+    Ingest ->> S3: GET sqlalchemy_models_s3_uri
+    S3 -->> Ingest: sqlalchemy_models content
     Ingest ->> S3: GET openapi_yaml_s3_uri
     S3 -->> Ingest: openapi_yaml content
     Ingest ->> S3: GET stack_json_s3_uri
     S3 -->> Ingest: stack_json content
-    Ingest -->> Graph: { prisma_schema, openapi_yaml, stack_json }
+    Ingest -->> Graph: { sqlalchemy_models, openapi_yaml, stack_json }
 
     Graph ->> Sca: scaffold_repo(state)
     Sca ->> GH: POST /orgs/{org}/repos (create private repo)
@@ -1572,29 +1561,29 @@ sequenceDiagram
     par Parallel code generation (fan-out)
         Graph ->> Par: generate_frontend(state)
         Note over Par: LLM generates Next.js pages, components, hooks
-        Par -->> Join: frontend_manifest (~/apps/web/* files)
+        Par -->> Join: frontend_manifest (~/frontend/* files)
 
         Graph ->> Par: generate_backend(state)
-        Note over Par: LLM generates NestJS modules from OpenAPI spec
-        Par -->> Join: backend_manifest (~/apps/api/* files)
+        Note over Par: LLM generates FastAPI routers from OpenAPI spec
+        Par -->> Join: backend_manifest (~/backend/* files)
 
         Graph ->> Par: generate_db_layer(state)
-        Note over Par: LLM generates Prisma migration SQL + seed script
-        Par -->> Join: db_manifest (~/packages/db/* files)
+        Note over Par: LLM generates SQLAlchemy models + Alembic migration + seed script
+        Par -->> Join: db_manifest (~/backend/app/models + alembic/* files)
 
         Graph ->> Par: generate_integrations(state)
-        Note over Par: LLM generates Stripe, Auth0, SendGrid integration code
+        Note over Par: LLM generates Stripe, Supabase Auth, SendGrid integration code
         Par -->> Join: integrations_manifest (patched into backend_manifest paths)
 
         Graph ->> Par: generate_admin_panel(state)
-        Note over Par: LLM generates admin dashboard pages + AdminModule
-        Par -->> Join: admin_manifest (~/apps/web/app/admin/* files)
+        Note over Par: LLM generates admin dashboard pages (/admin route group)
+        Par -->> Join: admin_manifest (~/frontend/app/admin/* files)
     end
 
     Join -->> Graph: all manifests merged into state
 
     Graph ->> CICD: generate_ci_cd(state)
-    Note over CICD: LLM generates Dockerfiles, GitHub Actions, Helm values
+    Note over CICD: LLM generates Dockerfiles, GitHub Actions, ECS task defs + CodeDeploy appspec
     CICD -->> Graph: ci_cd_manifest
 
     Graph ->> Tests: generate_tests(state)
@@ -1607,7 +1596,7 @@ sequenceDiagram
     Lint ->> Lint: run_prettier --write
     Lint ->> Lint: run_black
     Lint ->> Lint: run_ruff --fix
-    Lint ->> Lint: run_prisma_validate
+    Lint ->> Lint: run_alembic_check
     Lint ->> Lint: run_tsc --noEmit
     Lint -->> Graph: lint_summary { all_passed: true }
 
@@ -1634,7 +1623,7 @@ sequenceDiagram
     autonumber
     participant Graph  as LangGraph Orchestrator
     participant Lint   as lint_and_format
-    participant LLM    as Claude Sonnet (lint_self_correct)
+    participant LLM    as Gemini 3.5 Flash (lint_self_correct)
     participant WS     as Local Workspace (tmp dir)
     participant State  as CoderState
 
@@ -1643,7 +1632,7 @@ sequenceDiagram
     Lint ->> WS: run_eslint --fix
     WS -->> Lint: 14 errors in 3 files (after auto-fix attempt)
     Lint ->> WS: run_tsc --noEmit
-    WS -->> Lint: 2 type errors in apps/api/src/billing/billing.service.ts
+    WS -->> Lint: 2 type errors in frontend/lib/billing-client.ts
     Lint -->> State: lint_summary { all_passed: false, blocking_errors: [...] }
     Note over State: lint_retry_count = 1
 
@@ -1659,8 +1648,8 @@ sequenceDiagram
     WS -->> Lint: all formatted
     Lint ->> WS: run_black && run_ruff --fix
     WS -->> Lint: 0 errors
-    Lint ->> WS: run_prisma_validate
-    WS -->> Lint: schema valid
+    Lint ->> WS: run_alembic_check
+    WS -->> Lint: models compile, migrations in sync
     Lint -->> State: lint_summary { all_passed: true, total_errors_fixed: 16 }
     Note over State: lint_retry_count = 2 — proceed to push_to_github
 ```
@@ -1711,26 +1700,26 @@ sequenceDiagram
     participant EH     as error_handler
     participant Redis  as Redis (session)
     participant Slack  as Slack Webhook
-    participant API    as NestJS API
+    participant API    as FastAPI API
 
     Graph ->> Ingest: validate + fetch artefacts
-    Ingest ->> S3: GET prisma_schema_s3_uri
+    Ingest ->> S3: GET sqlalchemy_models_s3_uri
     S3 -->> Ingest: 403 Access Denied
 
     Note over Ingest: retry_count = 1, sleep 5s
-    Ingest ->> S3: GET prisma_schema_s3_uri [retry 1]
+    Ingest ->> S3: GET sqlalchemy_models_s3_uri [retry 1]
     S3 -->> Ingest: 403 Access Denied
 
     Note over Ingest: retry_count = 2, sleep 15s
-    Ingest ->> S3: GET prisma_schema_s3_uri [retry 2]
+    Ingest ->> S3: GET sqlalchemy_models_s3_uri [retry 2]
     S3 -->> Ingest: 403 Access Denied
 
     Note over Ingest: max_retries exceeded → fatal_error
     Ingest -->> Graph: { fatal_error: "S3 fetch failed after 3 retries: 403 Access Denied" }
 
     Graph ->> EH: error_handler(state)
-    EH ->> Redis: publish("coder:fatal", { run_id, tenant_id, error })
-    EH ->> Slack: POST { run_id, tenant_id, reason: "S3 fetch failed — check IAM role for coder pod" }
+    EH ->> Redis: publish("coder:fatal", { run_id, organization_id, error })
+    EH ->> Slack: POST { run_id, organization_id, reason: "S3 fetch failed — check IAM role for coder ECS task" }
     EH -->> Graph: { fatal_error set, is_complete: false }
 
     Graph -->> API: CoderState (failed)
@@ -1751,7 +1740,7 @@ sequenceDiagram
 | `GenerationParseError` | LLM returns non-JSON or files array is empty | Re-prompt once with strict format reminder |
 | `GenerationIncomplete` | LLM truncates file content mid-function | Re-prompt requesting continuation from last complete line |
 | `LintFailureUnresolvable` | Same lint error after 3 self-correction cycles | Escalate to Reviewer Agent with `lint_failed: true` flag; do not block PR |
-| `PrismaValidationError` | `prisma validate` fails on generated schema | LLM self-corrects schema; if still invalid after 2 tries, block push |
+| `AlembicValidationError` | `alembic check` fails — models do not compile or migrations drift from metadata | LLM self-corrects models/migration; if still invalid after 2 tries, block push |
 | `TypeScriptError` | `tsc --noEmit` finds type errors after lint cycle | LLM self-corrects specific files; non-blocking after 3 failed cycles |
 | `GitHubPushConflict` | Force-push rejected (unexpected remote commits) | Never force-push; resolve by rebasing on latest main |
 | `FatalLLMError` | LLM API 5xx on any generation node | Retry 3× with 45 s gaps; escalate with Slack alert |
@@ -1760,7 +1749,7 @@ sequenceDiagram
 ### 7.2 Error handler node
 
 ```python
-# packages/agents/coder/nodes/error_handler.py
+# backend/app/agents/coder/nodes/error_handler.py
 
 import logging
 import os
@@ -1830,7 +1819,7 @@ async def _post_slack_alert(state: CoderState, reason: str) -> None:
             f":hammer_and_wrench: *Coder Agent Error*\n"
             f"*Run ID*: `{state.run_id}`\n"
             f"*Parent Run*: `{state.parent_run_id}`\n"
-            f"*Tenant*: `{state.tenant_id}`\n"
+            f"*Organization*: `{state.organization_id}`\n"
             f"*Idea*: {state.idea_normalised[:80]}\n"
             f"*Repo*: {state.github_repo.html_url if state.github_repo else 'not created'}\n"
             f"*Reason*: {reason}\n"
@@ -1848,7 +1837,7 @@ async def _post_slack_alert(state: CoderState, reason: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# packages/agents/coder/utils/retry.py
+# backend/app/agents/coder/utils/retry.py
 
 import asyncio
 import functools
@@ -1904,7 +1893,7 @@ def with_retry(node_name: str):
 ### 7.4 LLM generation parse error + truncation correction
 
 ```python
-# packages/agents/coder/utils/llm_parse.py
+# backend/app/agents/coder/utils/llm_parse.py
 
 import json
 import logging
@@ -2000,7 +1989,7 @@ async def parse_generation_output(
 ### 7.5 Lint workspace manager
 
 ```python
-# packages/agents/coder/utils/workspace.py
+# backend/app/agents/coder/utils/workspace.py
 
 import logging
 import shutil
@@ -2053,7 +2042,7 @@ def build_workspace(state: CoderState) -> Generator[Path, None, None]:
 ### 7.6 SLA breach monitoring
 
 ```python
-# packages/agents/coder/utils/sla.py
+# backend/app/agents/coder/utils/sla.py
 
 import asyncio
 import logging
@@ -2102,7 +2091,7 @@ package autofounder.coder.v1;
 message CoderOutput {
   string run_id                    = 1;
   string parent_run_id             = 2;   // Architect run_id
-  string tenant_id                 = 3;
+  string organization_id           = 3;
   string idea_normalised           = 4;
   string domain                    = 5;
 
@@ -2127,14 +2116,14 @@ message CoderOutput {
 
   // Stack metadata (for Reviewer Agent context)
   string overall_pattern           = 19;  // "modular_monolith" | "microservices"
-  string auth_provider             = 20;  // "Auth0"
+  string auth_provider             = 20;  // "Supabase Auth"
   bool   stripe_integrated         = 21;
   bool   sendgrid_integrated       = 22;
-  bool   has_ai_services           = 23;  // FastAPI layer present
+  bool   has_ai_services           = 23;  // additional FastAPI service layer present
 
   // S3 artefact URIs (for Reviewer Agent to fetch source)
   string architecture_doc_s3_uri   = 24;  // from Architect Agent
-  string prisma_schema_s3_uri      = 25;
+  string sqlalchemy_models_s3_uri  = 25;
   string openapi_yaml_s3_uri       = 26;
 
   int64  completed_at_unix_ms      = 27;
@@ -2142,7 +2131,7 @@ message CoderOutput {
 }
 ```
 
-**S3 path convention**: All generated artefacts use `s3://autofounder-artefacts/{tenant_id}/{run_id}/` — never shared between tenants.
+**S3 path convention**: All generated artefacts use `s3://autofounder-artefacts/{organization_id}/{run_id}/` — never shared between tenants.
 
 **PR body template** (written by `push_to_github`):
 
@@ -2155,13 +2144,13 @@ message CoderOutput {
 
 ### What's in this PR
 - Next.js 14 App Router frontend ({frontend_file_count} files)
-- NestJS API ({backend_file_count} files, {endpoint_count} endpoints)
-- Prisma schema + initial migration
+- FastAPI backend ({backend_file_count} files, {endpoint_count} endpoints)
+- SQLAlchemy models + Alembic initial migration
 - Stripe billing integration
-- Auth0 authentication (JWT RS256 + RBAC)
+- Supabase Auth authentication (JWT RS256 + RBAC)
 - SendGrid transactional email
-- Admin dashboard
-- GitHub Actions CI/CD pipeline
+- Admin dashboard (/admin route group)
+- GitHub Actions CI/CD pipeline (ECS Fargate + CodeDeploy blue/green)
 - Jest + pytest test scaffolding
 
 ### Lint status
@@ -2172,9 +2161,9 @@ message CoderOutput {
 - [ ] No OWASP Top 10 violations (Semgrep scan)
 - [ ] No high-severity CVEs (Trivy scan)
 - [ ] TypeScript strict mode — zero `any` in production code
-- [ ] Multi-tenancy isolation verified (tenant_id in every query)
+- [ ] Multi-tenancy isolation verified (organization_id in every query)
 - [ ] Stripe webhook signature verification present
-- [ ] Auth0 JWT validation active on all non-public routes
+- [ ] Supabase Auth JWT validation active on all non-public routes
 
 🤖 Generated by [Auto-Founder AI](https://euron.one) Coder Agent
 ```
@@ -2182,7 +2171,7 @@ message CoderOutput {
 **Routing rules after output**:
 - `lint_all_passed == false` → Reviewer Agent receives PR with label `"lint-issues"` and must run lint-fix cycle before testing
 - `total_files_generated < 50` → flag as `"generation-incomplete"` in PR label; Reviewer Agent escalates to human
-- `has_ai_services == true` → Reviewer Agent must also run pytest on `apps/ai-services/`
+- `has_ai_services == true` → Reviewer Agent must also run pytest on the additional FastAPI service layer under `backend/app/`
 - `overall_pattern == "microservices"` → Reviewer Agent spins up docker-compose for integration tests; if `"modular_monolith"`, single-service test is sufficient
 
 ---

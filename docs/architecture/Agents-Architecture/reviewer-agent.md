@@ -30,7 +30,7 @@ The Reviewer Agent receives the generated code repository from the Coder Agent a
 - **Code quality** — SonarQube (maintainability, duplication, tech debt)
 - **LLM-as-judge** — Second LLM scores readability and maintainability before approving
 
-When failures are detected the agent enters a **self-healing loop** (max 5 cycles): it triages failures, generates patches via Claude Sonnet, commits them to the branch, and re-runs the full suite. If the loop cannot resolve all blockers within 5 cycles the run is escalated to a human reviewer via the Launch Control Center.
+When failures are detected the agent enters a **self-healing loop** (max 5 cycles): it triages failures, generates patches via Gemini 3.5 Flash, commits them to the branch, and re-runs the full suite. If the loop cannot resolve all blockers within 5 cycles the run is escalated to a human reviewer via the Launch Control Center.
 
 ### Sub-tasks executed (with target SLA)
 
@@ -55,7 +55,7 @@ When failures are detected the agent enters a **self-healing loop** (max 5 cycle
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# packages/agents/reviewer/schema.py
+# backend/app/agents/reviewer/schema.py
 
 from __future__ import annotations
 
@@ -278,8 +278,8 @@ class ReviewerState(BaseModel):
     """
 
     # Identity
-    run_id: UUID           = Field(default_factory=uuid4)
-    tenant_id: str         = Field(..., description="Validated from JWT claims")
+    run_id: UUID            = Field(default_factory=uuid4)
+    organization_id: str    = Field(..., description="Validated from Supabase JWT claims")
     coder_run_id: UUID     = Field(..., description="Run ID of the upstream Coder Agent")
     repo_url: str          = Field(..., description="GitHub repo URL with generated code")
     pr_number: int         = Field(..., description="Open PR number from Coder Agent")
@@ -344,17 +344,17 @@ class ReviewerState(BaseModel):
 | `run_security_scan` | Parallel branch | Trivy + Semgrep + Bandit | — |
 | `run_sonarqube` | Parallel branch | SonarQube REST API quality gate | — |
 | `test_join` | Barrier | Wait for all 5 parallel nodes | — |
-| `llm_judge` | Sequential | Second LLM scores readability + maintainability | Claude Sonnet |
-| `triage_failures` | Sequential | Classify failures, determine heal vs escalate | Claude Sonnet |
-| `auto_heal` | Sequential | Generate & apply code patches (loop entry) | Claude Sonnet |
+| `llm_judge` | Sequential | Second LLM scores readability + maintainability | Gemini 3.5 Flash |
+| `triage_failures` | Sequential | Classify failures, determine heal vs escalate | Gemini 3.5 Flash |
+| `auto_heal` | Sequential | Generate & apply code patches (loop entry) | Gemini 3.5 Flash |
 | `teardown_sandbox` | Sequential | Stop + remove Docker container | — |
-| `emit_report` | Sequential | Build Markdown report, post GitHub PR comment | GPT-4o |
+| `emit_report` | Sequential | Build Markdown report, post GitHub PR comment | Gemini 3.5 Flash |
 | `error_handler` | Error sink | Retries or escalates, Slack alert | — |
 
 ### 3.2 Graph definition
 
 ```python
-# packages/agents/reviewer/graph.py
+# backend/app/agents/reviewer/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -473,7 +473,7 @@ def build_reviewer_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# packages/agents/reviewer/routers.py
+# backend/app/agents/reviewer/routers.py
 
 from .schema import ReviewerState, ReviewDecision, MAX_HEAL_CYCLES
 
@@ -566,7 +566,7 @@ flowchart TD
 ### 4.1 Tool definitions
 
 ```python
-# packages/agents/reviewer/tools.py
+# backend/app/agents/reviewer/tools.py
 
 import asyncio
 import os
@@ -586,17 +586,17 @@ _docker_client = docker.from_env()
 
 
 class SpinSandboxInput(BaseModel):
-    repo_path: str   = Field(..., description="Host path to cloned repository")
-    image_tag: str   = Field(..., description="Unique tag for the sandbox image")
-    tenant_id: str
+    repo_path: str        = Field(..., description="Host path to cloned repository")
+    image_tag: str        = Field(..., description="Unique tag for the sandbox image")
+    organization_id: str
 
 
-def _spin_sandbox(repo_path: str, image_tag: str, tenant_id: str) -> dict:
+def _spin_sandbox(repo_path: str, image_tag: str, organization_id: str) -> dict:
     image, _ = _docker_client.images.build(
         path=repo_path,
         tag=image_tag,
         rm=True,
-        buildargs={"TENANT_ID": tenant_id},
+        buildargs={"ORGANIZATION_ID": organization_id},
         timeout=30,
     )
     container = _docker_client.containers.run(
@@ -609,7 +609,7 @@ def _spin_sandbox(repo_path: str, image_tag: str, tenant_id: str) -> dict:
         cpu_quota=50_000,     # 0.5 CPU
         # Egress restricted: only allow outbound to internal test services
         network_disabled=False,
-        labels={"tenant_id": tenant_id, "sandbox": "true"},
+        labels={"organization_id": organization_id, "sandbox": "true"},
     )
     return {"container_id": container.id, "image_tag": image_tag}
 
@@ -922,7 +922,7 @@ All prompts follow the model routing policy. Templates are stored as Jinja2 file
 ### 5.1 `llm_judge` — Readability & Maintainability Scoring
 
 ```jinja2
-{# packages/agents/reviewer/prompts/llm_judge.j2 #}
+{# backend/app/agents/reviewer/prompts/llm_judge.j2 #}
 
 SYSTEM:
 You are a senior software engineer conducting a code review for an AI-generated
@@ -944,7 +944,7 @@ Approval threshold: readability ≥ 70 AND maintainability ≥ 70 AND security_p
 USER:
 Repository: {{ repo_url }}
 Branch: {{ branch }}
-Tenant: {{ tenant_id }}
+Tenant: {{ organization_id }}
 
 Key files sampled ({{ code_artifacts | length }} total):
 {% for artifact in code_artifacts[:10] %}
@@ -972,7 +972,7 @@ Return a JSON object:
 ### 5.2 `triage_failures` — Failure Classification
 
 ```jinja2
-{# packages/agents/reviewer/prompts/triage_failures.j2 #}
+{# backend/app/agents/reviewer/prompts/triage_failures.j2 #}
 
 SYSTEM:
 You are a senior QA engineer triaging automated test failures.
@@ -1030,7 +1030,7 @@ Escalate if: any CRITICAL security finding is not auto-fixable, OR cycles exhaus
 ### 5.3 `auto_heal` — Patch Generation
 
 ```jinja2
-{# packages/agents/reviewer/prompts/auto_heal.j2 #}
+{# backend/app/agents/reviewer/prompts/auto_heal.j2 #}
 
 SYSTEM:
 You are a senior software engineer tasked with patching auto-fixable code failures.
@@ -1078,7 +1078,7 @@ Return a JSON array of patches:
 ### 5.4 `emit_report` — Markdown Review Report
 
 ```jinja2
-{# packages/agents/reviewer/prompts/emit_report.j2 #}
+{# backend/app/agents/reviewer/prompts/emit_report.j2 #}
 
 SYSTEM:
 You are a senior engineer writing an automated code review report.
@@ -1086,7 +1086,7 @@ The report will be posted as a GitHub PR comment. Use GitHub-flavoured Markdown.
 Be precise and actionable — developers will act on this report.
 
 USER:
-Tenant: {{ tenant_id }}
+Tenant: {{ organization_id }}
 Repository: {{ repo_url }} (PR #{{ pr_number }})
 Branch: {{ branch }}
 Review decision: {{ review_decision | upper }}
@@ -1125,7 +1125,7 @@ Structure the report with these sections:
 sequenceDiagram
     autonumber
     actor Coder   as Coder Agent
-    participant API   as NestJS API Gateway
+    participant API   as FastAPI API Gateway
     participant Graph as LangGraph Orchestrator
     participant Ing   as ingest_code
     participant Sand  as spin_sandbox
@@ -1261,7 +1261,7 @@ sequenceDiagram
     participant Redis  as Redis (session)
     participant Slack  as Slack Webhook
     participant GH     as GitHub API
-    participant API    as NestJS API
+    participant API    as FastAPI API
 
     Note over Graph: heal_cycle = 5 (max reached)
 
@@ -1272,8 +1272,8 @@ sequenceDiagram
     EH ->> GH: POST PR comment — escalation notice with findings
     GH -->> EH: comment_url
 
-    EH ->> Redis: publish("reviewer:escalate", { run_id, tenant_id, pr_number })
-    EH ->> Slack: POST alert { run_id, tenant_id, pr_number, critical_findings }
+    EH ->> Redis: publish("reviewer:escalate", { run_id, organization_id, pr_number })
+    EH ->> Slack: POST alert { run_id, organization_id, pr_number, critical_findings }
     Slack -->> EH: 200 OK
 
     EH -->> Graph: fatal_error set, is_complete=false
@@ -1304,7 +1304,7 @@ sequenceDiagram
 ### 7.2 Error handler node
 
 ```python
-# packages/agents/reviewer/nodes/error_handler.py
+# backend/app/agents/reviewer/nodes/error_handler.py
 
 import asyncio
 import logging
@@ -1409,7 +1409,7 @@ async def _post_slack_alert(state: ReviewerState, error_reason: str) -> None:
         "text": (
             f":large_yellow_circle: *Reviewer Agent Escalation*\n"
             f"*Run ID*: `{state.run_id}`\n"
-            f"*Tenant*: `{state.tenant_id}`\n"
+            f"*Tenant*: `{state.organization_id}`\n"
             f"*PR*: {state.repo_url}/pull/{state.pr_number}\n"
             f"*Reason*: {error_reason}\n"
             f"*Time*: {datetime.now(timezone.utc).isoformat()}"
@@ -1425,7 +1425,7 @@ async def _post_slack_alert(state: ReviewerState, error_reason: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# packages/agents/reviewer/utils/retry.py
+# backend/app/agents/reviewer/utils/retry.py
 
 import asyncio
 import functools
@@ -1484,7 +1484,7 @@ def with_retry(node_name: str):
 ### 7.4 OWASP hard-block logic
 
 ```python
-# packages/agents/reviewer/utils/owasp.py
+# backend/app/agents/reviewer/utils/owasp.py
 
 from ..schema import ReviewerState, SecurityFinding, SeverityLevel
 
@@ -1519,7 +1519,7 @@ def coverage_gate_passed(state: ReviewerState, threshold: float = 80.0) -> bool:
 ### 7.5 SLA breach monitoring
 
 ```python
-# packages/agents/reviewer/utils/sla.py
+# backend/app/agents/reviewer/utils/sla.py
 
 import asyncio
 import logging
@@ -1568,7 +1568,7 @@ package autofounder.reviewer.v1;
 
 message ReviewerOutput {
   string  run_id              = 1;
-  string  tenant_id           = 2;
+  string  organization_id     = 2;
   string  coder_run_id        = 3;
   string  repo_url            = 4;
   string  branch              = 5;
@@ -1584,7 +1584,7 @@ message ReviewerOutput {
   int32   heal_cycles_used    = 13;
 
   // Artifact references
-  string  review_report_url   = 14;  // S3 URI: s3://{bucket}/{tenant_id}/reviews/{run_id}.md
+  string  review_report_url   = 14;  // S3 URI: s3://{bucket}/{organization_id}/reviews/{run_id}.md
   string  github_pr_comment_url = 15;
 
   // Escalation (populated on escalate)

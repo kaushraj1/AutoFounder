@@ -58,11 +58,13 @@
 
 | Service | Source | Port | Min tasks (prod) | CPU / RAM |
 |---------|--------|------|-----------------|-----------|
-| `api` | `apps/api/` | 8000 | 2 (multi-AZ) | 512 / 1024 |
-| `orchestrator` | `apps/orchestrator/` | 8001 | 1 | 1024 / 2048 |
-| `ai-services` | `apps/ai-services/` | 8002 | 1 | 2048 / 4096 |
-| `web` | `apps/web/` | 3000 | 2 (multi-AZ) | 512 / 1024 |
-| `admin` | `apps/admin/` | 3001 | 1 | 256 / 512 |
+| `backend` | `backend/` | 8000 | 2 (multi-AZ) | 1024 / 2048 |
+| `web` | `frontend/` | 3000 | 2 (multi-AZ) | 512 / 1024 |
+
+> **Phase 1 (consolidated backend):** the API gateway, LangGraph orchestrator, and agent workers
+> ship as internal modules of one `backend` service
+> (`backend/app/{api,orchestrator,workers}`). They are split into dedicated
+> `orchestrator` / `ai-services` ECS services in Phase 4 if scale requires.
 
 **Gateway**: ALB (L7) → HTTPS listeners → target groups per ECS service.
 **Domain**: `api.autofounder.ai`, `app.autofounder.ai` via Route 53 + ACM.
@@ -81,7 +83,7 @@ Long-running build tasks (Pillar 3 code gen, Pillar 4 test execution) run as **e
 ECS Service Auto Scaling — target tracking on:
 - CPU utilisation (target 70%)
 - RPS per target (ALB metric)
-- SQS queue depth (for `ai-services`)
+- SQS queue depth (agent worker tasks inside the backend)
 
 ---
 
@@ -211,8 +213,8 @@ aws deploy stop-deployment \
 # Or directly update service to previous task definition revision
 aws ecs update-service \
   --cluster autofounder-ai-prod \
-  --service api \
-  --task-definition api:PREVIOUS_REVISION \
+  --service backend \
+  --task-definition backend:PREVIOUS_REVISION \
   --region ap-south-1
 ```
 
@@ -272,20 +274,17 @@ supabase start
 # Start Redis only
 make stack            # docker compose up -d
 
-# Run backend services
-cd apps/api && uv run uvicorn main:app --reload --port 8000
-cd apps/orchestrator && python -m orchestrator.main
-cd apps/ai-services && uv run uvicorn main:app --reload --port 8001
+# Run the consolidated backend (API + orchestrator + agent workers)
+cd backend && uv run uvicorn app.main:app --reload --port 8000
 
 # Run frontend
-pnpm --filter web dev      # Next.js Founder Portal  :3000
-pnpm --filter admin dev    # Admin dashboard          :3001
+pnpm --filter @autofounder-ai/frontend dev   # Next.js Founder Portal (+ /admin route group)  :3000
 
 # Apply DB migrations
-cd apps/api && uv run alembic upgrade head
+cd backend && uv run alembic upgrade head
 
 # Quality gate (run before every PR)
-make quality          # ruff + eslint — must both pass
+make quality          # backend ruff + mypy + pytest, then JS lint
 
 # Infra plan
 cd infra/terraform && terraform plan -var-file=env/staging.tfvars

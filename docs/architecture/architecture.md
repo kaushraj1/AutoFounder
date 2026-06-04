@@ -34,19 +34,19 @@ flowchart TD
 
     %% ── Application Layer ────────────────────────────────────────────────────
     subgraph APP["Application Layer  —  ECS Fargate  (private subnets)"]
-        WEB["apps/web\nNext.js 14 · Founder Portal\nValidation · Architecture · Code · Deploy · Launch · LLMOps"]:::app
-        API["apps/api\nFastAPI API Gateway\nAuth · Tenancy · Rate-limits · OPA"]:::app
+        WEB["frontend\nNext.js 14 · Founder Portal\nValidation · Architecture · Code · Deploy · Launch · LLMOps · /admin"]:::app
+        API["backend\nFastAPI API Gateway\nAuth · Tenancy · Rate-limits · OPA"]:::app
         RT["Supabase Realtime\nManaged WebSocket Service\nToken stream · Step events · Live logs"]:::app
     end
 
     %% ── Orchestration Layer ───────────────────────────────────────────────────
     subgraph ORCH_LAYER["Agent Orchestration Layer  —  ECS Fargate"]
-        ORCH["apps/orchestrator\nLangGraph Engine\nDAG execution · Checkpoints · HITL gates · AutoGen fallback"]:::orch
-        AISVR["apps/ai-services\nFastAPI Agent Workers\nLLM clients · RAG pipeline · Sandbox launcher"]:::orch
+        ORCH["backend/app/orchestrator\nLangGraph Engine\nDAG execution · Checkpoints · HITL gates · AutoGen fallback"]:::orch
+        AISVR["backend/app/workers\nFastAPI Agent Workers\nLLM clients · RAG pipeline · Sandbox launcher"]:::orch
     end
 
     %% ── AI Agents ────────────────────────────────────────────────────────────
-    subgraph AGENTS["AI Agents Layer  —  packages/agents"]
+    subgraph AGENTS["AI Agents Layer  —  backend/app/agents"]
         STR["Strategy & Ideation\nPillar 1\nMarket sizing · Lean Canvas\nViability score · Personas · Pivot options"]:::agent
         RES["Research\nPillar 1\nTavily · SerpAPI · Crunchbase\nG2 · SimilarWeb · Google Trends"]:::agent
         PPL["Product Planner\nPillar 1.5\nPRDs · Roadmaps\nUser stories · Requirements"]:::agent
@@ -59,7 +59,7 @@ flowchart TD
     end
 
     %% ── Guardrails ────────────────────────────────────────────────────────────
-    subgraph GUARD["Guardrails & Governance Pipeline  —  packages/guardrails"]
+    subgraph GUARD["Guardrails & Governance Pipeline  —  backend/app/guardrails"]
         G12["Stage 1–2\nPolicy OPA/Cedar · Permissions\nInput Llama Guard · Presidio PII redaction\nInjection detection · Content filters"]:::guard
         G34["Stage 3–4\nInstruction validators · System prompt constraints\nExecution guard · Tool schema validation\nCost caps · Rate limits · Allow-list enforcement"]:::guard
         G56["Stage 5–6\nOutput guard · TruLens groundedness\nHallucination check · Citation cross-ref\nMonitoring · Anomaly · Drift · Abuse detection"]:::guard
@@ -70,13 +70,13 @@ flowchart TD
     subgraph MODELS["Model & Capability Layer  —  LiteLLM router"]
         GEMINI["Gemini 3.5 Flash\nAll task classes\nReasoning · Code gen\nMarketing copy · Classification"]:::model
         EMBED["Embeddings\ngemini-embedding-2\n768 dimensions\nAll collections"]:::model
-        GENAI["Image & Speech\nDALL-E 3 · Midjourney\nWhisper · GPT-4o-vision"]:::model
+        GENAI["Image · Speech · Vision\nDALL-E 3 · Midjourney\nWhisper · Gemini 3.5 Flash (vision)"]:::model
         LGUARD["Safety Classifier\nLlama Guard 3\nAlignment · Toxicity"]:::model
     end
 
     %% ── Data Layer ────────────────────────────────────────────────────────────
     subgraph DATA["Data & Knowledge Layer  —  all access via UDAL"]
-        UDAL["UDAL  packages/db\nudal.relational / vector / graph / object\nTenant-scoped · Lineage events · No raw DB access from agents"]:::data
+        UDAL["UDAL  backend/app/db\nudal.relational / vector / graph / object\nTenant-scoped · Lineage events · No raw DB access from agents"]:::data
         PG[("Supabase\nPostgreSQL + pgvector + Storage\nSchema-per-tenant + RLS\nruns · artifacts · gates · episodes")]:::data
         VEC[("Supabase pgvector\nvector(768) HNSW index\nSchema-per-tenant\nmarket_intel · code_patterns · brand_voice")]:::data
         GDB[("Neo4j / Neptune\nEntity graph\nCompetitor to Market\nto Persona relationships")]:::data
@@ -97,7 +97,7 @@ flowchart TD
     subgraph OBS["Observability & MLOps Foundation  —  Layer 10"]
         LSMI["LangSmith\nLLM traces · Evals\nGroundedness audits\nPromptfoo regression"]:::obs
         OTEL["OpenTelemetry\nAWS X-Ray spans\nW3C traceparent end-to-end\nDist. tracing across all services"]:::obs
-        ELK["CloudWatch\nFluent Bit structured logs\ntrace_id · tenant_id\nrun_id · agent_id · model"]:::obs
+        ELK["CloudWatch\nFluent Bit structured logs\ntrace_id · organization_id\nrun_id · agent_id · model"]:::obs
         PRMG["Prometheus + Grafana\nRED + USE dashboards\nPer-tenant cost attribution\nAmazon Managed Grafana"]:::obs
         FEATST["Feast / Tecton\nFeature store\nEngagement · COGS\nAccept-rate per tenant"]:::obs
     end
@@ -112,7 +112,7 @@ flowchart TD
     %% ── External Integrations ─────────────────────────────────────────────────
     subgraph EXT["External Integrations  —  strict egress allow-list per tool"]
         EXTRES["Research APIs\nTavily · SerpAPI · Crunchbase\nG2 · Capterra · SimilarWeb\nProductHunt · HN · LinkedIn"]:::ext
-        EXTDEV["Dev & Deploy\nGitHub · Auth0 · Stripe\nTerraform · Vercel · Netlify\nAWS Pricing API"]:::ext
+        EXTDEV["Dev & Deploy\nGitHub · Supabase Auth · Stripe\nTerraform · Vercel · Netlify\nAWS Pricing API"]:::ext
         EXTMKT["Marketing Platforms\nX · LinkedIn · Reddit\nResend · Mailchimp · Typefully\nAhrefs · Webflow · Framer"]:::ext
     end
 
@@ -201,7 +201,7 @@ flowchart TD
 
     subgraph P3["Pillar 3  —  Autonomous Code Generation"]
         P3A["Coder Agent — Frontend Specialist\nNext.js 14 · Tailwind · shadcn/ui\nZustand · React Query"]:::pillar
-        P3B["Coder Agent — Backend Specialist\nFastAPI or NestJS · Prisma/SQLAlchemy\nOAuth · JWT · RBAC · Stripe"]:::pillar
+        P3B["Coder Agent — Backend Specialist\nFastAPI (Python 3.12) · SQLAlchemy + Alembic\nOAuth · JWT · RBAC · Stripe"]:::pillar
         P3C["Repo Manager\nGitHub repo scaffold · PR creation\nPrettier · ESLint · Black · Ruff"]:::pillar
     end
 
@@ -214,7 +214,7 @@ flowchart TD
     ESCALATE(["Escalate to Human\ngate.required emitted"]):::fail
 
     subgraph P5["Pillar 5  —  Deploy & Infrastructure  SLA: 10 min"]
-        P5A["DevOps Agent\nMulti-stage Dockerfile · docker-compose\nTerraform plan + apply · ECS Fargate\nRDS · ElastiCache · S3 provisioning"]:::pillar
+        P5A["DevOps Agent\nMulti-stage Dockerfile · docker-compose\nTerraform plan + apply · ECS Fargate\nSupabase · ElastiCache · S3 provisioning"]:::pillar
         P5B["DNS & SSL Agent\nRoute 53 record · ACM cert\nLet's Encrypt · HTTPS enforced"]:::pillar
         P5C["Observability Agent\nCloudWatch · Prometheus · Grafana\nSentry DSN · Datadog APM"]:::pillar
     end
@@ -280,14 +280,14 @@ flowchart LR
     classDef vector fill:#2d1b2e,stroke:#bc8cff,color:#ffa8e0
     classDef graphdb fill:#162032,stroke:#58a6ff,color:#79c0ff
 
-    AGENTS["All Agents\npackages/agents"]:::agent
+    AGENTS["All Agents\nbackend/app/agents"]:::agent
 
-    UDAL["UDAL  packages/db\nudal.relational\nudal.vector\nudal.graph\nudal.object\n\nEnforces tenant_id\nEmits lineage events\nNo raw DB access allowed"]:::udal
+    UDAL["UDAL  backend/app/db\nudal.relational\nudal.vector\nudal.graph\nudal.object\n\nEnforces organization_id\nEmits lineage events\nNo raw DB access allowed"]:::udal
 
-    subgraph RELATIONAL["Relational — PostgreSQL 16  RDS Multi-AZ"]
+    subgraph RELATIONAL["Relational — Supabase  PostgreSQL 16  managed multi-AZ"]
         direction TB
-        PLAT["platform schema\ntenants · tenant_api_keys\nmodel_registry · prompt_registry\ntool_registry · audit_log"]:::store
-        TEN["tenant_uuid schema  per tenant\nruns · artifacts · gates\nstep_events · memory_episodes\ncost_ledger"]:::store
+        PLAT["platform schema\norganizations · organization_api_keys\nmodel_registry · prompt_registry\ntool_registry · audit_log"]:::store
+        TEN["org_organization_id schema  per tenant\nruns · artifacts · gates\nstep_events · memory_episodes\ncost_ledger"]:::store
         ORCH_PG["orchestrator schema\ncheckpoints · runs  LangGraph state"]:::store
     end
 
@@ -314,10 +314,10 @@ flowchart LR
         PCACHE["Prompt cache\nllm:prompt_cache:sha256\nTTL 1h"]:::cache
         ECACHE["Embedding cache\nembed:cache:sha256:model\nTTL 24h"]:::cache
         QUEUE["Task priority queue\nqueue:tasks:pillar  sorted set"]:::cache
-        COST["Cost accumulator\ncost:tenant_id:YYYY-MM\nsliding monthly"]:::cache
+        COST["Cost accumulator\ncost:organization_id:YYYY-MM\nsliding monthly"]:::cache
     end
 
-    subgraph OBJECT_LAYER["Object Store — Supabase Storage  prefix bucket/tenant_id/"]
+    subgraph OBJECT_LAYER["Object Store — Supabase Storage  prefix bucket/organization_id/"]
         direction TB
         ART["Artifacts\nlean_canvas · erd · openapi\nlanding_page · brand_kit"]:::object
         RLHF["RLHF Data Lake\ncompressed traces\nfeedback datasets"]:::object

@@ -1,4 +1,4 @@
-import { Play } from 'lucide-react'
+import { Play } from "lucide-react";
 
 export default function VideoSection() {
   return (
@@ -52,11 +52,11 @@ export default function VideoSection() {
 
         <p className="text-center text-slate-500 text-sm mt-6">
           {/* TODO: Update caption to match actual video content */}
-          The demo shows the full end-to-end flow: entering a startup idea, watching agents validate the
-          market, generate architecture, write and test code, deploy to AWS, and ship a launch campaign —
-          all autonomously.
+          The demo shows the full end-to-end flow: entering a startup idea, watching agents validate
+          the market, generate architecture, write and test code, deploy to AWS, and ship a launch
+          campaign — all autonomously.
         </p>
       </div>
     </section>
-  )
+  );
 }
