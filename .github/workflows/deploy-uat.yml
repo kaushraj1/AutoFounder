@@ -1,4 +1,4 @@
-name: Deploy to Staging
+name: Deploy to UAT
 
 on:
   push:
@@ -26,15 +26,15 @@ jobs:
         run: |
           docker build \
             --platform linux/amd64 \
-            -t ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:staging-${{ github.sha }} \
+            -t ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:uat-${{ github.sha }} \
             ./backend
-          docker push ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:staging-${{ github.sha }}
+          docker push ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:uat-${{ github.sha }}
 
       - name: Update ECS service
         run: |
           aws ecs update-service \
             --cluster autofounderai-cluster \
-            --service autofounderai-backend-staging \
+            --service autofounderai-backend-uat \
             --force-new-deployment \
             --region ${{ secrets.AWS_REGION }}
 
@@ -42,8 +42,8 @@ jobs:
         run: |
           aws ecs wait services-stable \
             --cluster autofounderai-cluster \
-            --services autofounderai-backend-staging \
+            --services autofounderai-backend-uat \
             --region ${{ secrets.AWS_REGION }}
 
       - name: Notify success
-        run: echo "Staging deployment complete - ${{ github.sha }}"
+        run: echo "UAT deployment complete - ${{ github.sha }}"
