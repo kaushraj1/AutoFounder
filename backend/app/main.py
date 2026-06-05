@@ -14,7 +14,9 @@ from app import __version__
 from app.api.v1.health import router as health_router
 from app.api.v1.router import api_router
 from app.core.config import get_settings
+from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
+from app.core.middleware import RequestIdMiddleware
 
 logger = get_logger(__name__)
 
@@ -26,6 +28,9 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     configure_logging(settings.log_level)
     logger.info("backend.startup", env=settings.app_env, version=__version__)
     yield
+    # Dispose the connection pool so the process exits cleanly.
+    from app.db.session import engine  # noqa: PLC0415
+    await engine.dispose()
     logger.info("backend.shutdown")
 
 
@@ -39,6 +44,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # Middleware — add_middleware wraps in reverse: last added = outermost = runs first.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
@@ -46,6 +52,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(RequestIdMiddleware)  # outermost — stamps request_id first
+
+    register_exception_handlers(app)
 
     app.include_router(health_router, prefix="/health", tags=["health"])
     app.include_router(api_router, prefix="/v1")

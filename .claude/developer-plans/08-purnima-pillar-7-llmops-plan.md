@@ -70,8 +70,8 @@ Pillar 7 is the **learning loop** — and Purnima also owns the **shared LLM plu
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
 | BaseAgent ABC | AF-036 | Asit | LLMOps Agent subclasses it | 🔴 Blocked |
-| UDAL | AF-027 | Asit | Read/write registries + pgvector RAG | 🔴 Blocked |
-| Migrations (platform) | AF-025 | Asit | `prompt_registry`, `model_registry` tables | 🟡 |
+| UDAL | AF-027 | Somesh | Read/write registries + pgvector RAG | ✅ Done |
+| Migrations (platform) | AF-025 | Somesh | `prompt_registry`, `model_registry` tables | ✅ Done |
 | Supabase pgvector | AF-014 | Asit | RAG retrieval store | 🟡 |
 | **All agents running** | AF-037–044 | Pillar owners | AF-045 needs live traces (so it runs LAST) | 🔴 |
 
@@ -109,7 +109,7 @@ Pillar 7 is the **learning loop** — and Purnima also owns the **shared LLM plu
 ### 2.4 Dependency Chain Visualization
 
 ```
-Asit AF-027 UDAL + AF-025 migrations + AF-014 pgvector + AF-036 BaseAgent
+Somesh AF-027 UDAL + AF-025 migrations + Asit AF-014 pgvector + AF-036 BaseAgent
    |
    v
 +------------------------------------------------------+
@@ -547,7 +547,7 @@ message LLMOpsOutput {
 | Who | What | When | Status |
 |---|---|---|---|
 | **Every pillar owner** | Contribute prompts (AF-048) + golden sets (AF-050) | Ongoing | ⬜ Pending |
-| **Asit (Platform)** | UDAL + pgvector + `prompt_registry`/`model_registry` migrations + BaseAgent | When AF-025/036 land | ⬜ Pending |
+| **Somesh/Asit (Platform)** | UDAL + pgvector + `prompt_registry`/`model_registry` migrations + BaseAgent | When AF-025/036 land | ⬜ Pending |
 | **Asit (Platform)** | Co-own observability content (AF-023/024) | When AF-028 lands | ⬜ Pending |
 | **Raunak (Frontend)** | LLMOps Dashboard data contract (AF-060) | When mock data ready | ⬜ Pending |
 | **All agents** | Emit traces to LangSmith so AF-045 can analyse | When agents run | ⬜ Pending |

@@ -57,13 +57,13 @@ Think of the project like building a house. You can't paint a room (build your a
 |-------|-------------|---------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | Team | 11 | 11 | 0 |
 | Phase 2 | Infrastructure & Cloud | Asit | 13 | 0 | 13 |
-| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 0 | 26 |
+| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 7 | 19 |
 | Phase 4 | Frontend — Next.js 14 | Raunak | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | Yogesh | 9 | 0 | 9 |
 | Phase 6 | VS Code Extension | **Asit** | 7 | 0 | 7 |
-| **Total** | | | **78** | **11** | **67** |
+| **Total** | | | **78** | **18** | **60** |
 
-**Per-person task count:** Asit **34** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 67 pending + 11 done = **78**.
+**Per-person task count:** Asit **32** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 60 pending + 18 done = **78**.
 
 ---
 
@@ -117,13 +117,13 @@ Think of the project like building a house. You can't paint a room (build your a
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-025 | Asit | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟡 | ❌ |
-| AF-026 | Asit | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟡 | ❌ |
-| AF-027 | Asit | **⭐ UDAL** — `backend/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ❌ |
-| AF-028 | Asit | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ❌ |
-| AF-029 | Asit | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🔴 | ❌ |
-| AF-030 | Asit | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🔴 | ❌ |
-| AF-031 | Asit | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ❌ |
+| AF-025 | Somesh | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟢 | ✅ |
+| AF-026 | Somesh | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟢 | ✅ |
+| AF-027 | Somesh | **⭐ UDAL** — `backend/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟢 | ✅ |
+| AF-028 | Somesh | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ✅ |
+| AF-029 | Somesh | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🟢 | ✅ |
+| AF-030 | Somesh | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🟢 | ✅ |
+| AF-031 | Somesh | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ✅ |
 | AF-032 | Asit | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🔴 | ❌ |
 
 ### 3b — LangGraph Orchestration 🔴 (Owner: Asit — ⚠️ consider delegating, see Part D)
@@ -218,9 +218,9 @@ Think of the project like building a house. You can't paint a room (build your a
 
 > **You are the unblocker.** Every "wired" task on the team waits on you. Your speed = the team's speed.
 
-**Owns (34 tasks):** AF-012 → AF-024 (all infra) · AF-025 → AF-032 (core API & data) · AF-033 → AF-035 (orchestrator) · AF-036 (BaseAgent) · AF-047 (tool registry shell) · **AF-046 (Guardrails pipeline — Purnima co-owns output/monitoring)** · **AF-072 → AF-078 (VS Code Extension, Phase 6)** · **Finance & Ops/Risk agents (Phase 4, design deferred)**.
+**Owns (32 tasks):** AF-012 → AF-024 (all infra) · AF-032 (core API & data) · AF-033 → AF-035 (orchestrator) · AF-036 (BaseAgent) · AF-047 (tool registry shell) · **AF-046 (Guardrails pipeline — Purnima co-owns output/monitoring)** · **AF-072 → AF-078 (VS Code Extension, Phase 6)** · **Finance & Ops/Risk agents (Phase 4, design deferred)**.
 
-> ⚠️ **Overload note (bus-factor 1):** folding the previously-unassigned work (Guardrails, VS Code Extension, Finance & Ops/Risk) into Asit raises an already-overloaded lead to **~34 tasks** gating 9 people. **Strongly recommend delegating** the orchestrator (AF-033–035), BaseAgent (AF-036), or the entire VS Code Extension (AF-072–078) to an early-finishing pillar owner. Detailed plans: `developer-plans/11-asit-guardrails-pipeline-plan.md`, `12-asit-vscode-extension-plan.md`, `13-asit-finance-ops-risk-plan.md`.
+> ⚠️ **Overload note (bus-factor 1):** folding the previously-unassigned work (Guardrails, VS Code Extension, Finance & Ops/Risk) into Asit raises an already-overloaded lead to **~32 tasks** gating 9 people. **Strongly recommend delegating** the orchestrator (AF-033–035), BaseAgent (AF-036), or the entire VS Code Extension (AF-072–078) to an early-finishing pillar owner. Detailed plans: `developer-plans/11-asit-guardrails-pipeline-plan.md`, `12-asit-vscode-extension-plan.md`, `13-asit-finance-ops-risk-plan.md`.
 
 _Phase 2 — Infrastructure & Cloud_
 
@@ -244,13 +244,13 @@ _Phase 3a — Core API & Data Layer_
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-025 | Asit | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟡 | ❌ |
-| AF-026 | Asit | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟡 | ❌ |
-| AF-027 | Asit | **⭐ UDAL** — `backend/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ❌ |
-| AF-028 | Asit | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ❌ |
-| AF-029 | Asit | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🔴 | ❌ |
-| AF-030 | Asit | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🔴 | ❌ |
-| AF-031 | Asit | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ❌ |
+| AF-025 | Somesh | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟡 | ✅ |
+| AF-026 | Somesh | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟡 | ✅ |
+| AF-027 | Somesh | **⭐ UDAL** — `backend/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ✅ |
+| AF-028 | Somesh | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ✅ |
+| AF-029 | Somesh | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🟢 | ✅ |
+| AF-030 | Somesh | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🟢 | ✅ |
+| AF-031 | Somesh | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ✅ |
 | AF-032 | Asit | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🔴 | ❌ |
 
 _Phase 3b — LangGraph Orchestration_ ⚠️ *consider delegating (see Part D)*
@@ -269,10 +269,11 @@ _Agent foundation + Tool Registry shell_
 | AF-047 | Asit (shell) + all pillars (entries) | Tool Registry + tools — `ToolRegistry` singleton; research tools (Tavily, SerpAPI, Crunchbase, G2); engineering tools (GitHub, Stripe, AWS Pricing API); marketing tools (X, LinkedIn, Resend, ProductHunt) | `feature/tool-registry` | AF-027 | 🟡 | ❌ |
 
 **🟢 Do today (no blockers):** All of Phase 2 infra. Drive the **critical path** in this order:
-`AF-012 networking → AF-013 ECS → AF-014 Supabase → AF-025/026 migrations → AF-027 UDAL → AF-028 FastAPI → AF-030 REST contracts → AF-036 BaseAgent`.
+`AF-012 networking → AF-013 ECS → AF-014 Supabase → AF-025/026 migrations → ~~AF-027 UDAL~~ ✅ → ~~AF-028 FastAPI~~ ✅ → ~~AF-030 REST contracts~~ ✅ → AF-036 BaseAgent`.
 Those turn **7 pillar owners from 🟡 to 🟢**.
 
-**🔴 Later (need earlier steps):** Orchestrator AF-033–035 (need UDAL + Redis), Auth AF-029, Redis AF-032.
+**🟢 Now unblocked (AF-028 ✅):** ~~AF-029 Auth middleware~~ ✅, ~~AF-030 REST endpoints~~ ✅.
+**🔴 Later (need earlier steps):** Orchestrator AF-033–035 (need UDAL + Redis), Redis AF-032 (needs AF-015).
 
 **⚠️ You are a single point of failure** — you own infra **and** the whole shared backend (~25 tasks gating 9 people). Delegate the orchestrator (AF-033–035) or BaseAgent (AF-036) to a pillar owner who finishes early. See [Part D](#part-d--whats-missing-gaps--unassigned).
 
@@ -470,8 +471,8 @@ RAUNAK (Web)  +  YOGESH (Mobile)  +  ASIT (VS Code Extension, AF-072–078)
 
 ## The wiring order — how each piece "connects" (do this, in this order)
 
-1. **Asit publishes the data contracts first.** Before the platform is even finished, Asit commits the **Pydantic I/O schemas** for each pillar (agent input/output) + the **OpenAPI 3.1 spec** (AF-030). This lets everyone build against a *frozen contract* instead of waiting.
-2. **Asit lands the foundation:** AF-027 UDAL → AF-028 FastAPI → AF-036 BaseAgent. ← this is the moment 🟡 → 🟢 for all agent owners.
+1. **Somesh publishes the data contracts first.** Before the platform is even finished, Somesh commits the **Pydantic I/O schemas** for each pillar (agent input/output) + the **OpenAPI 3.1 spec** (AF-030). This lets everyone build against a *frozen contract* instead of waiting.
+2. **Somesh/Asit land the foundation:** ~~AF-027 UDAL~~ ✅ → ~~AF-028 FastAPI~~ ✅ → AF-036 BaseAgent. ← this is the moment 🟡 → 🟢 for all agent owners.
 3. **Purnima lands the agent plumbing:** AF-048 Prompt Registry + AF-049 LLM Router. Agent owners' offline prompts/tools now plug into real infrastructure.
 4. **Each pillar owner wires their agent** by subclassing `BaseAgent`, registering tools in the Tool Registry (AF-047), and reading/writing through UDAL. They drop in the prompts + schemas + tools they already built offline.
 5. **Agent-to-agent connection** = the Orchestrator (AF-033). The LangGraph `StateGraph` calls Pillar 1 → 2 → 3 … in order, passing each agent's output as the next agent's input (via `RunState`). This is why pillar output schemas must be agreed early (see soft deps).
@@ -511,7 +512,7 @@ These are real parts of the plan/architecture with **no clear owner**. Asit to a
 
 # PART E — Recommendations (for the Lead)
 
-1. **Unblock first, in this order:** AF-027 UDAL → AF-036 BaseAgent → AF-028 FastAPI → AF-030 REST contracts. These four flip 7 people from 🟡 to 🟢.
+1. **Unblock first, in this order:** ~~AF-027 UDAL~~ ✅ → AF-036 BaseAgent → ~~AF-028 FastAPI~~ ✅ → ~~AF-030 REST contracts~~ ✅. These four flip 7 people from 🟡 to 🟢. (AF-027 + AF-028 + AF-030 done — next: AF-036.)
 2. **Publish agent I/O contracts (Pydantic schemas) on day 1** so pillar owners build against a fixed contract while the platform is still being wired.
 3. **Gaps A / C / E assigned to Asit** (VS Code Extension, Guardrails, Finance & Ops/Risk) as of 2026-06-04. Still open: **B** (delegate foundation — now more urgent at 34 tasks), **D** (rebalance Pillar 1), and ownership notes F/G/H/I.
 4. **Rebalance Pillar 1 (D)** — move one of Somesh's 3 agents.
@@ -523,6 +524,7 @@ These are real parts of the plan/architecture with **no clear owner**. Asit to a
 
 | Date | Version | Description |
 |------|---------|-------------|
+| 2026-06-04 | 3.1.0 | AF-027 UDAL marked ✅ (Somesh). Implemented: context.py, audit.py, relational.py, vector.py, graph.py, object_store.py, udal.py rewrite, get_udal() dep, supabase settings. 14 unit tests, ruff+mypy clean. Phase 3 done: 2→3, pending: 24→23. Total done: 13→14. |
 | 2026-06-04 | 3.0.0 | Assigned all previously-unassigned work to **Asit**: AF-046 (Guardrails), AF-072→AF-078 (VS Code Extension), Finance & Ops/Risk agents (Phase 4). Updated roster, status overview, per-person counts (Asit 26→34, Unassigned 8→0), Part A (3d + Phase 6 owners), Part B, Part D gaps A/C/E (resolved), Part E. Added `developer-plans/11–13`. Flagged Asit overload (bus-factor 1) + delegation recommendation. |
 | 2026-06-01 | 2.0.0 | Rebuilt as single source of truth — full 78-task descriptions merged from `TASKS.md` (Part A by phase + Part B by person), with Owner / Depends-on / Start columns, wiring/connection guide (Part C), gaps (Part D), recommendations (Part E). No longer need `TASKS.md` to work. |
 | 2026-06-01 | 1.0.0 | Initial per-person assignment + independence analysis + gap list |

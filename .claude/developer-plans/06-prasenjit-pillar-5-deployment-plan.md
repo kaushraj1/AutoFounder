@@ -73,7 +73,7 @@ Pillar 5 is the **launch pad**. It takes the tested, green repository (approved 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
 | BaseAgent ABC | AF-036 | Asit | DevOpsAgent subclasses it | 🔴 Blocked |
-| UDAL | AF-027 | Asit | Read repo ref, write deploy artifacts | 🔴 Blocked |
+| UDAL | AF-027 | Somesh | Read repo ref, write deploy artifacts | ✅ Done |
 | Reviewer output | AF-042 | Vishal | Only deploy a green repo | 🟡 |
 | Tool Registry | AF-047 | Asit | Terraform/AWS/GitHub tools | 🟡 |
 | AWS account + IAM | AF-019 | Asit | Deploy target | 🟢 |
@@ -114,7 +114,7 @@ Pillar 5 is the **launch pad**. It takes the tested, green repository (approved 
 Vishal (Pillar 4: approved green repo)
    |
    v
-Asit AF-036 BaseAgent + AF-027 UDAL + shared Terraform (AF-012-021)
+Asit AF-036 BaseAgent + Somesh AF-027 UDAL + shared Terraform (AF-012-021)
    |
    v
 +------------------------------------------+
