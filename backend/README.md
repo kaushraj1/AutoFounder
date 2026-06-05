@@ -55,3 +55,5 @@ uv run pytest
 Optional integration deps (Gemini, LangGraph, Kafka, Supabase, OpenTelemetry) live in named
 dependency groups in `pyproject.toml`; install them when the feature that needs them is built,
 e.g. `uv sync --group agents`.
+
+See the repository root `README.md` for the full local stack and quality commands.
