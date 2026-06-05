@@ -37,7 +37,7 @@ Think of the project like building a house. You can't paint a room (build your a
 
 | # | Member | Area | Owns (AF-IDs) |
 |---|--------|------|---------------|
-| 1 | **Asit Piri** (Lead) | Platform foundation: PRD, Architecture, GitHub, CI/CD, DB, APIs, AWS, Code Review, Integration & Merging | AF-012 → AF-036, AF-047 |
+| 1 | **Asit Piri** (Lead) | Platform foundation: PRD, Architecture, GitHub, CI/CD, DB, APIs, AWS, Code Review, Integration & Merging · **+ Guardrails · VS Code Extension · Finance & Ops/Risk** | AF-012 → AF-036, AF-046, AF-047, AF-072 → AF-078 |
 | 2 | **Somesh Chitranshi** | Pillar 1 — Idea Validation & Market Research | AF-037, AF-038, AF-039 |
 | 3 | **Kaushlendra Kumar Gupta** | Pillar 2 — Architecture & Tech Stack Design | AF-040 |
 | 4 | **Kartik Mogalapalli** | Pillar 3 — Autonomous Code Generation | AF-041 |
@@ -47,7 +47,7 @@ Think of the project like building a house. You can't paint a room (build your a
 | 8 | **Purnima** | Pillar 7 — LLMOps & Continuous Learning (+ shared prompt/router/eval) | AF-045, AF-048, AF-049, AF-050 |
 | 9 | **Raunak Ravi** | Web Interface Design | AF-051 → AF-062 |
 | 10 | **Yogesh Raut** | Mobile Interface Design | AF-063 → AF-071 |
-| — | ⚪ **No owner** | VS Code Extension · Guardrails pipeline · Finance & Ops/Risk agents | AF-046, AF-072 → AF-078 |
+| — | ✅ **All assigned** | _(VS Code Extension · Guardrails pipeline · Finance & Ops/Risk agents are now owned by **Asit** — folded into row 1)_ | — |
 
 ---
 
@@ -57,13 +57,13 @@ Think of the project like building a house. You can't paint a room (build your a
 |-------|-------------|---------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | Team | 11 | 11 | 0 |
 | Phase 2 | Infrastructure & Cloud | Asit | 13 | 0 | 13 |
-| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b) + all Pillar owners (3c) + Purnima (3d) | 26 | 0 | 26 |
+| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 0 | 26 |
 | Phase 4 | Frontend — Next.js 14 | Raunak | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | Yogesh | 9 | 0 | 9 |
-| Phase 6 | VS Code Extension | ⚪ **Unassigned** | 7 | 0 | 7 |
+| Phase 6 | VS Code Extension | **Asit** | 7 | 0 | 7 |
 | **Total** | | | **78** | **11** | **67** |
 
-**Per-person task count:** Asit 26 · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 8** _(AF-046 + AF-072→AF-078)_ = 67 pending + 11 done = **78**.
+**Per-person task count:** Asit **34** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 67 pending + 11 done = **78**.
 
 ---
 
@@ -149,11 +149,11 @@ Think of the project like building a house. You can't paint a room (build your a
 | AF-044 | **Pallavi** | Marketing Agent (Pillar 6) — brand kit (DALL-E 3), landing page, SEO engine (10 blog drafts), email drip sequences, social posts; feature-list hallucination cross-ref; Launch Control Center HITL gate | `feature/marketing-agent` | AF-036, AF-040 | 🟡 | ❌ |
 | AF-045 | **Purnima** | LLMOps Agent (Pillar 7) — trace analysis, DSPy prompt optimisation, Promptfoo regression, LiteLLM routing updates, TruLens drift monitoring, A/B experiments, FinOps report; weekly Step Functions cycle | `feature/llmops-agent` | AF-036, all agents running | 🔴 | ❌ |
 
-### 3d — Guardrails, Tools & Prompts (Owners: Purnima + Asit; AF-046 ⚪ unassigned)
+### 3d — Guardrails, Tools & Prompts (Owners: Asit [AF-046 Guardrails + AF-047 Tools] + Purnima [AF-048/049/050])
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-046 | ⚪ **Unassigned** (suggest Purnima/shared) | **6-stage Guardrails Pipeline** — OPA policy, Presidio PII + Llama Guard input, prompt constraint validators, tool schema + cost-cap execution guard, TruLens + citation output guard, Evidently AI monitoring; immutable audit log. **Wraps every agent call.** | `feature/guardrails-pipeline` | AF-028 | 🟡 | ❌ |
+| AF-046 | **Asit** (Purnima co-owns output/monitoring stages) | **6-stage Guardrails Pipeline** — OPA policy, Presidio PII + Llama Guard input, prompt constraint validators, tool schema + cost-cap execution guard, TruLens + citation output guard, Evidently AI monitoring; immutable audit log. **Wraps every agent call.** | `feature/guardrails-pipeline` | AF-028 | 🟡 | ❌ |
 | AF-047 | **Asit** (shell) + all pillars (entries) | Tool Registry + tools — `ToolRegistry` singleton; research tools (Tavily, SerpAPI, Crunchbase, G2); engineering tools (GitHub, Stripe, AWS Pricing API); marketing tools (X, LinkedIn, Resend, ProductHunt) | `feature/tool-registry` | AF-027 | 🟡 | ❌ |
 | AF-048 | **Purnima** (shell) + all pillars (prompts) | Prompt Registry — versioned Jinja2 templates in `prompt_registry` table + S3; `get()` resolves active/canary; deterministic canary split; strict variable validation | `feature/prompt-registry` | AF-025 | 🟡 | ❌ |
 | AF-049 | **Purnima** | LiteLLM Model Router + RAG — task-class → model routing (Gemini 3.5 Flash; gemini-embedding-2 768-dim); hybrid BM25 + ANN on Supabase pgvector; Cohere reranking; context compression; citation check | `feature/model-router-rag` | AF-027, AF-014 | 🟡 | ❌ |
@@ -194,19 +194,19 @@ Think of the project like building a house. You can't paint a room (build your a
 | AF-070 | Yogesh | LLMOps Summary screen — cost card, eval score card, last drift check; dark/light mode following system | `feature/mobile-llmops-summary` | AF-045 (data) | 🟡 | ❌ |
 | AF-071 | Yogesh | EAS Build + release — `eas.json` profiles (development, preview, production); App Store + Google Play submit via `eas submit` | `feature/eas-build-pipeline` | AF-063 | 🟢 | ❌ |
 
-## Phase 6 — VS Code Extension ⚪ NO OWNER (Depends on: Phase 3)
+## Phase 6 — VS Code Extension 🟢 (Owner: Asit — Depends on: Phase 3)
 
-> In-editor AI co-founder: run monitoring, HITL gate approvals, code-gen commands. **⚠️ Nobody is assigned — see [Part D](#part-d--whats-missing-gaps--unassigned).**
+> In-editor AI co-founder: run monitoring, HITL gate approvals, code-gen commands. **Owner: Asit** (reassigned 2026-06-04 from unassigned). AF-072 is 🟢 now; the rest depend on Phase 3. Plan: `developer-plans/12-asit-vscode-extension-plan.md`.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-072 | ⚪ | Extension core — activation event, command palette scaffold, `ExtensionContext` lifecycle, Supabase Auth PKCE flow with token in `SecretStorage` | `feature/vscode-extension-core` | Phase 1 | 🟢 | ❌ |
-| AF-073 | ⚪ | Sidebar tree view — run list with status icons, pillar progress, live cost badge; refreshes via WebSocket | `feature/vscode-sidebar` | AF-030, AF-031 | 🔴 | ❌ |
-| AF-074 | ⚪ | HITL gate notifications — VS Code banner on `gate.required`; inline approve/reject buttons | `feature/vscode-gate-notifications` | AF-034 | 🔴 | ❌ |
-| AF-075 | ⚪ | Code-gen commands — `Generate Component`, `Generate API Endpoint`; invokes Coder Agent, streams tokens into editor tab | `feature/vscode-code-gen` | AF-041 | 🔴 | ❌ |
-| AF-076 | ⚪ | Live token streaming panel — `WebviewPanel` rendering agent step log stream in real time; follows active run | `feature/vscode-streaming-panel` | AF-031 | 🔴 | ❌ |
-| AF-077 | ⚪ | Artifact quick-open — `Open Lean Canvas`, `Open ERD`, `Open OpenAPI spec`; fetches `GET /v1/runs/{id}/artifacts`, previews in editor | `feature/vscode-artifact-viewer` | AF-030 | 🔴 | ❌ |
-| AF-078 | ⚪ | Marketplace packaging — `vsce package`, `vsce publish` in GitHub Actions; auto-bump version on merge to `main` | `feature/vscode-publish` | AF-072 | 🟡 | ❌ |
+| AF-072 | Asit | Extension core — activation event, command palette scaffold, `ExtensionContext` lifecycle, Supabase Auth PKCE flow with token in `SecretStorage` | `feature/vscode-extension-core` | Phase 1 | 🟢 | ❌ |
+| AF-073 | Asit | Sidebar tree view — run list with status icons, pillar progress, live cost badge; refreshes via WebSocket | `feature/vscode-sidebar` | AF-030, AF-031 | 🔴 | ❌ |
+| AF-074 | Asit | HITL gate notifications — VS Code banner on `gate.required`; inline approve/reject buttons | `feature/vscode-gate-notifications` | AF-034 | 🔴 | ❌ |
+| AF-075 | Asit | Code-gen commands — `Generate Component`, `Generate API Endpoint`; invokes Coder Agent, streams tokens into editor tab | `feature/vscode-code-gen` | AF-041 | 🔴 | ❌ |
+| AF-076 | Asit | Live token streaming panel — `WebviewPanel` rendering agent step log stream in real time; follows active run | `feature/vscode-streaming-panel` | AF-031 | 🔴 | ❌ |
+| AF-077 | Asit | Artifact quick-open — `Open Lean Canvas`, `Open ERD`, `Open OpenAPI spec`; fetches `GET /v1/runs/{id}/artifacts`, previews in editor | `feature/vscode-artifact-viewer` | AF-030 | 🔴 | ❌ |
+| AF-078 | Asit | Marketplace packaging — `vsce package`, `vsce publish` in GitHub Actions; auto-bump version on merge to `main` | `feature/vscode-publish` | AF-072 | 🟡 | ❌ |
 
 ---
 
@@ -218,7 +218,9 @@ Think of the project like building a house. You can't paint a room (build your a
 
 > **You are the unblocker.** Every "wired" task on the team waits on you. Your speed = the team's speed.
 
-**Owns (26 tasks):** AF-012 → AF-024 (all infra) · AF-025 → AF-032 (core API & data) · AF-033 → AF-035 (orchestrator) · AF-036 (BaseAgent) · AF-047 (tool registry shell).
+**Owns (34 tasks):** AF-012 → AF-024 (all infra) · AF-025 → AF-032 (core API & data) · AF-033 → AF-035 (orchestrator) · AF-036 (BaseAgent) · AF-047 (tool registry shell) · **AF-046 (Guardrails pipeline — Purnima co-owns output/monitoring)** · **AF-072 → AF-078 (VS Code Extension, Phase 6)** · **Finance & Ops/Risk agents (Phase 4, design deferred)**.
+
+> ⚠️ **Overload note (bus-factor 1):** folding the previously-unassigned work (Guardrails, VS Code Extension, Finance & Ops/Risk) into Asit raises an already-overloaded lead to **~34 tasks** gating 9 people. **Strongly recommend delegating** the orchestrator (AF-033–035), BaseAgent (AF-036), or the entire VS Code Extension (AF-072–078) to an early-finishing pillar owner. Detailed plans: `developer-plans/11-asit-guardrails-pipeline-plan.md`, `12-asit-vscode-extension-plan.md`, `13-asit-finance-ops-risk-plan.md`.
 
 _Phase 2 — Infrastructure & Cloud_
 
@@ -463,7 +465,7 @@ ASIT ──► Phase 2 Infra (AF-012–024)
    │  Pallavi(P6) needs P2 feature list · Purnima(P7 agent) needs all agents running (last)
    │
    ▼  (independent track — starts immediately, integrates after Phase 3 contracts are stable)
-RAUNAK (Web)  +  YOGESH (Mobile)  +  ⚪ VS Code Extension
+RAUNAK (Web)  +  YOGESH (Mobile)  +  ASIT (VS Code Extension, AF-072–078)
 ```
 
 ## The wiring order — how each piece "connects" (do this, in this order)
@@ -495,11 +497,11 @@ These are real parts of the plan/architecture with **no clear owner**. Asit to a
 
 | # | Gap | Tasks / Area | Why it matters | Suggested fix |
 |---|-----|--------------|----------------|---------------|
-| **A** | ⚪ **VS Code Extension — no owner** | AF-072 → AF-078 (entire Phase 6) | A whole product surface (in-IDE co-founder) has nobody on it | Assign to whoever finishes their pillar agent first, or to Raunak (TS/UI overlap) |
+| **A** | ✅ **VS Code Extension — assigned to Asit** | AF-072 → AF-078 (entire Phase 6) | A whole product surface (in-IDE co-founder) | **RESOLVED 2026-06-04 → Asit.** Plan: `developer-plans/12-asit-vscode-extension-plan.md`. Delegate to Raunak (TS/UI overlap) if Asit overloaded. |
 | **B** | ⚪ **Foundation overloaded on Lead** | Orchestrator AF-033–035, BaseAgent AF-036, UDAL AF-027 | One person gating 9 people = bottleneck + bus-factor 1 | Delegate orchestrator or BaseAgent to an early-finishing pillar owner |
-| **C** | ⚪ **Guardrails pipeline — no owner** | AF-046 (OPA, Presidio, Llama Guard, TruLens, Evidently) | Wraps **every** agent call; security/compliance backbone | Assign to Purnima (governance overlap) or make it a shared task |
+| **C** | ✅ **Guardrails pipeline — assigned to Asit** | AF-046 (OPA, Presidio, Llama Guard, TruLens, Evidently) | Wraps **every** agent call; security/compliance backbone | **RESOLVED 2026-06-04 → Asit** (Purnima co-owns output/monitoring stages). Plan: `developer-plans/11-asit-guardrails-pipeline-plan.md`. |
 | **D** | ⚪ **Pillar 1 overloaded** | Somesh owns AF-037 + AF-038 + AF-039 (3 agents) | Slowest pillar slows the whole chain (P2→P3… wait on P1) | Reassign Research **or** Product Planner to a lighter owner |
-| **E** | ⚪ **Finance & Ops/Risk agents — no owner** | Canonical roster (CLAUDE.md §7.1); not in Phase 1 list | Needed in Phase 4; cross-cutting | OK to defer, but record an owner now |
+| **E** | ✅ **Finance & Ops/Risk agents — owner recorded: Asit** | Canonical roster (CLAUDE.md §7.1); not in Phase 1 list | Needed in Phase 4; cross-cutting | **RESOLVED 2026-06-04 → Asit (Phase 4, design deferred).** Plan: `developer-plans/13-asit-finance-ops-risk-plan.md`. |
 | **F** | ⚪ **Registry shells — split ownership** | AF-047 Tool Registry, AF-048 Prompt Registry | Each pillar adds entries, but the *shell* needs one owner | Tool Registry → Asit; Prompt Registry → Purnima; pillars contribute entries |
 | **G** | ⚪ **Team's own QA / integration tests** | (not a single AF-ID) | The Reviewer **agent** (Vishal) tests *generated* apps — different from testing *our* platform | Lead owns platform CI gates (AF-022); each owner writes own unit tests |
 | **H** | ⚪ **Graph DB (Neo4j) + Feature Store (Feast)** | Architecture Layer 5 / Layer 10 | In blueprint, no owner, deferred | Defer to Phase 4; note owner = Purnima-adjacent |
@@ -511,7 +513,7 @@ These are real parts of the plan/architecture with **no clear owner**. Asit to a
 
 1. **Unblock first, in this order:** AF-027 UDAL → AF-036 BaseAgent → AF-028 FastAPI → AF-030 REST contracts. These four flip 7 people from 🟡 to 🟢.
 2. **Publish agent I/O contracts (Pydantic schemas) on day 1** so pillar owners build against a fixed contract while the platform is still being wired.
-3. **Assign the gaps (A–F)** — especially VS Code Extension (A) and Guardrails (C).
+3. **Gaps A / C / E assigned to Asit** (VS Code Extension, Guardrails, Finance & Ops/Risk) as of 2026-06-04. Still open: **B** (delegate foundation — now more urgent at 34 tasks), **D** (rebalance Pillar 1), and ownership notes F/G/H/I.
 4. **Rebalance Pillar 1 (D)** — move one of Somesh's 3 agents.
 5. **Tell everyone to start their 🟡 offline work now** — prompts, tools, schemas, evals, mocked tests, UI mockups. Idle-waiting on the foundation is the biggest avoidable cost.
 
@@ -521,6 +523,7 @@ These are real parts of the plan/architecture with **no clear owner**. Asit to a
 
 | Date | Version | Description |
 |------|---------|-------------|
+| 2026-06-04 | 3.0.0 | Assigned all previously-unassigned work to **Asit**: AF-046 (Guardrails), AF-072→AF-078 (VS Code Extension), Finance & Ops/Risk agents (Phase 4). Updated roster, status overview, per-person counts (Asit 26→34, Unassigned 8→0), Part A (3d + Phase 6 owners), Part B, Part D gaps A/C/E (resolved), Part E. Added `developer-plans/11–13`. Flagged Asit overload (bus-factor 1) + delegation recommendation. |
 | 2026-06-01 | 2.0.0 | Rebuilt as single source of truth — full 78-task descriptions merged from `TASKS.md` (Part A by phase + Part B by person), with Owner / Depends-on / Start columns, wiring/connection guide (Part C), gaps (Part D), recommendations (Part E). No longer need `TASKS.md` to work. |
 | 2026-06-01 | 1.0.0 | Initial per-person assignment + independence analysis + gap list |
 ```

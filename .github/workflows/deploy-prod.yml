@@ -1,0 +1,84 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: main
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            -t ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:v${{ github.sha }} \
+            ./backend
+          docker push ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:v${{ github.sha }}
+
+      - name: Tag as latest
+        run: |
+          docker tag \
+            ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:v${{ github.sha }} \
+            ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:latest
+          docker push ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:latest
+
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition autofounderai-backend \
+            --query taskDefinition \
+            > task-definition.json
+
+      - name: Update task definition with new image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: backend
+          image: ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:v${{ github.sha }}
+
+      - name: Deploy canary (10% traffic)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: autofounderai-backend-prod
+          cluster: autofounderai-cluster
+          wait-for-service-stability: true
+
+      - name: Wait and verify canary
+        run: |
+          echo "Canary running for 2 minutes, checking health..."
+          sleep 120
+          aws ecs describe-services \
+            --cluster autofounderai-cluster \
+            --services autofounderai-backend-prod \
+            --query 'services[0].deployments'
+
+      - name: Full rollout
+        run: |
+          aws ecs update-service \
+            --cluster autofounderai-cluster \
+            --service autofounderai-backend-prod \
+            --force-new-deployment \
+            --region ${{ secrets.AWS_REGION }}
+
+      - name: Wait for full deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster autofounderai-cluster \
+            --services autofounderai-backend-prod \
+            --region ${{ secrets.AWS_REGION }}

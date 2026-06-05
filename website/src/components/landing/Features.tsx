@@ -22,7 +22,7 @@ const features = [
     color: "sky",
     title: "Full-Stack Code Generation",
     description:
-      "The Engineering Agent scaffolds your entire repo: Next.js 14 frontend, FastAPI/NestJS backend, PostgreSQL schema, auth (OAuth/JWT), Stripe integration, and Dockerfile — all TypeScript-strict and linting-clean.",
+      "The Engineering Agent scaffolds your entire repo: Next.js 14 frontend, FastAPI backend, PostgreSQL schema, auth (OAuth/JWT), Stripe integration, and Dockerfile — all TypeScript-strict and linting-clean.",
     badge: "Pillar 3",
   },
   {
