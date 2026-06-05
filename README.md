@@ -43,13 +43,15 @@ Each pillar is powered by a specialized AI agent and follows the same 5-stage lo
 
 | Pillar | Agent | What It Does | Time Saved |
 |--------|-------|-------------|------------|
-| 1. Idea Validation & Market Research | Strategist | Competitor analysis, Lean Canvas, viability scoring | 3 weeks → 30 min |
-| 2. Architecture & Tech Stack Design | Architect | DB schema, OpenAPI specs, cost forecasting | 2 weeks → 2 hrs |
-| 3. Autonomous Code Generation | Coder | Full-stack Next.js + FastAPI, auth, payments | 3–6 months → 7 days |
-| 4. Testing & Self-Healing | Reviewer | Lint, unit/integration tests, security scan, auto-fix | Manual → automated |
-| 5. Deployment & Infrastructure | DevOps | Terraform IaC, ECS Fargate, DNS/SSL, CI/CD | 1 week → 10 min |
-| 6. Marketing & Launch Automation | Marketer | Brand kit, SEO, Product Hunt, X thread, HN post | 2–3 weeks → 2 hrs |
+| 1. Idea Validation & Market Research | Strategy & Ideation (+ Research) | Competitor analysis, Lean Canvas, viability scoring | 3 weeks → 30 min |
+| 2. Architecture & Tech Stack Design | Engineering (Architect) | DB schema, OpenAPI specs, cost forecasting | 2 weeks → 2 hrs |
+| 3. Autonomous Code Generation | Engineering (Coder) | Full-stack Next.js + FastAPI, auth, payments | 3–6 months → 7 days |
+| 4. Testing & Self-Healing | Engineering (Reviewer/QA) | Lint, unit/integration tests, security scan, auto-fix | Manual → automated |
+| 5. Deployment & Infrastructure | Engineering (DevOps) | Terraform IaC, ECS Fargate, DNS/SSL, CI/CD | 1 week → 10 min |
+| 6. Marketing & Launch Automation | Marketing | Brand kit, SEO, Product Hunt, X thread, HN post | 2–3 weeks → 2 hrs |
 | 7. Growth, LLMOps & Continuous Learning | LLMOps | Feedback loops, prompt optimization, model routing | Ongoing |
+
+> Canonical roster (see `.claude/CLAUDE.md` §7.1): 7 specialized agents — **Strategy & Ideation, Product Planner, Research, Engineering** (a composite owning pillars 2–5 via its Architect / Coder / Reviewer / DevOps sub-agents)**, Marketing, Finance, Ops & Risk** — with **LLMOps** as a Layer-10 continuous-learning concern.
 
 ---
 
@@ -97,6 +99,8 @@ A monorepo: **pnpm + Turborepo** orchestrate JS/TS; **uv** manages the Python ba
 | `infra` | — | Terraform + CodeDeploy specs (AWS ECS Fargate) |
 | `packages/shared` | `@autofounder-ai/shared-types` | Shared TypeScript types |
 | `packages/api-client` | `@autofounder-ai/api-client` | Typed backend client (OpenAPI-generated in Phase 2) |
+| `website` | — | Public marketing landing page (Vite + React + Tailwind). Stands **outside** the pnpm/turbo workspace (uses npm) and deploys to Vercel via `deploy-frontend.yml`. |
+| `vscode-extension` | — | Standalone VS Code extension. Not part of the pnpm workspace. |
 
 > Phase 1 builds out `backend` (the Validation Engine). The web / mobile apps are scaffolded placeholders until their roadmap phase; the super-admin surface ships **inside** `frontend` as an `/admin` route group rather than a separate app. The backend is a **modular monolith** — its internal modules can be split into separate services in Phase 4 when scale demands it.
 

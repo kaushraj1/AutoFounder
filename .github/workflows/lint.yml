@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  prettier:
+  js-quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,3 +25,12 @@ jobs:
 
       - name: Prettier (check formatting)
         run: pnpm format:check
+
+      # ESLint + typecheck for the JS/TS workspaces only. The Python backend's
+      # ruff + mypy run in backend-ci.yml, so backend is excluded here to keep
+      # this a Node-only job (no uv/Python toolchain needed).
+      - name: ESLint (JS/TS workspaces)
+        run: pnpm exec turbo lint --filter='!@autofounder-ai/backend'
+
+      - name: Typecheck (JS/TS workspaces)
+        run: pnpm exec turbo typecheck --filter='!@autofounder-ai/backend'
