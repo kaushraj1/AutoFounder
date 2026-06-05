@@ -55,8 +55,8 @@ The Founder Portal is the **founder's window into the whole pipeline** — one N
 
 | Source | Data Consumed | Required / Optional | Used For |
 |---|---|---|---|
-| **Asit (AF-030 REST)** | `/v1/ideas`, `/v1/runs`, gates, artifacts, feedback, cost | **Required** | All data fetching |
-| **Asit (AF-031 Realtime)** | `step_events` channel | **Required** | Live log/token streaming |
+| **Somesh (AF-030 REST)** | `/v1/ideas`, `/v1/runs`, gates, artifacts, feedback, cost | **Required** | All data fetching |
+| **Somesh (AF-031 Realtime)** | `step_events` channel | **Required** | Live log/token streaming |
 | **Each pillar agent** | Pillar-specific artifact shapes (canvas, ERD, review, deploy, launch) | **Required (per surface)** | Studio rendering |
 
 ### 1.4 Outputs Produced for Downstream Consumers
@@ -76,16 +76,16 @@ The Founder Portal is the **founder's window into the whole pipeline** — one N
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
 | Monorepo (frontend scaffold) | AF-005 | Team | The `frontend/` workspace | ✅ Done |
-| REST endpoints | AF-030 | Asit | Real data for AF-052 | 🔴 (build on mock first) |
-| Realtime | AF-031 | Asit | Live streaming | 🔴 (build on mock first) |
-| Supabase Auth | AF-029 | Asit | Login/session | 🟡 |
+| REST endpoints | AF-030 | Somesh | Real data for AF-052 | ✅ Done |
+| Realtime | AF-031 | Somesh | Live streaming | ✅ Done |
+| Supabase Auth | AF-029 | Somesh | Login/session | ✅ Done |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
 
 | Dependency | Task ID | Owner | Fallback If Unavailable |
 |---|---|---|---|
 | Pillar artifact shapes | AF-037–045 | Pillar owners | Build studios on mock fixtures; swap later |
-| OpenAPI client gen | AF-030 | Asit | Hand-typed `lib/api-client.ts` until generated |
+| OpenAPI client gen | AF-030 | Somesh | Hand-typed `lib/api-client.ts` until generated |
 | `packages/shared` types | AF-005 | Team | Local TS interfaces; consolidate later |
 
 ### 2.3 Fallback Behavior Matrix
@@ -120,7 +120,7 @@ AF-051 Next.js setup + AF-053 state/layout  (no backend needed -- start now)
    v
 12 SURFACES built on MOCK DATA (AF-054..AF-062)
    |
-   |  (when Asit ships AF-030 REST + AF-031 Realtime)
+   |  (AF-030 and AF-031 are ✅ completed by Somesh)
    v
 AF-052 typed API client + Realtime hooks -> swap mock for real
    |
@@ -503,7 +503,7 @@ The portal consumes the **AF-030 REST + AF-031 Realtime** contract (see §7). Al
 | 6 | Playwright e2e on mock backend (MSW) | P1 | 5 hrs | `tests/e2e/` |
 | 7 | **Agree REST + Realtime contract with Asit** | P0 | 1 hr | shared contract |
 
-**Build every screen on mock data now → swap in the real API client (AF-052) the moment AF-030 + AF-031 land.**
+**Build every screen on mock data now → swap in the real API client (AF-052) since AF-030 + AF-031 are ✅ completed.**
 
 ---
 
@@ -531,7 +531,7 @@ The portal consumes the **AF-030 REST + AF-031 Realtime** contract (see §7). Al
 
 | Who | What | When | Status |
 |---|---|---|---|
-| **Asit (Platform)** | Agree REST (AF-030) + Realtime (AF-031) contract; hand over typed client | When AF-030 lands | ⬜ Pending |
+| **Somesh (Platform)** | Agree REST (AF-030) + Realtime (AF-031) contract; hand over typed client | When AF-030 lands | ✅ Done |
 | **Somesh (P1)** | Validation Studio data shape (canvas/viability/ICP) | When mock ready | ⬜ Pending |
 | **Kaushlendra (P2)** | Architecture Studio shape (ERD/OpenAPI/cost) | When mock ready | ⬜ Pending |
 | **Vishal (P4)** | Code Review Studio shape (diff/comments/heal/scan) | When mock ready | ⬜ Pending |
