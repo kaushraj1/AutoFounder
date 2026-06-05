@@ -10,11 +10,11 @@
 |-------|-------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | 11 | 11 | 0 |
 | Phase 2 | Infrastructure & Cloud | 13 | 0 | 13 |
-| Phase 3 | Backend — FastAPI + Agents | 26 | 0 | 26 |
+| Phase 3 | Backend — FastAPI + Agents | 22 | 0 | 22 |
 | Phase 4 | Frontend — Next.js 14 | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | 9 | 0 | 9 |
 | Phase 6 | VS Code Extension | 7 | 0 | 7 |
-| **Total** | | **78** | **11** | **67** |
+| **Total** | | **74** | **11** | **63** |
 
 ---
 
@@ -71,13 +71,13 @@
 
 | ID | Task | Branch | Status |
 |----|------|--------|--------|
-| AF-025 | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | ❌ Pending |
-| AF-026 | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) and orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | ❌ Pending |
-| AF-027 | UDAL — `backend/app/db/` Python client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | ❌ Pending |
-| AF-028 | FastAPI app bootstrap — lifespan, dependency injection, global exception handler (structured `{code, message, requestId}` response), CORS | `feature/fastapi-app-setup` | ❌ Pending |
-| AF-029 | Auth middleware — Supabase JWT validation (SUPABASE_JWT_SECRET), OPA policy sidecar integration, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | ❌ Pending |
-| AF-030 | REST API endpoints — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | ❌ Pending |
-| AF-031 | Supabase Realtime integration — subscribe to `step_events` table changes via Supabase Realtime (pg_notify); frontend uses `@supabase/supabase-js` Realtime channel; reconnect replay from `step_events` | `feature/realtime-integration` | ❌ Pending |
+| AF-025 | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | ✅ Completed |
+| AF-026 | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) and orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | ✅ Completed |
+| AF-027 | UDAL — `backend/app/db/` Python client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | ✅ Completed |
+| AF-028 | FastAPI app bootstrap — lifespan, dependency injection, global exception handler (structured `{code, message, requestId}` response), CORS | `feature/fastapi-app-setup` | ✅ Completed |
+| AF-029 | Auth middleware — Supabase JWT validation (SUPABASE_JWT_SECRET), OPA policy sidecar integration, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | ✅ Completed |
+| AF-030 | REST API endpoints — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | ✅ Completed |
+| AF-031 | Supabase Realtime integration — subscribe to `step_events` table changes via Supabase Realtime (pg_notify); frontend uses `@supabase/supabase-js` Realtime channel; reconnect replay from `step_events` | `feature/realtime-integration` | ✅ Completed |
 | AF-032 | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | ❌ Pending |
 
 ### 3b — LangGraph Orchestration

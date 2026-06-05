@@ -72,8 +72,8 @@ Pillar 6 is the **Go-To-Market (GTM) automation engine**. It receives a deployed
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
 | BaseAgent ABC | AF-036 | Asit | MarketingAgent subclasses it | 🔴 Blocked |
-| UDAL | AF-027 | Asit | Read inputs, write assets via UDAL | 🔴 Blocked |
-| FastAPI bootstrap | AF-028 | Asit | HITL gate + artifact retrieval | 🔴 Blocked |
+| UDAL | AF-027 | Somesh | Read inputs, write assets via UDAL | ✅ Done |
+| FastAPI bootstrap | AF-028 | Somesh | HITL gate + artifact retrieval | ✅ Done |
 | **Architect feature list** | AF-040 | Kaushlendra | Ground truth for hallucination check | 🟡 |
 | Tool Registry | AF-047 | Asit | DALL-E 3, Buffer, Typefully, Resend, Tavily, Ahrefs | 🟡 |
 | LLM Router | AF-049 | Purnima | Gemini 3.5 Flash routing | 🟡 |
@@ -121,7 +121,7 @@ Pillar 6 is the **Go-To-Market (GTM) automation engine**. It receives a deployed
 Somesh (P1: canvas/personas)  Kaushlendra (P2: FEATURE LIST)  Prasenjit (P5: live_url)
         \                              |                              /
          \                             v                             /
-          +----> Asit AF-036 BaseAgent + AF-027 UDAL + AF-028 FastAPI
+          +----> Asit AF-036 BaseAgent + Somesh AF-027 UDAL + AF-028 FastAPI
                           |   Purnima AF-048/049 (Prompt Reg / Router)
                           v
         +------------------------------------------+

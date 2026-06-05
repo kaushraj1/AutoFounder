@@ -50,8 +50,8 @@ The extension brings AutoFounder AI **into the developer's IDE** — monitor run
 
 | Source | Data Consumed | Required / Optional | Used For |
 |---|---|---|---|
-| **Asit (AF-030 REST)** | runs, gates, artifacts | **Required** | Sidebar, artifacts, code-gen |
-| **Asit (AF-031 Realtime)** | `step_events` channel | **Required** | Streaming panel, sidebar refresh |
+| **Somesh (AF-030 REST)** | runs, gates, artifacts | **Required** | Sidebar, artifacts, code-gen |
+| **Somesh (AF-031 Realtime)** | `step_events` channel | **Required** | Streaming panel, sidebar refresh |
 | **Asit (AF-034 HITL)** | gate state machine | **Required (AF-074)** | Gate approve/reject |
 | **Kartik (AF-041 Coder)** | Coder Agent endpoint | **Required (AF-075)** | Code-gen commands |
 
@@ -72,8 +72,8 @@ The extension brings AutoFounder AI **into the developer's IDE** — monitor run
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
 | Extension scaffold | AF-007 | Team | `vscode-extension/` workspace | ✅ Done |
-| REST endpoints | AF-030 | Asit | Run/artifact/gate data | 🔴 (AF-072 doesn't need it) |
-| Realtime | AF-031 | Asit | Sidebar + streaming panel | 🔴 |
+| REST endpoints | AF-030 | Somesh | Run/artifact/gate data | ✅ Done |
+| Realtime | AF-031 | Somesh | Sidebar + streaming panel | ✅ Done |
 | HITL gate manager | AF-034 | Asit | Gate notifications (AF-074) | 🔴 |
 | Coder Agent | AF-041 | Kartik | Code-gen commands (AF-075) | 🔴 |
 
@@ -83,7 +83,7 @@ The extension brings AutoFounder AI **into the developer's IDE** — monitor run
 |---|---|---|---|
 | `packages/api-client` | AF-052 | Raunak/shared | Local typed client until generated |
 | Web design conventions | AF-051+ | Raunak | Reuse Founder Portal UX patterns |
-| Supabase Auth | AF-029 | Asit | Dev mock token in SecretStorage |
+| Supabase Auth | AF-029 | Somesh | Dev mock token in SecretStorage |
 
 ### 2.3 Fallback Behavior Matrix
 
@@ -111,7 +111,7 @@ Phase 1 vscode-extension scaffold (done)
    v
 AF-072 Extension core (Auth PKCE + SecretStorage)  -- start now (no backend)
    |
-   |  (needs Asit AF-030 REST + AF-031 Realtime + AF-034 HITL + Kartik AF-041 Coder)
+   |  (needs Somesh's AF-030 REST + AF-031 Realtime + Asit's AF-034 HITL + Kartik's AF-041 Coder)
    v
 AF-073 Sidebar -> AF-074 Gate notifications -> AF-075 Code-gen
 AF-076 Streaming panel -> AF-077 Artifact quick-open
@@ -468,7 +468,7 @@ vscode-extension/
 
 ### 10.7 Data Contract Consumed
 
-Consumes the **AF-030 REST + AF-031 Realtime + AF-034 HITL** contract (§7), shared via `packages/api-client`. Code-gen calls the Coder Agent (AF-041) endpoint.
+Consumes the **AF-030 REST + AF-031 Realtime + AF-034 HITL** contract (§7), shared via `packages/api-client`. Code-gen calls the Coder Agent (AF-041) endpoint. (AF-030 and AF-031 are ✅ completed by Somesh.)
 
 ### 10.8 Immediate Action Items (🟢 Start Today)
 

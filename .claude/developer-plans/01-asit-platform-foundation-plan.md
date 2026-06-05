@@ -77,7 +77,7 @@ The Platform Foundation is the **wiring of the house** — the shared infrastruc
 | Monorepo scaffold | AF-001→011 | Team | All code/infra builds on it | ✅ Done |
 | Networking | AF-012 | Asit | VPC/subnets gate every other AWS module | 🟢 Now |
 | Supabase project | AF-014 | Asit | DB/pgvector/Auth/Storage source of truth | 🟢 Now |
-| Migrations | AF-025/026 | Asit | UDAL needs the schemas to exist | 🟡 |
+| Migrations | AF-025/026 | Somesh | UDAL needs the schemas to exist | ✅ Done |
 | ElastiCache | AF-015 | Asit | Redis gates orchestrator checkpoints (AF-032/033) | 🟢 Now |
 | Messaging | AF-017 | Asit | Kafka/SQS/SNS/EventBridge gate orchestrator + HITL | 🟢 Now |
 
@@ -417,9 +417,9 @@ class UDALClient:
 
 | Week | Task | Deliverable | Status |
 |---|---|---|---|
-| 3 | AF-025/026 migrations, **AF-027 UDAL** | Schemas + tenant-safe data access | 🟡 |
-| 3 | **AF-028 FastAPI**, AF-029 auth, **AF-030 REST** | Gateway + JWT + endpoints + OpenAPI | 🔴→🟢 |
-| 4 | AF-031 Realtime, AF-032 Redis | Live stream + checkpoints/cache | 🔴 |
+| 3 | AF-025/026 migrations, **AF-027 UDAL** | Schemas + tenant-safe data access | ✅ Done |
+| 3 | **AF-028 FastAPI**, AF-029 auth, **AF-030 REST** | Gateway + JWT + endpoints + OpenAPI | ✅ Done |
+| 4 | AF-031 Realtime, AF-032 Redis | Live stream + checkpoints/cache | 🔴 (AF-031 Done, AF-032 Pending) |
 | 4 | **AF-036 BaseAgent**, AF-047 Tool Registry shell | Agent contract published — **unblocks 7 owners** | 🔴→🟢 |
 | 5 | AF-033 StateGraph, AF-034 HITL gate, AF-035 SQS worker | Full orchestrator (consider delegating) | 🔴 |
 

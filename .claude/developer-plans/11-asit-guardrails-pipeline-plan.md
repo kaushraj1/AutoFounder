@@ -49,7 +49,7 @@ The Guardrails pipeline is the **safety membrane** that wraps **every** agent in
 
 | Source | Data Consumed | Required / Optional | Used For |
 |---|---|---|---|
-| **Asit (FastAPI AF-028)** | Request + `OrgContext` (JWT claims) | **Required** | Policy decisions, tenant scoping |
+| **Somesh (FastAPI AF-028)** | Request + `OrgContext` (JWT claims) | **Required** | Policy decisions, tenant scoping |
 | **Every agent (P1–P7)** | Pre-LLM input, tool calls, outputs | **Required** | The thing being guarded |
 | **Architect (P2)** | FeatureList | Optional | Output citation/feature cross-ref (Marketing) |
 
@@ -70,8 +70,8 @@ The Guardrails pipeline is the **safety membrane** that wraps **every** agent in
 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
-| FastAPI app | AF-028 | Asit | Middleware mount point | 🔴 Blocked |
-| UDAL | AF-027 | Asit | Tenant context + lineage emit | 🔴 Blocked |
+| FastAPI app | AF-028 | Somesh | Middleware mount point | ✅ Done |
+| UDAL | AF-027 | Somesh | Tenant context + lineage emit | ✅ Done |
 | BaseAgent | AF-036 | Asit | Wraps the agent lifecycle | 🔴 Blocked |
 | S3 Object Lock bucket | AF-016 | Asit | Immutable audit store | 🟡 |
 
@@ -79,7 +79,7 @@ The Guardrails pipeline is the **safety membrane** that wraps **every** agent in
 
 | Dependency | Task ID | Owner | Fallback If Unavailable |
 |---|---|---|---|
-| OPA sidecar | AF-029 | Asit | Inline Python policy checks until OPA lands |
+| OPA sidecar | AF-029 | Somesh | Inline Python policy checks until OPA lands |
 | Tool Registry | AF-047 | Asit | Execution guard reads static allow-list |
 | LangSmith | AF-024 | Purnima | Local output-eval store |
 | FeatureList | AF-040 | Kaushlendra | Skip Marketing feature cross-ref |
@@ -111,7 +111,7 @@ The Guardrails pipeline is the **safety membrane** that wraps **every** agent in
 ### 2.4 Dependency Chain Visualization
 
 ```
-Asit AF-028 FastAPI + AF-027 UDAL + AF-036 BaseAgent + AF-016 S3 Object Lock
+Somesh's AF-028 FastAPI + AF-027 UDAL + Asit's AF-036 BaseAgent + AF-016 S3 Object Lock
    |
    v
 +------------------------------------------------+

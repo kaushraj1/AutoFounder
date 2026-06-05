@@ -76,8 +76,8 @@ Pillar 4 is the **quality-gate and self-healing engine** of the Auto-Founder AI 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
 | **BaseAgent ABC** | AF-036 | Asit / shared | `ReviewerAgent` subclasses it | 🔴 Blocked |
-| **UDAL** | AF-027 | Asit | All reads/writes via UDAL | 🔴 Blocked |
-| **FastAPI App Bootstrap** | AF-028 | Asit | REST for Code Review Studio + escalation gate | 🔴 Blocked |
+| **UDAL** | AF-027 | Somesh | All reads/writes via UDAL | ✅ Done |
+| **FastAPI App Bootstrap** | AF-028 | Somesh | REST for Code Review Studio + escalation gate | ✅ Done |
 | **Coder Agent output** | AF-041 | Kartik | The repo to test is the input | 🟡 Offline started |
 | **Tool Registry (shell)** | AF-047 | Asit (shell) | Sandbox/scan/test tools registered | 🟡 |
 | **LLM Router** | AF-049 | Purnima | Judge/triage/heal routing (Gemini 3.5 Flash) | 🟡 |
@@ -136,7 +136,7 @@ Pillar 4 is the **quality-gate and self-healing engine** of the Auto-Founder AI 
 Phase 1 -- DONE
    |
    v
-Asit --> AF-027 UDAL --> AF-028 FastAPI --> AF-036 BaseAgent
+Somesh --> AF-027 UDAL --> AF-028 FastAPI --> Asit AF-036 BaseAgent
                                                  |
                           +----------------------+----------------------+
                           v                      v                      v

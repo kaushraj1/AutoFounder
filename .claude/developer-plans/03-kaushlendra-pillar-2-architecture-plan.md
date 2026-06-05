@@ -72,7 +72,7 @@ Pillar 2 is the **system architect**. It takes the validated idea (Lean Canvas +
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
 | BaseAgent ABC | AF-036 | Asit | ArchitectAgent subclasses it | 🔴 Blocked |
-| UDAL | AF-027 | Asit | Read PRD, write ERD/OpenAPI artifacts | 🔴 Blocked |
+| UDAL | AF-027 | Somesh | Read PRD, write ERD/OpenAPI artifacts | ✅ Done |
 | Product Planner output | AF-039 | Somesh | The PRD is the input | 🟡 |
 | Prompt Registry / Router | AF-048/049 | Purnima | Templated prompts + Gemini routing | 🟡 |
 
@@ -113,7 +113,7 @@ Pillar 2 is the **system architect**. It takes the validated idea (Lean Canvas +
 Somesh (Pillar 1: canvas + personas + PRD)
    |
    v
-Asit AF-036 BaseAgent + AF-027 UDAL  +  Purnima AF-048/049
+Asit AF-036 BaseAgent + Somesh AF-027 UDAL  +  Purnima AF-048/049
    |
    v
 +------------------------------------------+

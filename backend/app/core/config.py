@@ -30,6 +30,18 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:54322/postgres"
     redis_url: str = "redis://localhost:6379/0"
 
+    # Supabase (Storage + Auth) — required by ObjectClient and AF-029 auth middleware
+    supabase_url: str = "http://localhost:54321"
+    supabase_service_key: str = "dev-service-key-change-in-prod"
+    supabase_jwt_secret: str = "change-me-in-dev"
+
+    # Authorization & OPA
+    opa_url: str = "http://localhost:8181"
+
+    # Mutual TLS (mTLS) for internal service-to-service calls
+    mtls_enabled: bool = False
+    mtls_allowed_dns: str = "CN=orchestrator.internal,CN=workers.internal"
+
     @property
     def cors_origin_list(self) -> list[str]:
         """CORS origins as a clean list, parsed from the comma-separated env value."""
