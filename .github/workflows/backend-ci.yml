@@ -20,7 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        # pgvector image (not vanilla postgres:16) — the tenant migration runs
+        # CREATE EXTENSION vector, which the stock image does not ship.
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -47,7 +49,9 @@ jobs:
         run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv sync
+        # Include the agents group so the LangGraph orchestrator tests actually
+        # run in CI (otherwise they importorskip and silently never execute).
+        run: uv sync --group agents
 
       - name: Ruff lint
         run: uv run ruff check app tests
