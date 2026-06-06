@@ -36,11 +36,11 @@ async def submit_idea(
             pillar="strategy",
             status=RunStatus.pending,
             plan={},
-            created_at=datetime.now(UTC)
+            created_at=datetime.now(UTC),
         )
         db.session.add(new_run)
         await db.session.commit()
         await db.audit("create", "runs", str(new_run.id))
         run_read = RunRead.model_validate(new_run)
-        
+
     return ResponseEnvelope(data=run_read, meta=meta)

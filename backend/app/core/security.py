@@ -25,9 +25,7 @@ class Principal:
 
 # Fixed principal used in development until real auth lands.
 DEV_PRINCIPAL = Principal(
-    organization_id="org_dev",
-    role="founder",
-    scopes=["runs:read", "runs:write", "gates:decide"]
+    organization_id="org_dev", role="founder", scopes=["runs:read", "runs:write", "gates:decide"]
 )
 
 
@@ -39,10 +37,7 @@ def verify_jwt(token: str) -> Principal:
     settings = get_settings()
     try:
         payload = jwt.decode(
-            token,
-            settings.supabase_jwt_secret,
-            algorithms=["HS256"],
-            options={"verify_aud": False}
+            token, settings.supabase_jwt_secret, algorithms=["HS256"], options={"verify_aud": False}
         )
     except jwt.PyJWTError as e:
         raise ValueError(f"Invalid token: {e}") from e

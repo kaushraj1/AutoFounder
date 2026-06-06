@@ -30,6 +30,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     yield
     # Dispose the connection pool so the process exits cleanly.
     from app.db.session import engine  # noqa: PLC0415
+
     await engine.dispose()
     logger.info("backend.shutdown")
 
