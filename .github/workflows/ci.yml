@@ -79,7 +79,7 @@ jobs:
         working-directory: backend
 
       - name: Run pytest
-        run: uv run pytest tests/unit
+        run: uv run pytest tests
         working-directory: backend
 
   security-scan:
