@@ -10,13 +10,13 @@
 |-------|-------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | 11 | 11 | 0 |
 | Phase 2 | Infrastructure & Cloud | 13 | 13 | 0 |
-| Phase 3 | Backend — FastAPI + Agents | 26 | 11 | 15 |
+| Phase 3 | Backend — FastAPI + Agents | 26 | 15 | 11 |
 | Phase 4 | Frontend — Next.js 14 | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | 9 | 0 | 9 |
 | Phase 6 | VS Code Extension | 7 | 0 | 7 |
-| **Total** | | **78** | **35** | **43** |
+| **Total** | | **78** | **39** | **39** |
 
-> Phase 2: **13/13 delivered** on branch `feat/infra/terraform-networking` (`terraform validate`-clean; backend observability `pytest`/`ruff`/`mypy`-clean; pending PR → `dev`). Documented follow-ups remain on AF-017 (Confluent), AF-018 (CloudFront/Shield), AF-022 (blue/green canary), AF-023 (FireLens sidecar), AF-024 (deployed Prometheus/Grafana + live LangSmith) — see footnotes.
+> Phase 2: **13/13 merged to `dev`** (PR #13). Phase 3: **15/26** done — AF-025–039 (foundation + orchestrator + BaseAgent + Pillar-1 agents); AF-040–050 pending. Documented Phase-2 follow-ups: AF-017 (Confluent), AF-018 (CloudFront/Shield), AF-022 (blue/green canary), AF-023 (FireLens sidecar), AF-024 (deployed Prometheus/Grafana + live LangSmith) — see footnotes.
 
 ---
 
