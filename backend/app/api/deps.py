@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Annotated
 
+import redis.asyncio as aioredis
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,12 +13,18 @@ from app.core.config import get_settings
 from app.core.errors import ForbiddenError, UnauthorizedError
 from app.core.security import DEV_PRINCIPAL, Principal, verify_jwt, verify_mtls
 from app.db.context import reset_tenant_context, set_tenant_context
+from app.db.redis_pool import get_redis as _get_redis
 from app.db.session import get_session
 from app.db.udal import UDAL
 from app.guardrails.opa import check_opa_policy
 from app.schemas.common import Meta
 
 security = HTTPBearer(auto_error=False)
+
+
+def get_redis() -> aioredis.Redis:
+    """Return the app-level Redis client (FastAPI dependency)."""
+    return _get_redis()
 
 
 async def get_principal(
@@ -69,14 +76,14 @@ async def get_principal(
 async def get_udal(
     principal: Annotated[Principal, Depends(get_principal)],
     session: Annotated[AsyncSession, Depends(get_session)],
+    redis: Annotated[aioredis.Redis, Depends(get_redis)],
 ) -> UDAL:
     """Construct a tenant-scoped UDAL for the current request.
 
-    Injects the authenticated principal (organization_id + role) and a
-    request-scoped async session.  All data access in route handlers and
-    services should go through this UDAL instance.
+    Injects the authenticated principal, a request-scoped async session,
+    and the app-level Redis client.  All data access goes through UDAL.
     """
-    return UDAL(principal, session)
+    return UDAL(principal, session, redis=redis)
 
 
 def get_meta(request: Request) -> Meta:

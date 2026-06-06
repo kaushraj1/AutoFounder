@@ -139,7 +139,7 @@ Orchestrator (AF-033) runs the DAG: Research → Strategy → [HITL gate] → Pr
 
 ## 8. Current Status & Next Action
 
-**Status**: Build Phase 1 (monorepo) ✅ done. Foundation: UDAL, FastAPI app, auth middleware, REST endpoints, migrations, and Supabase Realtime (AF-025–031) ✅ completed by Somesh.
+**Status**: Build Phase 1 (monorepo) ✅ done. Foundation: UDAL, FastAPI app, auth middleware, REST endpoints, migrations, Supabase Realtime, Redis integration, and the LangGraph orchestrator loop (AF-025–035) ✅ completed by Somesh.
 
 **Next action (unblocks the most people):**
 1. Asit: stand up Terraform networking + ECS + Supabase (AF-012–014), build **BaseAgent (AF-036)**.
@@ -152,4 +152,5 @@ Orchestrator (AF-033) runs the DAG: Research → Strategy → [HITL gate] → Pr
 
 | Date | Version | Description |
 |------|---------|-------------|
+| 2026-06-06 | 1.1.0 | Mark AF-032 to AF-035 as completed and assigned to Somesh. |
 | 2026-06-03 | 1.0.0 | Initial P1 (Validation Engine) phase plan — goal, scope, AF-task vertical slice, 6-week sprint plan, critical-path wiring, exit criteria, risks, next actions. Grounded in CLAUDE.md §45 + TASKS.md + task_assigned.md. |

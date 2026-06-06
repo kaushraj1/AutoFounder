@@ -37,8 +37,8 @@ Think of the project like building a house. You can't paint a room (build your a
 
 | # | Member | Area | Owns (AF-IDs) |
 |---|--------|------|---------------|
-| 1 | **Asit Piri** (Lead) | Platform foundation: PRD, Architecture, GitHub, CI/CD, DB, APIs, AWS, Code Review, Integration & Merging · **+ Guardrails · VS Code Extension · Finance & Ops/Risk** | AF-012 → AF-036, AF-046, AF-047, AF-072 → AF-078 |
-| 2 | **Somesh Chitranshi** | Pillar 1 — Idea Validation & Market Research | AF-037, AF-038, AF-039 |
+| 1 | **Asit Piri** (Lead) | Platform foundation: PRD, Architecture, GitHub, CI/CD, DB, APIs, AWS, Code Review, Integration & Merging · **+ Guardrails · VS Code Extension · Finance & Ops/Risk** | AF-012 → AF-031, AF-036, AF-046, AF-047, AF-072 → AF-078 |
+| 2 | **Somesh Chitranshi** | Pillar 1 — Idea Validation & Market Research | AF-025 → AF-035, AF-037 → AF-039 |
 | 3 | **Kaushlendra Kumar Gupta** | Pillar 2 — Architecture & Tech Stack Design | AF-040 |
 | 4 | **Kartik Mogalapalli** | Pillar 3 — Autonomous Code Generation | AF-041 |
 | 5 | **Vishal Prasad** | Pillar 4 — Testing & Self-Healing | AF-042 |
@@ -57,13 +57,14 @@ Think of the project like building a house. You can't paint a room (build your a
 |-------|-------------|---------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | Team | 11 | 11 | 0 |
 | Phase 2 | Infrastructure & Cloud | Asit | 13 | 0 | 13 |
-| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 7 | 19 |
+| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 11 | 15 |
 | Phase 4 | Frontend — Next.js 14 | Raunak | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | Yogesh | 9 | 0 | 9 |
 | Phase 6 | VS Code Extension | **Asit** | 7 | 0 | 7 |
-| **Total** | | | **78** | **18** | **60** |
+| **Total** | | | **78** | **22** | **56** |
 
-**Per-person task count:** Asit **32** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 60 pending + 18 done = **78**.
+**Per-person task count:** Asit **24** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 56 pending + 22 done = **78**.
+
 
 ---
 
@@ -124,15 +125,15 @@ Think of the project like building a house. You can't paint a room (build your a
 | AF-029 | Somesh | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🟢 | ✅ |
 | AF-030 | Somesh | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🟢 | ✅ |
 | AF-031 | Somesh | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ✅ |
-| AF-032 | Asit | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🔴 | ❌ |
+| AF-032 | Somesh | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🟢 | ✅ |
 
-### 3b — LangGraph Orchestration 🔴 (Owner: Asit — ⚠️ consider delegating, see Part D)
+### 3b — LangGraph Orchestration 🟢 (Owner: Somesh)
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-033 | Asit | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🔴 | ❌ |
-| AF-034 | Asit | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🔴 | ❌ |
-| AF-035 | Asit | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🔴 | ❌ |
+| AF-033 | Somesh | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🟢 | ✅ |
+| AF-034 | Somesh | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🟢 | ✅ |
+| AF-035 | Somesh | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🟢 | ✅ |
 
 ### 3c — AI Agents (Owners: Pillar leads)
 
@@ -218,7 +219,7 @@ Think of the project like building a house. You can't paint a room (build your a
 
 > **You are the unblocker.** Every "wired" task on the team waits on you. Your speed = the team's speed.
 
-**Owns (32 tasks):** AF-012 → AF-024 (all infra) · AF-032 (core API & data) · AF-033 → AF-035 (orchestrator) · AF-036 (BaseAgent) · AF-047 (tool registry shell) · **AF-046 (Guardrails pipeline — Purnima co-owns output/monitoring)** · **AF-072 → AF-078 (VS Code Extension, Phase 6)** · **Finance & Ops/Risk agents (Phase 4, design deferred)**.
+**Owns (28 tasks):** AF-012 → AF-024 (all infra) · AF-036 (BaseAgent) · AF-047 (tool registry shell) · **AF-046 (Guardrails pipeline — Purnima co-owns output/monitoring)** · **AF-072 → AF-078 (VS Code Extension, Phase 6)** · **Finance & Ops/Risk agents (Phase 4, design deferred)**.
 
 > ⚠️ **Overload note (bus-factor 1):** folding the previously-unassigned work (Guardrails, VS Code Extension, Finance & Ops/Risk) into Asit raises an already-overloaded lead to **~32 tasks** gating 9 people. **Strongly recommend delegating** the orchestrator (AF-033–035), BaseAgent (AF-036), or the entire VS Code Extension (AF-072–078) to an early-finishing pillar owner. Detailed plans: `developer-plans/11-asit-guardrails-pipeline-plan.md`, `12-asit-vscode-extension-plan.md`, `13-asit-finance-ops-risk-plan.md`.
 
@@ -251,15 +252,15 @@ _Phase 3a — Core API & Data Layer_
 | AF-029 | Somesh | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🟢 | ✅ |
 | AF-030 | Somesh | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🟢 | ✅ |
 | AF-031 | Somesh | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ✅ |
-| AF-032 | Asit | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🔴 | ❌ |
+| AF-032 | Somesh | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🟢 | ✅ |
 
-_Phase 3b — LangGraph Orchestration_ ⚠️ *consider delegating (see Part D)*
+_Phase 3b — LangGraph Orchestration_
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-033 | Asit | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🔴 | ❌ |
-| AF-034 | Asit | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🔴 | ❌ |
-| AF-035 | Asit | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🔴 | ❌ |
+| AF-033 | Somesh | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🟢 | ✅ |
+| AF-034 | Somesh | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🟢 | ✅ |
+| AF-035 | Somesh | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🟢 | ✅ |
 
 _Agent foundation + Tool Registry shell_
 
@@ -273,18 +274,22 @@ _Agent foundation + Tool Registry shell_
 Those turn **7 pillar owners from 🟡 to 🟢**.
 
 **🟢 Now unblocked (AF-028 ✅):** ~~AF-029 Auth middleware~~ ✅, ~~AF-030 REST endpoints~~ ✅.
-**🔴 Later (need earlier steps):** Orchestrator AF-033–035 (need UDAL + Redis), Redis AF-032 (needs AF-015).
+**🟢 Now Complete:** Orchestrator AF-033–035, Redis AF-032.
 
-**⚠️ You are a single point of failure** — you own infra **and** the whole shared backend (~25 tasks gating 9 people). Delegate the orchestrator (AF-033–035) or BaseAgent (AF-036) to a pillar owner who finishes early. See [Part D](#part-d--whats-missing-gaps--unassigned).
+**⚠️ You are a single point of failure** — you own infra **and** the BaseAgent (AF-036). The orchestrator (AF-033–035) and Redis (AF-032) have been successfully delegated to Somesh and completed.
 
 ---
 
-## 2. Somesh Chitranshi — Pillar 1: Idea Validation & Market Research 🟡
+## 2. Somesh Chitranshi — Pillar 1: Idea Validation & Market Research (also owns Orchestrator & Redis) 🟡
 
-**Owns (3 agents — heaviest single load):** AF-037 Strategy · AF-038 Research · AF-039 Product Planner.
+**Owns:** AF-025 → AF-035 (Alembic/UDAL/FastAPI/Redis/Orchestrator) · AF-037 Strategy · AF-038 Research · AF-039 Product Planner.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
+| AF-032 | Somesh | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🟢 | ✅ |
+| AF-033 | Somesh | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🟢 | ✅ |
+| AF-034 | Somesh | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🟢 | ✅ |
+| AF-035 | Somesh | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🟢 | ✅ |
 | AF-037 | Somesh | Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability 0–100, bias audit, 3 pivots; SLA < 30 min | `feature/strategy-agent` | AF-036, AF-048, AF-049 | 🟡 | ❌ |
 | AF-038 | Somesh | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb fan-out, synthesis, citation groundedness check | `feature/research-agent` | AF-036, AF-047 | 🟡 | ❌ |
 | AF-039 | Somesh | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | AF-037 | 🟡 | ❌ |
@@ -295,7 +300,7 @@ Those turn **7 pillar owners from 🟡 to 🟢**.
 - **Pydantic output schemas**: `{lean_canvas, viability_score, icps[], competitors[], sources[]}`, PRD schema.
 - **Golden eval datasets** (Promptfoo) + **mocked unit tests** (fake LLM + fake UDAL).
 
-**🔴 Blocked on:** AF-036 BaseAgent, AF-027 UDAL, AF-048 Prompt Registry, AF-049 LLM Router (to wire all 3 agents).
+**🔴 Blocked on:** AF-036 BaseAgent, AF-048 Prompt Registry, AF-049 LLM Router (to wire all 3 agents).
 **⚠️ Load:** 3 of the team's 9 agents — flag to Asit whether Research or Product Planner should move to a lighter owner.
 
 ---
@@ -499,7 +504,7 @@ These are real parts of the plan/architecture with **no clear owner**. Asit to a
 | # | Gap | Tasks / Area | Why it matters | Suggested fix |
 |---|-----|--------------|----------------|---------------|
 | **A** | ✅ **VS Code Extension — assigned to Asit** | AF-072 → AF-078 (entire Phase 6) | A whole product surface (in-IDE co-founder) | **RESOLVED 2026-06-04 → Asit.** Plan: `developer-plans/12-asit-vscode-extension-plan.md`. Delegate to Raunak (TS/UI overlap) if Asit overloaded. |
-| **B** | ⚪ **Foundation overloaded on Lead** | Orchestrator AF-033–035, BaseAgent AF-036, UDAL AF-027 | One person gating 9 people = bottleneck + bus-factor 1 | Delegate orchestrator or BaseAgent to an early-finishing pillar owner |
+| **B** | ✅ **Foundation overloaded on Lead — Resolved** | BaseAgent AF-036 | BaseAgent ABC wraps every agent call | **RESOLVED 2026-06-06:** Orchestrator (AF-033–035) and Redis (AF-032) delegated to Somesh and completed. Asit still owns BaseAgent AF-036. |
 | **C** | ✅ **Guardrails pipeline — assigned to Asit** | AF-046 (OPA, Presidio, Llama Guard, TruLens, Evidently) | Wraps **every** agent call; security/compliance backbone | **RESOLVED 2026-06-04 → Asit** (Purnima co-owns output/monitoring stages). Plan: `developer-plans/11-asit-guardrails-pipeline-plan.md`. |
 | **D** | ⚪ **Pillar 1 overloaded** | Somesh owns AF-037 + AF-038 + AF-039 (3 agents) | Slowest pillar slows the whole chain (P2→P3… wait on P1) | Reassign Research **or** Product Planner to a lighter owner |
 | **E** | ✅ **Finance & Ops/Risk agents — owner recorded: Asit** | Canonical roster (CLAUDE.md §7.1); not in Phase 1 list | Needed in Phase 4; cross-cutting | **RESOLVED 2026-06-04 → Asit (Phase 4, design deferred).** Plan: `developer-plans/13-asit-finance-ops-risk-plan.md`. |
@@ -524,6 +529,7 @@ These are real parts of the plan/architecture with **no clear owner**. Asit to a
 
 | Date | Version | Description |
 |------|---------|-------------|
+| 2026-06-06 | 3.2.0 | AF-032 to AF-035 marked ✅ and assigned to Somesh. Redis integration, RunState TypedDict + StateGraph factory, HITL gate state machine, and SQS worker loop are now complete. Overload on Lead reduced. |
 | 2026-06-04 | 3.1.0 | AF-027 UDAL marked ✅ (Somesh). Implemented: context.py, audit.py, relational.py, vector.py, graph.py, object_store.py, udal.py rewrite, get_udal() dep, supabase settings. 14 unit tests, ruff+mypy clean. Phase 3 done: 2→3, pending: 24→23. Total done: 13→14. |
 | 2026-06-04 | 3.0.0 | Assigned all previously-unassigned work to **Asit**: AF-046 (Guardrails), AF-072→AF-078 (VS Code Extension), Finance & Ops/Risk agents (Phase 4). Updated roster, status overview, per-person counts (Asit 26→34, Unassigned 8→0), Part A (3d + Phase 6 owners), Part B, Part D gaps A/C/E (resolved), Part E. Added `developer-plans/11–13`. Flagged Asit overload (bus-factor 1) + delegation recommendation. |
 | 2026-06-01 | 2.0.0 | Rebuilt as single source of truth — full 78-task descriptions merged from `TASKS.md` (Part A by phase + Part B by person), with Owner / Depends-on / Start columns, wiring/connection guide (Part C), gaps (Part D), recommendations (Part E). No longer need `TASKS.md` to work. |

@@ -55,7 +55,7 @@ The mobile app is the **founder-on-the-go** companion — submit an idea, watch 
 | **Somesh (AF-030 REST)** | runs, gates, artifacts, ideas | **Required** | All data fetching |
 | **Somesh (AF-031 Realtime)** | `step_events` channel | **Required** | Live run updates |
 | **Asit (AF-017 SNS)** | push topic | **Required (AF-064)** | Gate notifications |
-| **Asit (AF-034 HITL manager)** | gate state machine | **Required (AF-068)** | Approve/reject sync |
+| **Somesh (AF-034 HITL manager)** | gate state machine | **Required (AF-068)** | Approve/reject sync |
 
 ### 1.4 Outputs Produced for Downstream Consumers
 
@@ -77,7 +77,7 @@ The mobile app is the **founder-on-the-go** companion — submit an idea, watch 
 | REST endpoints | AF-030 | Somesh | Real data | ✅ Done |
 | Realtime | AF-031 | Somesh | Live run updates | ✅ Done |
 | SNS topic | AF-017 | Asit | Push notifications (AF-064) | 🔴 |
-| HITL gate manager | AF-034 | Asit | Gate approval (AF-068) | 🔴 |
+| HITL gate manager | AF-034 | Somesh | Gate approval (AF-068) | ✅ Done |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
 

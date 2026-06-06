@@ -55,9 +55,16 @@ Owner: Asit. Blocked on: nothing — can start now.
 | AF-029 | Auth middleware — Supabase JWT, OPA, OrgContext, mTLS | ✅ Done | 2026-06-04 |
 | AF-030 | REST API endpoints — ideas, runs, gates, artifacts, feedback, cost | ✅ Done | 2026-06-04 |
 | AF-031 | Supabase Realtime integration — step_events pg_notify | ✅ Done | 2026-06-04 |
-| AF-032 | Redis integration — session cache, checkpoints, prompt cache, cost accumulator | ❌ Pending | — |
+| AF-032 | Redis integration — session cache, checkpoints, prompt cache, cost accumulator | ✅ Done | 2026-06-06 |
 
-#### 3b — LangGraph Orchestration ❌ NOT STARTED
+#### 3b — LangGraph Orchestration ✅ COMPLETE
+
+| Task | Description | Status | Completed |
+|------|-------------|--------|-----------|
+| AF-033 | LangGraph orchestration engine — StateGraph factory + OrchestratorEngine persistence | ✅ Done | 2026-06-06 |
+| AF-034 | HITL gate manager — dynamic gate creation, transitions, notifications, timeouts | ✅ Done | 2026-06-06 |
+| AF-035 | SQS worker loop — multi-queue polling, gRPC step dispatching, event stream database logging, retry visibility backoff | ✅ Done | 2026-06-06 |
+
 #### 3c — AI Agents ❌ NOT STARTED
 #### 3d — Guardrails, Tools & Prompts ❌ NOT STARTED
 
@@ -168,13 +175,65 @@ DATABASE_URL=postgresql+asyncpg://... alembic upgrade head
 
 ---
 
+## AF-032 — Detail Log
+
+**Task:** Redis integration — session cache, checkpoints, prompt cache, cost accumulator
+**Branch:** `somesh-feature`
+**Completed:** 2026-06-06
+
+### What was built
+- Implemented `CacheClient` (`backend/app/db/cache.py`) supporting tenant-prefixed Redis keys (`org:{org_id}:*`) to enforce isolation.
+- Built helper functions for caching LLM prompts and accumulative token/dollar costs.
+- Added comprehensive unit testing suite in `backend/tests/db/test_cache.py`.
+
+---
+
+## AF-033 — Detail Log
+
+**Task:** LangGraph orchestration engine — StateGraph factory + OrchestratorEngine persistence
+**Branch:** `somesh-feature`
+**Completed:** 2026-06-06
+
+### What was built
+- Defined unified LangGraph state `RunState` and initialization schema.
+- Built the 7-pillar `StateGraph` in `backend/app/orchestrator/graph.py` containing nodes, conditional routing edges, and interrupt checkpointers.
+- Designed `DualCheckpointer` syncing execution frames durably to Postgres + Redis hot-caching.
+- Implemented `OrchestratorEngine` driving the run lifecycle.
+
+---
+
+## AF-034 — Detail Log
+
+**Task:** HITL gate manager — dynamic gate creation, transitions, notifications, timeouts
+**Branch:** `somesh-feature`
+**Completed:** 2026-06-06
+
+### What was built
+- Implemented the HITL gate manager (`backend/app/orchestrator/hitl/gate_manager.py`) creating and managing approval gates.
+- Built SQS Gate Decision Consumer (`backend/app/orchestrator/events/consumer.py`) handling asynchronous run resumption.
+- Integrated EventBridge event producer (`backend/app/orchestrator/events/producer.py`) publishing platform messages.
+
+---
+
+## AF-035 — Detail Log
+
+**Task:** SQS worker loop — multi-queue polling, gRPC step dispatching, event stream database logging, retry visibility backoff
+**Branch:** `somesh-feature`
+**Completed:** 2026-06-06
+
+### What was built
+- Created `SQSPillarWorker` managing concurrent polling threads per execution pillar (real SQS + local in-memory fallback).
+- Wired gRPC dispatch stream calling the Agent Worker service `DispatchStep` endpoint, logging event streams to the DB `step_events` table under RLS, and resuming the engine.
+- Added retry backoff with jitter and EventBridge DLQ escalation.
+
+---
+
 ## Next Up
 
 | Task | Description | Owner |
 |------|-------------|-------|
-| AF-032 | Redis integration — session cache, checkpoints, prompt cache, cost accumulator | Asit |
+| AF-036 | BaseAgent ABC — understand, plan, execute, verify, learn agent baseline interface | Asit |
 
----
 
 ## Notes
 

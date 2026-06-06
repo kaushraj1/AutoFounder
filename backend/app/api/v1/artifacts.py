@@ -35,9 +35,7 @@ async def list_artifacts(
         if not run:
             raise NotFoundError("Run not found")
 
-        result = await db.session.execute(
-            select(Artifact).where(Artifact.run_id == run_id)
-        )
+        result = await db.session.execute(select(Artifact).where(Artifact.run_id == run_id))
         artifacts = result.scalars().all()
         await db.audit("read", "artifacts", run_id=str(run_id))
 

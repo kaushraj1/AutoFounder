@@ -24,13 +24,37 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Startup/shutdown hooks."""
+    import asyncio  # noqa: PLC0415
+
     settings = get_settings()
     configure_logging(settings.log_level)
     logger.info("backend.startup", env=settings.app_env, version=__version__)
+    from app.db.redis_pool import get_redis, init_redis  # noqa: PLC0415
+    from app.db.session import SessionLocal  # noqa: PLC0415
+    from app.orchestrator import OrchestratorEngine  # noqa: PLC0415
+    from app.orchestrator.events.consumer import SQSGateDecisionConsumer  # noqa: PLC0415
+    from app.orchestrator.worker import SQSPillarWorker  # noqa: PLC0415
+
+    await init_redis()
+
+    engine_inst = OrchestratorEngine(session_factory=SessionLocal, redis=get_redis())
+    consumer = SQSGateDecisionConsumer(engine=engine_inst)
+    worker = SQSPillarWorker(engine=engine_inst, redis=get_redis())
+
+    consumer_task = asyncio.create_task(consumer.start())
+    worker_task = asyncio.create_task(worker.start())
+
     yield
-    # Dispose the connection pool so the process exits cleanly.
+
+    consumer_task.cancel()
+    worker_task.cancel()
+    await asyncio.gather(consumer_task, worker_task, return_exceptions=True)
+
+    from app.db.redis_pool import close_redis  # noqa: PLC0415
     from app.db.session import engine  # noqa: PLC0415
+
     await engine.dispose()
+    await close_redis()
     logger.info("backend.shutdown")
 
 

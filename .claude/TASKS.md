@@ -10,11 +10,11 @@
 |-------|-------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | 11 | 11 | 0 |
 | Phase 2 | Infrastructure & Cloud | 13 | 0 | 13 |
-| Phase 3 | Backend — FastAPI + Agents | 22 | 0 | 22 |
+| Phase 3 | Backend — FastAPI + Agents | 26 | 11 | 15 |
 | Phase 4 | Frontend — Next.js 14 | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | 9 | 0 | 9 |
 | Phase 6 | VS Code Extension | 7 | 0 | 7 |
-| **Total** | | **74** | **11** | **63** |
+| **Total** | | **78** | **22** | **56** |
 
 ---
 
@@ -78,15 +78,15 @@
 | AF-029 | Auth middleware — Supabase JWT validation (SUPABASE_JWT_SECRET), OPA policy sidecar integration, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | ✅ Completed |
 | AF-030 | REST API endpoints — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | ✅ Completed |
 | AF-031 | Supabase Realtime integration — subscribe to `step_events` table changes via Supabase Realtime (pg_notify); frontend uses `@supabase/supabase-js` Realtime channel; reconnect replay from `step_events` | `feature/realtime-integration` | ✅ Completed |
-| AF-032 | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | ❌ Pending |
+| AF-032 | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | ✅ Completed |
 
 ### 3b — LangGraph Orchestration
 
 | ID | Task | Branch | Status |
 |----|------|--------|--------|
-| AF-033 | `RunState` TypedDict + `StateGraph` factory — nodes for every pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | ❌ Pending |
-| AF-034 | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions from API | `feature/hitl-gate-manager` | ❌ Pending |
-| AF-035 | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | ❌ Pending |
+| AF-033 | `RunState` TypedDict + `StateGraph` factory — nodes for every pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | ✅ Completed |
+| AF-034 | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions from API | `feature/hitl-gate-manager` | ✅ Completed |
+| AF-035 | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | ✅ Completed |
 
 ### 3c — AI Agents
 
@@ -212,6 +212,7 @@ Phase 3 sub-phases: 3a (API + DB) → 3b (Orchestrator) → 3c (Agents) → 3d (
 
 | Date | Version | Author | Description |
 |------|---------|--------|-------------|
+| 2026-06-06 | 1.2.0 | Team | Mark AF-032 to AF-035 as ✅ Completed (delegated to Somesh) |
 | 2026-05-20 | 1.0.0 | Team | Initial TASKS.md — 74 tasks across 6 phases; Phase 1 marked complete from existing monorepo scaffold |
 | 2026-05-26 | 1.1.0 | Team | Tech stack alignment: Supabase (PostgreSQL + pgvector + Realtime) replaces RDS + MongoDB Atlas + Go WebSocket; Gemini 3.5 Flash replaces Claude Sonnet / GPT-4o; Supabase Auth replaces Auth0; Confluent Kafka added as primary event bus; SQLAlchemy replaces Prisma |
 | 2026-06-04 | 1.1.1 | Team | Count fix: Phase 3 corrected 22 → 26 (3a 8 + 3b 3 + 3c 10 + 3d 5); total 74 → 78 (AF-001…AF-078). Now matches `task_assigned.md`. |

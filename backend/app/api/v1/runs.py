@@ -59,13 +59,13 @@ async def list_runs(
                 # the same created_at, sort stability is guaranteed by id.
                 if order == "desc":
                     query = query.where(
-                        (Run.created_at < last_ca_dt) |
-                        ((Run.created_at == last_ca_dt) & (Run.id < last_id))
+                        (Run.created_at < last_ca_dt)
+                        | ((Run.created_at == last_ca_dt) & (Run.id < last_id))
                     )
                 else:
                     query = query.where(
-                        (Run.created_at > last_ca_dt) |
-                        ((Run.created_at == last_ca_dt) & (Run.id > last_id))
+                        (Run.created_at > last_ca_dt)
+                        | ((Run.created_at == last_ca_dt) & (Run.id > last_id))
                     )
             except Exception:
                 # If cursor is invalid, we fallback to ignoring it
@@ -92,11 +92,7 @@ async def list_runs(
 
         run_reads = [RunRead.model_validate(r) for r in data_runs]
 
-    pagination = PaginationInfo(
-        cursor=next_cursor,
-        has_more=has_more,
-        total=total_count
-    )
+    pagination = PaginationInfo(cursor=next_cursor, has_more=has_more, total=total_count)
 
     return PaginatedResponseEnvelope(data=run_reads, pagination=pagination, meta=meta)
 

@@ -52,7 +52,7 @@ The extension brings AutoFounder AI **into the developer's IDE** — monitor run
 |---|---|---|---|
 | **Somesh (AF-030 REST)** | runs, gates, artifacts | **Required** | Sidebar, artifacts, code-gen |
 | **Somesh (AF-031 Realtime)** | `step_events` channel | **Required** | Streaming panel, sidebar refresh |
-| **Asit (AF-034 HITL)** | gate state machine | **Required (AF-074)** | Gate approve/reject |
+| **Somesh (AF-034 HITL)** | gate state machine | **Required (AF-074)** | Gate approve/reject |
 | **Kartik (AF-041 Coder)** | Coder Agent endpoint | **Required (AF-075)** | Code-gen commands |
 
 ### 1.4 Outputs Produced for Downstream Consumers
@@ -74,7 +74,7 @@ The extension brings AutoFounder AI **into the developer's IDE** — monitor run
 | Extension scaffold | AF-007 | Team | `vscode-extension/` workspace | ✅ Done |
 | REST endpoints | AF-030 | Somesh | Run/artifact/gate data | ✅ Done |
 | Realtime | AF-031 | Somesh | Sidebar + streaming panel | ✅ Done |
-| HITL gate manager | AF-034 | Asit | Gate notifications (AF-074) | 🔴 |
+| HITL gate manager | AF-034 | Somesh | Gate notifications (AF-074) | ✅ Done |
 | Coder Agent | AF-041 | Kartik | Code-gen commands (AF-075) | 🔴 |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
@@ -111,7 +111,7 @@ Phase 1 vscode-extension scaffold (done)
    v
 AF-072 Extension core (Auth PKCE + SecretStorage)  -- start now (no backend)
    |
-   |  (needs Somesh's AF-030 REST + AF-031 Realtime + Asit's AF-034 HITL + Kartik's AF-041 Coder)
+   |  (needs Somesh's AF-030 REST + AF-031 Realtime + Somesh's AF-034 HITL + Kartik's AF-041 Coder)
    v
 AF-073 Sidebar -> AF-074 Gate notifications -> AF-075 Code-gen
 AF-076 Streaming panel -> AF-077 Artifact quick-open

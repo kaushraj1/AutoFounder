@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package agent_worker;
+
+service AgentWorkerService {
+  rpc DispatchStep(DispatchStepRequest) returns (stream StepEventProto);
+  rpc HealthCheck(HealthCheckRequest)  returns (HealthCheckResponse);
+}
+
+message DispatchStepRequest {
+  string run_id          = 1;
+  string step_id         = 2;
+  string agent_id        = 3;
+  string organization_id = 4;
+  bytes  input           = 5; // JSON-encoded agent-specific input
+}
+
+message StepEventProto {
+  string step_id    = 1;
+  string event_type = 2;
+  bytes  payload    = 3; // JSON
+  int64  timestamp  = 4; // Unix millis
+}
+
+message HealthCheckRequest {}
+message HealthCheckResponse {
+  bool healthy = 1;
+}
