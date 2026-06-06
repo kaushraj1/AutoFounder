@@ -1,286 +1,240 @@
-# AF-037 — Strategy & Ideation Agent (Pillar 1) — Implementation Plan
+# AF-038 — Research Agent (Pillar 1) — Implementation Plan
 
-> **Task:** Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability 0–100, bias audit, 3 pivots; **SLA < 30 min**.
+> **Task:** Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb tool fan-out, multi-source synthesis, citation groundedness check.
 > **Owner:** Somesh Chitranshi (Pillar 1)
-> **Branch:** `feature/strategy-agent`
-> **Depends on:** AF-036 BaseAgent ✅ (done), AF-027 UDAL ✅ (done), AF-048 Prompt Registry 🟡 (not built), AF-049 LLM Router 🟡 (not built)
-> **Status:** 🟡 → 🟢 (BaseAgent landed; unblocked to build behind contract-first stand-ins)
-> **Dir:** `backend/app/agents/strategy/`
-> **Ground truth:** `docs/architecture/Agents-Architecture/strategist-agent.md` (LLD) · `.claude/developer-plans/02-somesh-pillar-1-strategy-research-plan.md` · CLAUDE.md §7.4
+> **Branch:** `feature/research-agent`
+> **Depends on:** AF-036 BaseAgent ✅ (done), AF-027 UDAL ✅ (done)
+> **Soft-blocked by:** AF-047 Tool Registry 🟡, AF-048 Prompt Registry 🟡, AF-049 LLM Router 🟡 → satisfied via Protocols (contract-first).
+> **Priority:** P0 — reused by Strategy Agent (AF-037) and future pillars.
+> **File(s):** `backend/app/agents/research/`
+> **Ground truth:** `.claude/developer-plans/02-somesh-pillar-1-strategy-research-plan.md`, `.claude/specs/agents.md` §7.4 + §10.2 (RAG groundedness), `.claude/TASKS.md` AF-038.
 
 ---
 
 ## 1. Why this task matters
 
-Strategy Agent is the **first agent in the whole pipeline** and the lead of Pillar 1. It turns one raw text idea into a fact-grounded, bias-audited validation package (market sizing, competitor map, personas, Lean Canvas, 0–100 viability, 3 pivots) in **under 30 minutes**. Its output (`lean_canvas`, personas, `viability_band`) is consumed downstream by Kaushlendra (Pillar 2 Architect), Pallavi (Pillar 6 Marketing), and Raunak (Validation Studio AF-055). It blocks AF-039 (Product Planner, `feature/product-planner-agent`) which runs after the HITL approve gate.
-
-This is the **first real subclass of `BaseAgent`** — it proves the AF-036 contract end-to-end (DI, circuit breakers, SLA budget, `run()` template) on a live agent.
+The Research Agent is the **tool-fan-out specialist** of Pillar 1. The Strategy Agent's research nodes (`market_sizing`, `competitor_discovery`, `persona_generation`, `keyword_intent_mine`) all delegate external data gathering to it. It is also reusable by Marketing (Pillar 6) later. Its single job: take a domain + normalised idea, fan out across 5 external sources, synthesise the results into one **grounded, cited** context, and **prove** the synthesis is source-backed (citation groundedness check). Everything downstream (Lean Canvas, viability score) inherits its groundedness — hallucinated market data here poisons the whole validation.
 
 ---
 
 ## 2. Current state (GAP ANALYSIS)
 
 ### What exists today ✅
-- **AF-036 `BaseAgent`** — `backend/app/agents/base.py`: `BaseAgent(ABC, Generic[TIn, TOut])` with `PILLAR`/`AGENT_ID`/`SLA_SECONDS`, DI `__init__(udal, checkpointer, tool_registry, prompt_registry, llm_router)`, `_call_llm`/`_call_tool` guarded by `CircuitBreaker`, typed error hierarchy, `__init_subclass__` enforcement, and the `run()` understand→plan→execute→verify→learn template with `asyncio.timeout(SLA_SECONDS)`.
-- **Contract-first Protocols** — `ToolRegistryProtocol`, `PromptRegistryProtocol`, `LLMRouterProtocol` already defined in `base.py`. AF-037 builds against these; real AF-047/048/049 plug in structurally later.
-- **AF-027 UDAL** — `app.db.udal.UDAL` with `.relational / .vector / .graph / .object / .cache`; pgvector `VectorClient` available for `market_intelligence` collection.
-- **Orchestrator** — `RunState` TypedDict (`strategy_output: dict | None`), `run_pillar_1` **stub** node in `app/orchestrator/nodes.py` returning a fake `strategy_output`, wired into the StateGraph with `validation_gate` (HITL interrupt) after it.
-- **Strategy stub** — `app/agents/strategy/__init__.py` holds a `StrategyAgent(Agent)` (LEGACY ABC) raising `NotImplementedError` on all 5 methods. `research/` and `product_planner/` are the same legacy stubs.
-- **Tenant context** — `app.db.context.get_tenant_context()` used by `BaseAgent.run()`.
+- `backend/app/agents/base.py` — **AF-036 `BaseAgent[TIn, TOut]`** is complete: DI `__init__(udal, checkpointer, tool_registry, prompt_registry, llm_router)`, circuit breakers (`_call_llm`, `_call_tool`), typed error hierarchy (`AgentError`, `ToolError`, `LLMError`, `CircuitOpenError`, `SLAExceededError`, …), `__init_subclass__` attr guard, `run()` template (understand→plan→execute→verify→learn under SLA).
+- `ToolRegistryProtocol`, `PromptRegistryProtocol`, `LLMRouterProtocol` — contract-first stand-ins, already defined in `base.py`.
+- `app.db.udal.UDAL` ✅ — read/write artifacts.
+- `get_tenant_context()` ✅ — tenant scoping in `run()`.
 
-### What is MISSING vs AF-037 spec ❌
-
+### What is MISSING vs AF-038 spec ❌
 | # | Required | Status |
 |---|----------|--------|
-| 1 | `StrategyAgent(BaseAgent[StrategistState, StrategistState])` real impl | ❌ stub is legacy `Agent` |
-| 2 | `schema.py` — Pydantic V2 `StrategistState` + sub-models (LLD §2) | ❌ absent |
-| 3 | LangGraph `build_strategist_graph()` — 11 nodes + barrier + error_handler (LLD §3) | ❌ absent |
-| 4 | Node implementations (normalize→fan-out→join→audit→canvas→score→report) | ❌ absent |
-| 5 | `routers.py` — `route_after_normalize/join/audit`, `route_terminal` | ❌ absent |
-| 6 | Jinja2 prompt templates (`prompts/*.j2`, 10 templates) | ❌ absent |
-| 7 | Research tool wrappers / bindings (Tavily, SerpAPI, Crunchbase, G2, trends) | ❌ absent (AF-047/AF-038 territory) |
-| 8 | Local stand-in `PromptRegistry` (Jinja2 loader) + `LLMRouter` (Gemini shim) impl satisfying protocols | ❌ absent (AF-048/049 not built) |
-| 9 | Viability banding + bias audit logic | ❌ absent |
-| 10 | Tests (unit + integration + golden) under `tests/agents/strategy/` | ❌ only `test_base_agent.py` exists |
-| 11 | Wire `run_pillar_1` orchestrator node → real `StrategyAgent.run()` | ❌ still a stub |
-| 12 | Config env vars (Gemini key, research API keys) + deps (`jinja2`, `respx`) | ❌ absent in `config.py` / `pyproject.toml` |
+| 1 | `ResearchAgent(BaseAgent[...])` on the AF-036 contract | ❌ `research/__init__.py` is a **legacy stub** on the old `Agent` ABC, `raise NotImplementedError` |
+| 2 | Pydantic schemas: `ResearchInput`, `Citation`, `SourceResult`, `ResearchFinding`, `ResearchOutput` | ❌ absent |
+| 3 | 5 tool wrappers: Tavily, SerpAPI, Crunchbase, G2, SimilarWeb | ❌ no `tools/` dir anywhere in `backend/app` |
+| 4 | Parallel fan-out w/ per-tool timeout + cross-source fallback | ❌ absent |
+| 5 | LLM synthesis with inline citations | ❌ absent |
+| 6 | Citation **groundedness** check (verify phase) | ❌ absent |
+| 7 | Redis research cache (`research:cache:{sha256}`) | ❌ absent |
+| 8 | Jinja2 synthesis prompt | ❌ absent |
+| 9 | Mocked unit + integration tests (`respx`, `FakeLLM`) | ❌ absent |
 
 ### Dependency reality check
-- **AF-048 Prompt Registry** ❌ not built → use `PromptRegistryProtocol` + a local `JinjaPromptRegistry` that loads `prompts/*.j2`. Swap for the real registry later (no call-site change).
-- **AF-049 LLM Router** ❌ not built → use `LLMRouterProtocol` + a thin `GeminiRouter` shim (`google-generativeai`, already an optional dep). Tests inject `FakeLLM`.
-- **AF-047 Tool Registry / AF-038 Research tools** ❌ not built. AF-037 hard-depends on AF-048/049 **only** (per task_assigned). Research tool calls route through `_call_tool` / `ToolRegistryProtocol`; provide thin local wrappers as stand-ins, fakes in tests, real tools land with AF-038/AF-047.
+- **BaseAgent** ✅ — subclass it directly.
+- **Tool Registry (AF-047)** ❌ not built → call tools via `ToolRegistryProtocol` (`self._call_tool`). For Phase 1 ship a thin **in-agent tool layer** (`research/tools/*.py`) + a tiny local registry adapter satisfying the protocol, so the agent runs end-to-end before AF-047 lands.
+- **Prompt Registry (AF-048)** ❌ not built → `PromptRegistryProtocol`; bundle the synthesis `.j2` locally, load via protocol, swap to AF-048 later.
+- **LLM Router (AF-049)** ❌ not built → `LLMRouterProtocol` (`self._call_llm`, `task_class="research_synthesis"`).
 
-> **Consequence:** AF-037 ships **now** behind the three Protocols already baked into `BaseAgent`. Real registries/router/tools replace the stand-ins structurally — zero call-site churn (contract-first, mirrors the AF-036 decision).
-
----
-
-## 3. Naming reconciliation (must decide once)
-
-Two ground-truth docs diverge:
-
-| Aspect | LLD `strategist-agent.md` | Somesh plan `02-…` | CLAUDE.md §40 repo | **Decision** |
-|---|---|---|---|---|
-| Dir | `agents/strategist/` | `agents/strategy/` | `agents/strategy/` (exists) | **`agents/strategy/`** (repo-canonical, stub already there) |
-| Node names | `normalize_idea`, `size_market`, `discover_competitors`, `mine_keywords`, `generate_personas`, `analyze_trends`, `parallel_join`, `audit_bias`, `synthesize_canvas`, `score_viability`, `render_report`, `error_handler` | `normalise_idea`, `domain_classify`, `market_sizing`, … | — | **LLD names** (richer, includes `error_handler` + `render_report`) |
-| Bands | strong/moderate/weak/reject | low/medium/medium-high/high | — | **LLD bands** (`ViabilityBand` enum) |
-| Schema | `StrategistState` (Pydantic V2, full) | `StrategyOutput` (flat) | — | **LLD `StrategistState`** internal; map to flat `StrategyOutput` contract for RunState/downstream (§10.7 proto) |
-
-**Net:** LLD is authoritative for schema/graph/nodes/routers; directory stays `agents/strategy/`. Keep `domain` + `geography_focus` from `normalize_idea` (LLD has them). Add a `compose StrategyOutput` adapter so downstream consumers (Pillar 2/6, Validation Studio) get the stable flat contract regardless of internal state shape.
+> **Consequence:** AF-038 lands NOW on protocols + a local tool adapter; AF-047/048/049 plug in later structurally. Same contract-first principle AF-036 used.
 
 ---
 
-## 4. Design decisions
+## 3. Design decisions
 
-1. **`StrategyAgent(BaseAgent[StrategistState, StrategistState])`** — `PILLAR=1`, `AGENT_ID="strategy"`, `SLA_SECONDS=1800`. Replace the legacy `Agent` stub in `strategy/__init__.py` (no external importer besides itself — verified by grep; orchestrator references `run_pillar_1`, not the class).
-2. **Lifecycle maps onto LangGraph**, not hand-rolled:
-   - `understand(input)` → normalise idea text + `organization_id`, build initial `StrategistState`.
-   - `plan(intent)` → compile `build_strategist_graph(checkpointer)` (returns the DAG plan/handle).
-   - `execute(plan)` → `await graph.ainvoke(state)` running all 11 nodes (fan-out parallel branches).
-   - `verify(output)` → assert Lean Canvas complete, viability computed, ≥1 source/citation, bias audit ran.
-   - `learn(trace)` → emit token counts + node traces + groundedness to LLMOps (LangSmith span); persist via UDAL.
-3. **Contract-first stand-ins (no waiting on AF-047/048/049):** `JinjaPromptRegistry` (loads `prompts/*.j2`) satisfies `PromptRegistryProtocol`; `GeminiRouter` satisfies `LLMRouterProtocol`; research tools route through `ToolRegistryProtocol`. All injected via the existing `BaseAgent.__init__` DI.
-4. **Circuit breakers come for free** — node LLM/tool calls go through `self._call_llm` / `self._call_tool`, so every model + research call is breaker-guarded and raises typed `LLMError`/`ToolError`/`CircuitOpenError`.
-5. **Checkpointer reuse** — the graph compiles with the existing `app.orchestrator.checkpointer.DualCheckpointer` (Postgres + Redis) so a long Strategy run is resumable. Tests use LangGraph `MemorySaver`.
-6. **Parallel fan-out** — `size_market ∥ discover_competitors ∥ mine_keywords ∥ generate_personas ∥ analyze_trends` then `parallel_join` barrier (matches LLD §3.2). Independent nodes keep total wall-clock under the 30-min SLA.
-7. **Self-healing per node** — `RetryPolicy` (3 retries, `[5,15,45]s` backoff) on tool failures; `error_handler` sink escalates fatal errors. Layered under the BaseAgent breakers (fast-fail) — node retry is the inner loop, breaker is the outer.
-8. **Bias audit is a real node**, not a checkbox — `audit_bias` flags Western-centric / recency / survivorship / confirmation bias on the merged research before canvas synthesis.
-9. **Pivots only when band is weak/reject** — `score_viability` emits 3 `pivot_suggestions` when `total < 50`; avoids noise on strong ideas (Decision D4).
-10. **Research tools deferred but contracted** — define the tool **call signatures** Strategy needs (`tavily_search`, `serpapi_search`, `crunchbase_lookup`, `g2_lookup`, `trends_lookup`); real impls land in AF-038/AF-047. Strategy never calls a tool SDK directly — always `self._call_tool(name, args)`.
+| # | Decision | Choice | Rationale |
+|---|----------|--------|-----------|
+| D1 | Base class | `ResearchAgent(BaseAgent[ResearchInput, ResearchOutput])` | Use the AF-036 contract; get breakers + SLA + trace free |
+| D2 | Replace legacy stub | Delete old `Agent`-based stub in `research/__init__.py`; re-export new `ResearchAgent` | Old `Agent` ABC is Phase-1 legacy; nothing imports the stub's logic |
+| D3 | Tools | Thin async wrappers in `research/tools/`, called through `self._call_tool` via a local `ToolRegistryProtocol` adapter | Runs before AF-047; breaker-guarded; swappable |
+| D4 | Fan-out | `asyncio.gather(..., return_exceptions=True)` with per-tool `asyncio.timeout` | Parallel; one slow/dead source never blocks the join |
+| D5 | Fallback | Tavily⇄SerpAPI cross-fallback; Crunchbase/G2/SimilarWeb failures degrade gracefully (partial data + lower confidence) | Matches plan §2.3 fallback matrix |
+| D6 | Synthesis | Single LLM call (`task_class="research_synthesis"`, Gemini 3.5 Flash) producing findings + **inline citation markers** | Groundedness over single-source |
+| D7 | Groundedness | `verify()` computes source-backed-claim ratio; `< threshold` → one retrieval retry, else flag `confidence="low"` (non-fatal) | Spec §10.2 citation/groundedness check |
+| D8 | Caching | Redis `research:cache:{sha256(domain+idea+sources)}` TTL ~24h | Cut cost + rate-limit pressure |
+| D9 | SLA | `SLA_SECONDS = 600` (10 min) | Sub-budget of Strategy's 30 min end-to-end |
+| D10 | No new heavy deps | `httpx` (already present) for tool HTTP; `respx` (test-only) for mocks | Keep `uv` lockfile lean |
 
 ---
 
-## 5. File structure (deliverables)
+## 4. Implementation
 
+### 4.1 File structure
 ```
-backend/app/agents/strategy/
-├── __init__.py            # re-export StrategyAgent (replaces legacy stub)
-├── agent.py               # StrategyAgent(BaseAgent[StrategistState, StrategistState])
-├── schema.py              # StrategistState + sub-models (LLD §2) + StrategyOutput adapter
-├── graph.py               # build_strategist_graph(checkpointer)
-├── routers.py             # route_after_normalize / route_after_join / route_after_audit / route_terminal
-├── nodes/
+backend/app/agents/research/
+├── __init__.py        # re-export ResearchAgent (replaces legacy stub)
+├── agent.py           # ResearchAgent(BaseAgent[ResearchInput, ResearchOutput])
+├── schema.py          # ResearchInput, Citation, SourceResult, ResearchFinding, ResearchOutput
+├── fanout.py          # parallel tool fan-out + timeout + fallback orchestration
+├── groundedness.py    # citation groundedness scorer
+├── registry.py        # local ToolRegistryProtocol adapter (maps tool_name -> tools/*.py)
+├── tools/
 │   ├── __init__.py
-│   ├── normalize_idea.py
-│   ├── size_market.py
-│   ├── discover_competitors.py
-│   ├── mine_keywords.py
-│   ├── generate_personas.py
-│   ├── analyze_trends.py
-│   ├── parallel_join.py
-│   ├── audit_bias.py
-│   ├── synthesize_canvas.py
-│   ├── score_viability.py
-│   ├── render_report.py
-│   └── error_handler.py
-├── tools.py               # research tool call signatures (stand-ins → AF-038/047)
+│   ├── tavily.py      similarweb.py
+│   ├── serpapi.py     crunchbase.py
+│   └── g2.py
 └── prompts/
-    ├── normalize_idea.j2
-    ├── size_market.j2
-    ├── discover_competitors.j2
-    ├── mine_keywords.j2
-    ├── generate_personas.j2
-    ├── analyze_trends.j2
-    ├── audit_bias.j2
-    ├── synthesize_canvas.j2
-    ├── score_viability.j2
-    └── render_report.j2
-
-backend/app/agents/_providers/         # contract-first stand-ins (shared, retire when AF-048/049 land)
-├── __init__.py
-├── jinja_prompt_registry.py           # PromptRegistryProtocol impl
-└── gemini_router.py                   # LLMRouterProtocol impl (google-generativeai)
-
-backend/tests/agents/strategy/
-├── conftest.py            # FakeLLM, fake tool registry, in-memory UDAL, MemorySaver
-├── unit/
-│   ├── test_schema_validation.py      # TAM≥SAM≥SOM, viability 0-100, canvas min/max lengths
-│   ├── test_viability_banding.py      # derive_band thresholds 75/50/25
-│   ├── test_bias_audit.py             # diversification flags
-│   └── test_routers.py                # normalize/join/audit/terminal routing
-├── integration/
-│   ├── test_graph_happy_path.py       # strong idea → render_report, no pivots
-│   ├── test_graph_low_viability.py    # weak → 3 pivots
-│   ├── test_research_fanout.py        # 5 parallel branches merge with sources
-│   └── test_tool_fallback.py          # tavily down → serpapi fallback, run still completes
-└── test_strategy_agent_run.py         # StrategyAgent.run() drives 5 phases under SLA
+    └── synthesis.j2
+backend/tests/agents/research/   # unit + integration tests
 ```
 
----
-
-## 6. Schema (`schema.py`) — authoritative from LLD §2
-
-Port LLD §2 verbatim (Pydantic V2): `NodeStatus`, `ViabilityBand`, `BiasFlag` enums; `MarketSize` (with `TAM≥SAM≥SOM` `model_validator`), `Competitor`, `Keyword`, `BuyerPersona`, `TrendSignal`, `LeanCanvas` (min/max length constraints), `ViabilityScore` (`derive_band` validator), `NodeTrace`, `RetryPolicy`, and root `StrategistState`.
-
-**Add** a flat output adapter (downstream stability + §10.7 proto alignment):
-
+### 4.2 Schemas — `schema.py`
 ```python
-class StrategyOutput(BaseModel):
-    run_id: str
-    organization_id: str
-    idea_normalised: str
-    domain: str
-    tam_sam_som: dict[str, float]
-    competitors: list[Competitor]
-    icps: list[BuyerPersona]
-    lean_canvas: LeanCanvas
-    viability_score: int          # 0-100
-    viability_band: str
-    bias_flags: list[str]
-    pivots: list[str]
-    sources: list[str]
-    report_markdown: str
-    total_llm_tokens_used: int
+class ResearchInput(BaseModel):
+    run_id: str; organization_id: str
+    idea_normalised: str; domain: str
+    queries: list[str] = []          # optional pre-built sub-queries from Strategy
+    sources: list[str] = ["tavily", "serpapi", "crunchbase", "g2", "similarweb"]
 
-    @classmethod
-    def from_state(cls, s: "StrategistState") -> "StrategyOutput": ...
+class Citation(BaseModel):
+    source: str; url: str | None = None; title: str | None = None; snippet: str
+
+class SourceResult(BaseModel):
+    source: str; ok: bool
+    items: list[Citation] = []
+    error: str | None = None         # populated when a source failed / was skipped
+
+class ResearchFinding(BaseModel):
+    claim: str; citations: list[int] = []   # indices into ResearchOutput.sources
+
+class ResearchOutput(BaseModel):
+    run_id: str; organization_id: str; domain: str
+    findings: list[ResearchFinding]
+    sources: list[Citation]                  # flat citation list, deduped
+    groundedness_score: float = Field(..., ge=0.0, le=1.0)
+    confidence: str                          # high | medium | low
+    partial_sources: list[str] = []          # sources that failed/were skipped
+    total_llm_tokens_used: int = 0
 ```
 
-`from_state` is what `run_pillar_1` writes into `RunState["strategy_output"]`.
+### 4.3 Tool wrappers — `tools/*.py`
+- Each: `async def search(client: httpx.AsyncClient, query: str, *, limit: int) -> list[Citation]`.
+- Read API key from settings (`TAVILY_API_KEY`, `SERPAPI_KEY`, `CRUNCHBASE_API_KEY`, `G2_API_KEY`, `SIMILARWEB_API_KEY`).
+- **No key set → raise `ToolError` (skipped, not fabricated)**; fan-out records it as `partial`.
+- Pure functions over an injected `httpx.AsyncClient` so `respx` can mock with zero live calls.
+
+### 4.4 Fan-out — `fanout.py`
+```python
+async def fan_out(call_tool, sources, query, *, per_tool_timeout=20.0) -> list[SourceResult]:
+    """Parallel tool fan-out via BaseAgent._call_tool (breaker-guarded).
+    asyncio.gather(return_exceptions=True); per-tool asyncio.timeout.
+    Tavily<->SerpAPI cross-fallback; other failures -> SourceResult(ok=False)."""
+```
+- Routes every call through `self._call_tool(tool_name, args)` → circuit-breaker + `ToolError` mapping inherited from BaseAgent.
+
+### 4.5 `ResearchAgent` — `agent.py`
+```python
+class ResearchAgent(BaseAgent[ResearchInput, ResearchOutput]):
+    PILLAR = 1
+    AGENT_ID = "research"
+    SLA_SECONDS = 600   # 10 min
+
+    async def understand(self, input):   # build/expand sub-queries from idea+domain; cache key
+    async def plan(self, intent):        # pick sources, fallback order, retrieval budget
+    async def execute(self, plan):       # fan_out -> dedupe sources -> LLM synthesis (inline cites) -> ResearchOutput
+    async def verify(self, output):      # groundedness ratio; retry retrieval once if low; set confidence
+    async def learn(self, trace):        # emit sources + token counts + groundedness to LLMOps
+```
+- `understand` checks Redis cache first; hit → short-circuit `execute`.
+- `execute` synthesis call: `await self._call_llm(task_class="research_synthesis", prompt=rendered)`.
+
+### 4.6 Groundedness — `groundedness.py`
+```python
+GROUNDEDNESS_THRESHOLD = 0.7
+def score_groundedness(findings, sources) -> float:
+    """Ratio of findings whose citations[] resolve to >=1 real source. 0.0-1.0."""
+```
+- `verify()` maps band: `>=0.85 high`, `>=0.7 medium`, `<0.7 low` (and triggers one retrieval retry before settling on `low`).
 
 ---
 
-## 7. Node behaviour (contract)
+## 5. Step-by-step build order (TDD)
 
-| Node | Reads | Writes | LLM/Tool | SLA |
-|---|---|---|---|---|
-| `normalize_idea` | `idea_raw` | `idea_normalised`, `domain`, `geography_focus` | LLM (+PII redact) | <30s |
-| `size_market` | `idea_normalised`, `domain` | `market_size` | LLM + `tavily_search`/`serpapi_search` | <5min |
-| `discover_competitors` | `idea_normalised` | `competitors[]` | LLM + `crunchbase_lookup`/`g2_lookup` | <5min |
-| `mine_keywords` | `idea_normalised` | `keywords[]` | LLM + `serpapi_search` | <3min |
-| `generate_personas` | `idea_normalised`, `domain` | `personas[]` | LLM | <3min |
-| `analyze_trends` | `idea_normalised` | `trend_signals[]` | LLM + `trends_lookup` | <5min |
-| `parallel_join` | all 5 above | merged context, `total_tool_calls` | — (barrier) | — |
-| `audit_bias` | merged research | `bias_flags[]` | LLM | <2min |
-| `synthesize_canvas` | merged research | `lean_canvas` | LLM | <3min |
-| `score_viability` | canvas + research | `viability_score` (+pivots if `<50`) | LLM | <2min |
-| `render_report` | everything | `report_markdown` (+S3 PDF later) | LLM | <1min |
-| `error_handler` | `fatal_error` | escalate / end | — | — |
-
-Every node: append a `NodeTrace`, increment `total_llm_tokens_used`, call models via `self._call_llm(...)` and tools via `self._call_tool(...)` (breaker-guarded). Nodes are written as methods/closures bound to the agent instance (so they have `self._call_llm`), or as functions taking an injected `ctx` carrying the call helpers — **decision: bind via a small `NodeContext` injected at graph-build time** to keep node fns testable in isolation.
+1. `schema.py` — Pydantic models + bounds (`groundedness_score` 0–1, `viability`-style validation). Unit-test first.
+2. `tools/*.py` — 5 wrappers over injected `httpx.AsyncClient`. Test each with `respx` (success + failure + no-key).
+3. `registry.py` — local adapter satisfying `ToolRegistryProtocol.call(tool_name, args)`.
+4. `fanout.py` — parallel gather + timeout + Tavily⇄SerpAPI fallback. Test with fake `call_tool`.
+5. `groundedness.py` — scorer + threshold banding. Unit-test.
+6. `prompts/synthesis.j2` — multi-source synthesis with inline citation markers.
+7. `agent.py` — `ResearchAgent` 5 lifecycle methods + Redis cache in `understand`.
+8. `__init__.py` — replace legacy stub; re-export `ResearchAgent`.
+9. Tests (§6).
+10. `make quality` — ruff + mypy + pytest green (type hints on all public funcs, CLAUDE.md §41).
 
 ---
 
-## 8. Step-by-step build order (TDD where practical)
-
-1. **Deps + config.** Add `jinja2` (runtime) and `respx` (test) to `pyproject.toml`; promote `langgraph` + `google-generativeai` out of the optional `agents` extra into core (agents are now first-class). Add env vars to `config.py`: `gemini_api_key`, `strategy_model` (default `"gemini-2.5-flash"`), `tavily_api_key`, `serpapi_key`, `crunchbase_api_key`, `g2_api_key`, `similarweb_api_key` (all dev-safe `""` defaults). `uv sync`.
-2. **`schema.py`** — port LLD §2 + `StrategyOutput.from_state`. Unit-test validators first (`test_schema_validation.py`, `test_viability_banding.py`).
-3. **Prompts** — author the 10 `prompts/*.j2` (sizing, competitor, keyword, persona, trends, bias, canvas, viability, report, normalize). Each declares its variables (LLD §5 + plan §10.3).
-4. **`_providers/jinja_prompt_registry.py`** — `JinjaPromptRegistry.get(key, version=None) -> str` rendering from `prompts/`. Satisfies `PromptRegistryProtocol`.
-5. **`_providers/gemini_router.py`** — `GeminiRouter.complete(*, task_class, prompt, **kw) -> str`. Satisfies `LLMRouterProtocol`. Thin wrapper over `google-generativeai`; structured-JSON mode for canvas/score nodes.
-6. **`tools.py`** — define the research tool call signatures + a `LocalToolRegistry` stand-in satisfying `ToolRegistryProtocol` (raises `NotImplementedError`-with-fallback or returns empty + lowers groundedness until AF-038/047 land). Real fan-out is AF-038.
-7. **`nodes/`** — implement 12 node fns + `NodeContext` (carries `call_llm`, `call_tool`, `prompts`). Cross-source fallback (Tavily→SerpAPI) lives in `size_market`/`mine_keywords`.
-8. **`routers.py`** — port LLD §3 routers.
-9. **`graph.py`** — `build_strategist_graph(checkpointer)` per LLD §3.2 (fan-out list, barrier, conditional edges, error_handler→END).
-10. **`agent.py`** — `StrategyAgent(BaseAgent[...])`; map `understand/plan/execute/verify/learn` onto the graph (§4.2). `verify` enforces canvas completeness + viability + ≥1 source + bias-audit-ran.
-11. **`__init__.py`** — re-export `StrategyAgent` (delete legacy `Agent`-based stub body). Confirm `app/agents/__init__.py` still imports legacy `Agent` + Pydantic models from `base` (untouched) so `research`/`product_planner` stubs stay green.
-12. **Wire orchestrator** — `run_pillar_1` instantiates `StrategyAgent` (DI: UDAL from request ctx, `DualCheckpointer`, `LocalToolRegistry`, `JinjaPromptRegistry`, `GeminiRouter`), calls `await agent.run(state_input)`, writes `StrategyOutput.from_state(...)` into `RunState["strategy_output"]`. **Guard:** if `gemini_api_key` empty (dev/CI), fall back to the existing stub dict so `test_graph.py` stays green. Keep `validation_gate` interrupt unchanged.
-13. **Tests** — unit (§5) then integration with `FakeLLM` + `respx` HTTP mocks + `MemorySaver`. Golden evals under `tests/golden/strategy/` (Phase 2, Promptfoo) — scaffold only now.
-14. **Quality gate** — `make quality` (ruff + mypy + pytest) green. Type hints on all public fns (CLAUDE.md §41).
-
----
-
-## 9. Tests — key scenarios
+## 6. Tests — `backend/tests/agents/research/`
 
 | ID | Test | Type | Assert |
 |----|------|------|--------|
-| T1 | strong-viability idea → approve path | integration | `band==strong`; canvas complete; `len(pivots)==0`; `report_markdown` set |
-| T2 | weak idea → 3 pivots | integration | `total<50`; `len(pivot_suggestions)==3` |
-| T3 | research fan-out + citations | integration | 5 branches merge; `sources` non-empty; `total_tool_calls>0` |
-| T4 | Tavily down → SerpAPI fallback | integration | `size_market` completes; run finishes |
-| T5 | empty / <10-char idea | unit | `StrategistState` validation rejects; agent asks for clarification, no fabricated market |
-| T6 | bias audit flags Western-centric framing | unit | `bias_flags` contains `western_centric` |
-| T7 | viability banding thresholds | unit | 75→strong, 50→moderate, 25→weak, 24→reject |
-| T8 | `TAM≥SAM≥SOM` violated | unit | `MarketSize` raises `ValueError` |
-| T9 | `StrategyAgent.run()` drives 5 phases under SLA | unit | call order understand→plan→execute→verify→learn; trace emitted |
-| T10 | SLA blown → `SLAExceededError` | unit | slow fake node + low `SLA_SECONDS` → typed error |
-| T11 | LLM 5× fail → breaker OPEN → `CircuitOpenError` | unit | `_call_llm` opens `strategy.llm` breaker |
-| T12 | `route_*` routing | unit | normalize fatal→error_handler; join retries-exhausted→error_handler; terminal missing-report→error_handler |
+| T1 | schema bounds | unit | `groundedness_score` ∈[0,1]; bad value rejected |
+| T2 | each tool wrapper parses results | unit (`respx`) | returns `list[Citation]` |
+| T3 | tool no API key | unit | raises `ToolError`, not fabricated data |
+| T4 | fan-out parallel happy path | unit | 5 `SourceResult`, all `ok` |
+| T5 | Tavily down → SerpAPI fallback | unit | fan-out still returns market signals |
+| T6 | Crunchbase/G2/SimilarWeb down | unit | `partial_sources` populated; no crash |
+| T7 | one tool times out | unit | that source `ok=False`; others succeed |
+| T8 | synthesis produces cited findings | integration (`FakeLLM`) | `findings` non-empty, each has `citations[]` |
+| T9 | groundedness ≥ threshold → confidence high/medium | unit | banding correct |
+| T10 | low groundedness → retry then `confidence="low"` | integration | one retrieval retry, flagged low |
+| T11 | Redis cache hit short-circuits execute | unit (fake redis) | tools NOT called on 2nd run |
+| T12 | breaker opens after repeated tool failure | unit | `CircuitOpenError` surfaced (inherited AF-036) |
+| T13 | happy-path `run()` calls 5 phases in order | unit | fake records order |
 
-Fakes only — no live infra/APIs (matches LLD §9 + AF-036 test philosophy). `FakeLLM` returns pre-built canvas/score JSON; `respx` mocks research HTTP; in-memory UDAL; `MemorySaver` checkpointer.
-
----
-
-## 10. Acceptance criteria (Definition of Done)
-
-- [ ] `StrategyAgent(BaseAgent[StrategistState, StrategistState])` with `PILLAR=1`, `AGENT_ID="strategy"`, `SLA_SECONDS=1800`; 5 lifecycle methods mapped onto the LangGraph run.
-- [ ] `schema.py` ports LLD §2 (Pydantic V2) + `StrategyOutput.from_state` adapter.
-- [ ] `build_strategist_graph()` — 11 nodes + `error_handler`, parallel fan-out + barrier, conditional routers (LLD §3).
-- [ ] 10 Jinja2 prompt templates render via `JinjaPromptRegistry` (`PromptRegistryProtocol`).
-- [ ] `GeminiRouter` (`LLMRouterProtocol`) + research tool calls routed through `_call_llm`/`_call_tool` (breaker-guarded).
-- [ ] Contract-first: AF-037 builds with **zero** dependency on un-built AF-047/048/049 — stand-ins satisfy the Protocols.
-- [ ] Bias audit node emits `bias_flags`; pivots generated only when `total<50` (3 of them).
-- [ ] `run_pillar_1` wired to real agent, with dev/CI stub fallback when `gemini_api_key` empty; `test_graph.py` stays green.
-- [ ] Legacy `Agent` + `research`/`product_planner` stubs still import & pass.
-- [ ] All §9 tests pass; `make quality` green (ruff + mypy + pytest).
-- [ ] Branch `feature/strategy-agent`, Conventional Commits, PR to `main` (no direct push).
+Fakes only — `FakeLLMRouter`, `respx` HTTP mocks, in-memory UDAL, fake Redis, `MemorySaver`. No live infra (matches plan §9.1).
 
 ---
 
-## 11. Downstream unblock (what lands after)
+## 7. Acceptance criteria (Definition of Done)
 
-1. AF-037 ✅ → `strategy_output` (canvas + personas + viability) flows through `RunState`.
-2. **AF-038 Research Agent** (`feature/research-agent`) — real Tavily/SerpAPI/Crunchbase/G2/SimilarWeb fan-out + citation groundedness; replaces `LocalToolRegistry` stand-ins (needs AF-047 Tool Registry).
-3. **AF-039 Product Planner** (`feature/product-planner-agent`) — runs after the validation HITL gate, consumes `StrategyOutput` → PRD + roadmap + user stories.
-4. **AF-055 Validation Studio** (Raunak) — consumes canvas + viability gauge + ICP cards + pivot picker (agree the data contract via `StrategyOutput`).
-5. **Kaushlendra Pillar 2 / Pallavi Pillar 6** — consume `lean_canvas` + personas; confirm schema now (Coordination Checklist).
-6. Real **AF-048 Prompt Registry** + **AF-049 LLM Router** (Purnima) drop in structurally — retire `_providers/` stand-ins.
+- [ ] `ResearchAgent(BaseAgent[ResearchInput, ResearchOutput])`, `PILLAR=1`, `AGENT_ID="research"`, `SLA_SECONDS=600`.
+- [ ] 5 tool wrappers (Tavily, SerpAPI, Crunchbase, G2, SimilarWeb) called via `self._call_tool` (breaker-guarded).
+- [ ] Parallel fan-out with per-tool timeout + Tavily⇄SerpAPI fallback + graceful partial-source degradation.
+- [ ] LLM synthesis with inline citations via `self._call_llm(task_class="research_synthesis")`.
+- [ ] Citation groundedness check in `verify()`; low → one retry then `confidence="low"` (non-fatal).
+- [ ] Redis cache short-circuit on repeat queries.
+- [ ] Legacy `Agent`-based stub replaced; `app.agents.research` imports green.
+- [ ] All §6 tests pass; `make quality` green (ruff + mypy + pytest).
+- [ ] `.env.example` updated with the 5 keys (+ `PRODUCTHUNT_TOKEN`).
+- [ ] Branch `feature/research-agent`, Conventional Commits, PR to `main` (no direct push).
 
 ---
 
-## 12. Risks
+## 8. Fallback matrix (from plan §2.3)
+
+| Failure | Strategy |
+|---------|----------|
+| idea text empty/too short | Ask for clarification; do NOT fabricate a market |
+| Tavily / SerpAPI rate-limited | Cross-fallback to the other; reduce result count; lower confidence |
+| Crunchbase/G2/SimilarWeb down | Skip source; mark `partial`; lower groundedness |
+| Groundedness < threshold | Re-run retrieval once; still low → flag `confidence="low"` |
+
+---
+
+## 9. Downstream unblock
+
+1. AF-038 ✅ → Strategy Agent (AF-037) research nodes delegate to `ResearchAgent`.
+2. AF-047 Tool Registry lands → swap local `registry.py` adapter for the real registry (protocol unchanged).
+3. AF-048/049 land → real prompt loading + model routing (protocols unchanged).
+4. Pallavi (Pillar 6) reuses `ResearchAgent` for competitor/positioning research.
+5. Purnima (Pillar 7) consumes groundedness + token traces via `learn()`.
+
+---
+
+## 10. Risks
 
 | Risk | Mitigation |
 |------|------------|
-| AF-048/049/047 not built → DI args undefined | Build against the 3 Protocols already in `base.py`; ship `_providers/` stand-ins now (contract-first) |
-| Strategy needs research tools but AF-038/047 absent | Route all tool calls via `_call_tool`/`ToolRegistryProtocol`; `LocalToolRegistry` returns partial + lowers groundedness; real fan-out lands with AF-038 |
-| `strategist/` vs `strategy/` + node-name divergence | Reconciled in §3 — dir `strategy/`, LLD node names, LLD bands |
-| Hallucinated market sizing | Citation groundedness check in `verify`; flag low-confidence; `TAM≥SAM≥SOM` validator |
-| Western-centric bias | `audit_bias` node + diversified prompts + downstream human gate |
-| 30-min SLA blown on parallel research | `asyncio.timeout(SLA_SECONDS)` in `run()`; parallel fan-out; per-node retry budget; breaker fast-fail |
-| 3-agent Pillar-1 load slows the chain (P2→P3 wait) | Risk register B/D — flag to Asit; AF-038 or AF-039 reassignable to a lighter owner |
-| Breaking orchestrator `test_graph.py` | `run_pillar_1` keeps stub fallback when `gemini_api_key` empty (CI path) |
-| New runtime dep (`jinja2`) | Tiny, ubiquitous; no transitive risk; `google-generativeai`/`langgraph` already declared |
-
----
-
-*Plan for AF-037 — Strategy & Ideation Agent (Pillar 1). Owner: Somesh Chitranshi. Ground truth: `docs/architecture/Agents-Architecture/strategist-agent.md` + `.claude/developer-plans/02-somesh-pillar-1-strategy-research-plan.md` + CLAUDE.md §7.4. Builds on AF-036 BaseAgent (merged).*
+| AF-047/048/049 not built → DI args undefined | Protocols + local tool/registry adapter; ship now (contract-first, same as AF-036) |
+| Hallucinated market sizing | Groundedness check; flag low-confidence reports for human review |
+| Research API rate limits / cost | Redis cache + cross-source fallback + breaker fail-fast |
+| Prompt injection via idea text | Input redaction/injection check upstream (Guardrails AF-046); treat tool results as untrusted in synthesis prompt |
+| 3-agent load on Somesh (plan Appendix B) | Research is self-contained — can be delegated to an early-finishing owner |
