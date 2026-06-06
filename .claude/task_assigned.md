@@ -56,12 +56,12 @@ Think of the project like building a house. You can't paint a room (build your a
 | Phase | Description | Lead Owner(s) | Total | ✅ Done | ❌ Pending |
 |-------|-------------|---------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | Team | 11 | 11 | 0 |
-| Phase 2 | Infrastructure & Cloud | Asit | 13 | 0 | 13 |
+| Phase 2 | Infrastructure & Cloud | Asit (Vishal exec) | 13 | 6 | 7 |
 | Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 11 | 15 |
 | Phase 4 | Frontend — Next.js 14 | Raunak | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | Yogesh | 9 | 0 | 9 |
 | Phase 6 | VS Code Extension | **Asit** | 7 | 0 | 7 |
-| **Total** | | | **78** | **22** | **56** |
+| **Total** | | | **78** | **28** | **50** |
 
 **Per-person task count:** Asit **24** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 56 pending + 22 done = **78**.
 
@@ -93,19 +93,21 @@ Think of the project like building a house. You can't paint a room (build your a
 ## Phase 2 — Infrastructure & Cloud 🟢 (Owner: Asit — can start now)
 
 > AWS networking, ECS services, managed databases, messaging, CI/CD pipeline, and observability baseline. **Depends on: Phase 1 (done) → unblocked.**
+>
+> **Progress (2026-06-06, Vishal):** ✅ `AF-012` networking, `AF-013` ecs, `AF-018` alb (*ALB+WAFv2; CloudFront/Shield deferred), `AF-019` iam, `AF-020` secrets, `AF-021` ecr — built + `terraform validate`-clean on branch `feat/infra/terraform-networking` (pending PR → `dev`). ECR lives in a new account-global stack `infra/terraform/global/`. **Remaining:** AF-014 Supabase, AF-015 ElastiCache, AF-016 S3, AF-017 messaging, AF-022 CI/CD (CI done, CD pending), AF-023 OTel (JSON logs done), AF-024 Prometheus/Grafana.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-012 | Asit | Terraform module `networking` — VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints for S3/ECR/Secrets | `feature/terraform-networking` | Phase 1 | 🟢 | ❌ |
-| AF-013 | Asit | Terraform module `ecs` — ECS Fargate cluster, task definitions per service, auto-scaling target-tracking policies | `feature/terraform-ecs` | AF-012 | 🟢 | ❌ |
+| AF-012 | Asit→Vishal | Terraform module `networking` — VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints for S3/ECR/Secrets | `feature/terraform-networking` | Phase 1 | 🟢 | ✅ |
+| AF-013 | Asit→Vishal | Terraform module `ecs` — ECS Fargate cluster, task definitions per service, auto-scaling target-tracking policies | `feature/terraform-ecs` | AF-012 | 🟢 | ✅ |
 | AF-014 | Asit | Supabase project setup — `supabase link`, RLS policies, pgvector extension, schema-per-tenant migrations (hosted; no RDS) | `feature/supabase-setup` | Phase 1 | 🟢 | ❌ |
 | AF-015 | Asit | Terraform module `elasticache` — Redis 7 cluster (Multi-AZ), subnet groups, auth token | `feature/terraform-elasticache` | AF-012 | 🟢 | ❌ |
 | AF-016 | Asit | Terraform module `s3` — artifacts bucket, RLHF data lake, prompt-templates bucket; S3 Object Lock on audit bucket (7 yr) | `feature/terraform-s3` | AF-012 | 🟢 | ❌ |
 | AF-017 | Asit | Terraform module `messaging` — Confluent Kafka (primary bus + LLMOps telemetry), EventBridge bus + rules, per-pillar SQS queues + DLQs, SNS topic | `feature/terraform-messaging` | AF-012 | 🟢 | ❌ |
-| AF-018 | Asit | Terraform module `alb` — Application Load Balancer (L7), HTTPS listener, target groups per ECS service; CloudFront + WAF + Shield | `feature/terraform-alb` | AF-013 | 🟡 | ❌ |
-| AF-019 | Asit | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | AF-012 | 🟢 | ❌ |
-| AF-020 | Asit | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ❌ |
-| AF-021 | Asit | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ❌ |
+| AF-018 | Asit→Vishal | Terraform module `alb` — Application Load Balancer (L7), HTTPS listener, target groups per ECS service; CloudFront + WAF + Shield | `feature/terraform-alb` | AF-013 | 🟡 | ✅* |
+| AF-019 | Asit→Vishal | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | AF-012 | 🟢 | ✅ |
+| AF-020 | Asit→Vishal | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ✅ |
+| AF-021 | Asit→Vishal | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ✅ |
 | AF-022 | Asit | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ❌ |
 | AF-023 | Asit (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ❌ |
 | AF-024 | Asit (← Purnima support) | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ❌ |
@@ -227,16 +229,16 @@ _Phase 2 — Infrastructure & Cloud_
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-012 | Asit | Terraform module `networking` — VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints for S3/ECR/Secrets | `feature/terraform-networking` | Phase 1 | 🟢 | ❌ |
-| AF-013 | Asit | Terraform module `ecs` — ECS Fargate cluster, task definitions per service, auto-scaling target-tracking policies | `feature/terraform-ecs` | AF-012 | 🟢 | ❌ |
+| AF-012 | Asit→Vishal | Terraform module `networking` — VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints for S3/ECR/Secrets | `feature/terraform-networking` | Phase 1 | 🟢 | ✅ |
+| AF-013 | Asit→Vishal | Terraform module `ecs` — ECS Fargate cluster, task definitions per service, auto-scaling target-tracking policies | `feature/terraform-ecs` | AF-012 | 🟢 | ✅ |
 | AF-014 | Asit | Supabase project setup — `supabase link`, RLS policies, pgvector extension, schema-per-tenant migrations (hosted; no RDS) | `feature/supabase-setup` | Phase 1 | 🟢 | ❌ |
 | AF-015 | Asit | Terraform module `elasticache` — Redis 7 cluster (Multi-AZ), subnet groups, auth token | `feature/terraform-elasticache` | AF-012 | 🟢 | ❌ |
 | AF-016 | Asit | Terraform module `s3` — artifacts bucket, RLHF data lake, prompt-templates bucket; S3 Object Lock on audit bucket (7 yr) | `feature/terraform-s3` | AF-012 | 🟢 | ❌ |
 | AF-017 | Asit | Terraform module `messaging` — Confluent Kafka (primary bus + LLMOps telemetry), EventBridge bus + rules, per-pillar SQS queues + DLQs, SNS topic | `feature/terraform-messaging` | AF-012 | 🟢 | ❌ |
-| AF-018 | Asit | Terraform module `alb` — Application Load Balancer (L7), HTTPS listener, target groups per ECS service; CloudFront + WAF + Shield | `feature/terraform-alb` | AF-013 | 🟡 | ❌ |
-| AF-019 | Asit | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | AF-012 | 🟢 | ❌ |
-| AF-020 | Asit | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ❌ |
-| AF-021 | Asit | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ❌ |
+| AF-018 | Asit→Vishal | Terraform module `alb` — Application Load Balancer (L7), HTTPS listener, target groups per ECS service; CloudFront + WAF + Shield | `feature/terraform-alb` | AF-013 | 🟡 | ✅* |
+| AF-019 | Asit→Vishal | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | AF-012 | 🟢 | ✅ |
+| AF-020 | Asit→Vishal | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ✅ |
+| AF-021 | Asit→Vishal | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ✅ |
 | AF-022 | Asit | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ❌ |
 | AF-023 | Asit (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ❌ |
 | AF-024 | Asit (← Purnima support) | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ❌ |
