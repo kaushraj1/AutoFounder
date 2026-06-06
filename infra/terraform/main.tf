@@ -103,3 +103,34 @@ module "ecs" {
     }
   }
 }
+
+# AF-015 — ElastiCache Redis (LangGraph checkpoint hot cache, semantic prompt
+# cache, embedding cache, per-tenant cost accumulator).
+module "elasticache" {
+  source = "./modules/elasticache"
+
+  name_prefix        = local.name_prefix
+  vpc_id             = module.networking.vpc_id
+  private_subnet_ids = module.networking.private_subnet_ids
+  vpc_cidr           = var.vpc_cidr
+  node_type          = var.redis_node_type
+  # At-rest uses the AWS-managed ElastiCache key. CMK-at-rest is a follow-up: it
+  # needs a key policy on the secrets CMK granting elasticache.amazonaws.com
+  # kms:Decrypt+CreateGrant — the default root-only policy denies the service,
+  # which would fail the replication-group create.
+}
+
+# AF-016 — S3 buckets (artifacts, RLHF data lake, prompt templates, audit w/ Object Lock).
+module "s3" {
+  source = "./modules/s3"
+
+  name_prefix = local.name_prefix
+  kms_key_arn = module.secrets.kms_key_arn
+}
+
+# AF-017 — EventBridge bus + per-pillar SQS queues (+DLQs) + gate-decisions queue + SNS.
+module "messaging" {
+  source = "./modules/messaging"
+
+  name_prefix = local.name_prefix
+}

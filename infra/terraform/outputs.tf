@@ -93,3 +93,44 @@ output "ecs_service_names" {
   description = "Map of service key -> ECS service name."
   value       = module.ecs.service_names
 }
+
+# --- ElastiCache (AF-015) ---------------------------------------------------
+
+output "redis_primary_endpoint" {
+  description = "ElastiCache Redis primary endpoint (write)."
+  value       = module.elasticache.primary_endpoint_address
+}
+
+output "redis_reader_endpoint" {
+  description = "ElastiCache Redis reader endpoint."
+  value       = module.elasticache.reader_endpoint_address
+}
+
+output "redis_port" {
+  description = "ElastiCache Redis port."
+  value       = module.elasticache.port
+}
+
+# --- S3 (AF-016) ------------------------------------------------------------
+
+output "s3_bucket_ids" {
+  description = "Map of bucket purpose -> bucket name."
+  value       = module.s3.bucket_ids
+}
+
+# --- Messaging (AF-017) -----------------------------------------------------
+
+output "sqs_queue_urls" {
+  description = "Map of queue name -> SQS URL (incl. gate-decisions)."
+  value       = module.messaging.queue_urls
+}
+
+output "sns_topic_arn" {
+  description = "SNS notifications topic ARN."
+  value       = module.messaging.sns_topic_arn
+}
+
+output "event_bus_name" {
+  description = "EventBridge custom bus name."
+  value       = module.messaging.event_bus_name
+}

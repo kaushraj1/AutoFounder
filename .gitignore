@@ -86,6 +86,12 @@ override.tf.json
 !infra/terraform/modules/secrets/
 !infra/terraform/modules/secrets/**
 
+# Re-include the Terraform per-environment inputs (CIDRs, node types, service
+# config, backend bucket/key — NO secret values). The broad `env/`/`ENV/` venv
+# ignore above otherwise swallows infra/terraform/env/.
+!infra/terraform/env/
+!infra/terraform/env/**
+
 # ─── IDE & Editor ─────────────────────────────────────────────────────────────
 .vscode/
 !.vscode/extensions.json

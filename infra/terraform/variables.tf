@@ -96,3 +96,9 @@ variable "enable_waf" {
   type        = bool
   default     = true
 }
+
+variable "redis_node_type" {
+  description = "ElastiCache Redis node type (per environment)."
+  type        = string
+  default     = "cache.t4g.micro"
+}
