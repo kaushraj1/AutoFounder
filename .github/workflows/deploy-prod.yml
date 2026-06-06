@@ -36,6 +36,13 @@ jobs:
             --query taskDefinition \
             > task-definition.json
 
+      - name: Sanitize task definition for deploy action
+        run: |
+          # aws-actions/amazon-ecs-deploy-task-definition@v1 fails on newer ECS keys
+          # such as enableFaultInjection. Remove unsupported fields before render/deploy.
+          jq 'del(.enableFaultInjection)' task-definition.json > task-definition.sanitized.json
+          mv task-definition.sanitized.json task-definition.json
+
       - name: Update task definition with new image
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
