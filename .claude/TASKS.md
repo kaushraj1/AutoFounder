@@ -92,10 +92,10 @@
 
 | ID | Task | Branch | Status |
 |----|------|--------|--------|
-| AF-036 | `BaseAgent` ABC — `understand()`, `plan()`, `execute()`, `verify()`, `learn()`; typed error hierarchy; circuit breakers on LLM + tool calls | `feature/base-agent` | ❌ Pending |
-| AF-037 | Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability score 0–100, bias audit, 3 pivot options; SLA < 30 min | `feature/strategy-agent` | ❌ Pending |
-| AF-038 | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb tool fan-out, synthesis, citation groundedness check | `feature/research-agent` | ❌ Pending |
-| AF-039 | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | ❌ Pending |
+| AF-036 | `BaseAgent` ABC — `understand()`, `plan()`, `execute()`, `verify()`, `learn()`; typed error hierarchy; circuit breakers on LLM + tool calls | `feature/base-agent` | ✅ Completed |
+| AF-037 | Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability score 0–100, bias audit, 3 pivot options; SLA < 30 min | `feature/strategy-agent` | ✅ Completed |
+| AF-038 | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb tool fan-out, synthesis, citation groundedness check | `feature/research-agent` | ✅ Completed |
+| AF-039 | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | ✅ Completed |
 | AF-040 | Architect Agent (Pillar 2) — FRs/NFRs extraction, ERD, OpenAPI contract, stack selection, microservice boundary analysis, cost forecast; HITL approval gate | `feature/architect-agent` | ❌ Pending |
 | AF-041 | Coder Agent (Pillar 3) — Frontend Specialist (Next.js 14 + Tailwind + shadcn/ui) ∥ Backend Specialist (FastAPI + SQLAlchemy + Supabase Auth + Stripe); Alembic DB migrations; zero lint errors; CI/CD scaffold | `feature/coder-agent` | ❌ Pending |
 | AF-042 | Reviewer / Self-Healer Agent (Pillar 4) — static analysis, unit + integration test gen, security scans (Trivy/Semgrep/Snyk), sandbox execution, AST-aware patching, LLM-as-judge; max 5 cycles; coverage ≥ 80% | `feature/reviewer-agent` | ❌ Pending |
@@ -212,6 +212,7 @@ Phase 3 sub-phases: 3a (API + DB) → 3b (Orchestrator) → 3c (Agents) → 3d (
 
 | Date | Version | Author | Description |
 |------|---------|--------|-------------|
+| 2026-06-06 | 1.3.0 | Somesh | Mark AF-036 to AF-039 as ✅ Completed (BaseAgent, Strategy, Research, Product Planner agents shipped on somesh-feature) |
 | 2026-06-06 | 1.2.0 | Team | Mark AF-032 to AF-035 as ✅ Completed (delegated to Somesh) |
 | 2026-05-20 | 1.0.0 | Team | Initial TASKS.md — 74 tasks across 6 phases; Phase 1 marked complete from existing monorepo scaffold |
 | 2026-05-26 | 1.1.0 | Team | Tech stack alignment: Supabase (PostgreSQL + pgvector + Realtime) replaces RDS + MongoDB Atlas + Go WebSocket; Gemini 3.5 Flash replaces Claude Sonnet / GPT-4o; Supabase Auth replaces Auth0; Confluent Kafka added as primary event bus; SQLAlchemy replaces Prisma |
