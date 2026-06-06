@@ -3,18 +3,16 @@
 import uuid
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from fastapi import FastAPI, status
+from fastapi import status
 from fastapi.testclient import TestClient
-from sqlalchemy.engine.result import ChunkedIteratorResult
 
 from app.api.deps import get_udal
-from app.db.udal import UDAL
 from app.main import create_app
 from app.models.artifact import Artifact
 from app.models.gate import Gate
 from app.models.run import Run
-from app.schemas.gate import GateState
 
 
 @pytest.fixture
@@ -33,22 +31,22 @@ def mock_udal(mock_db_session: AsyncMock) -> MagicMock:
     """Mock tenant-scoped UDAL."""
     udal = MagicMock()
     udal.organization_id = "org_test"
-    
+
     # Mock relational context manager
     db_ctx = MagicMock()
     db_ctx.session = mock_db_session
     db_ctx.audit = AsyncMock()
-    
+
     async def mock_enter(*args, **kwargs):
         return db_ctx
-        
+
     async def mock_exit(*args, **kwargs):
         pass
-        
+
     db_ctx_mgr = MagicMock()
     db_ctx_mgr.__aenter__ = mock_enter
     db_ctx_mgr.__aexit__ = mock_exit
-    
+
     udal.relational.return_value = db_ctx_mgr
     return udal
 
@@ -67,6 +65,7 @@ def test_client(mock_udal: MagicMock) -> TestClient:
 # Ideas Endpoint Tests
 # ---------------------------------------------------------------------------
 
+
 def test_submit_idea_success(test_client: TestClient, mock_db_session: AsyncMock) -> None:
     response = test_client.post(
         "/v1/ideas", json={"text": "A platform for auto-generating SaaS compliance."}
@@ -77,7 +76,7 @@ def test_submit_idea_success(test_client: TestClient, mock_db_session: AsyncMock
     assert "meta" in data
     assert data["data"]["pillar"] == "strategy"
     assert data["data"]["status"] == "pending"
-    
+
     # Verify DB calls
     assert mock_db_session.add.call_count == 1
     assert mock_db_session.commit.call_count == 1
@@ -93,19 +92,20 @@ def test_submit_idea_invalid_short(test_client: TestClient) -> None:
 # Runs Endpoint Tests
 # ---------------------------------------------------------------------------
 
+
 def test_list_runs_paginated(test_client: TestClient, mock_db_session: AsyncMock) -> None:
     # Mock count result
     count_result = MagicMock()
     count_result.scalar_one.return_value = 10
-    
+
     # Mock list runs result
     run_1 = Run(id=uuid.uuid4(), pillar="strategy", status="pending")
     run_1.created_at = datetime.now(UTC)
     runs_result = MagicMock()
     runs_result.scalars.return_value.all.return_value = [run_1]
-    
+
     mock_db_session.execute.side_effect = [count_result, runs_result]
-    
+
     response = test_client.get("/v1/runs?limit=1&order=desc")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -120,11 +120,11 @@ def test_get_run_by_id_success(test_client: TestClient, mock_db_session: AsyncMo
     run_id = uuid.uuid4()
     run = Run(id=run_id, pillar="strategy", status="pending")
     run.created_at = datetime.now(UTC)
-    
+
     db_result = MagicMock()
     db_result.scalar_one_or_none.return_value = run
     mock_db_session.execute.return_value = db_result
-    
+
     response = test_client.get(f"/v1/runs/{run_id}")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -135,7 +135,7 @@ def test_get_run_by_id_not_found(test_client: TestClient, mock_db_session: Async
     db_result = MagicMock()
     db_result.scalar_one_or_none.return_value = None
     mock_db_session.execute.return_value = db_result
-    
+
     response = test_client.get(f"/v1/runs/{uuid.uuid4()}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json()["error"]["code"] == "AF_ERR_NOT_FOUND"
@@ -145,11 +145,11 @@ def test_cancel_run_success(test_client: TestClient, mock_db_session: AsyncMock)
     run_id = uuid.uuid4()
     run = Run(id=run_id, pillar="strategy", status="pending")
     run.created_at = datetime.now(UTC)
-    
+
     db_result = MagicMock()
     db_result.scalar_one_or_none.return_value = run
     mock_db_session.execute.return_value = db_result
-    
+
     response = test_client.delete(f"/v1/runs/{run_id}")
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["data"] is True
@@ -161,24 +161,24 @@ def test_cancel_run_success(test_client: TestClient, mock_db_session: AsyncMock)
 # Gates Endpoint Tests
 # ---------------------------------------------------------------------------
 
+
 def test_decide_gate_approve_success(test_client: TestClient, mock_db_session: AsyncMock) -> None:
     run_id = uuid.uuid4()
     gate_id = uuid.uuid4()
-    
+
     run = Run(id=run_id, pillar="strategy", status="awaiting_gate")
     gate = Gate(id=gate_id, run_id=run_id, kind="validation_approve", state="pending")
     gate.created_at = datetime.now(UTC)
-    
+
     gate_result = MagicMock()
     gate_result.scalar_one_or_none.return_value = gate
     run_result = MagicMock()
     run_result.scalar_one_or_none.return_value = run
-    
+
     mock_db_session.execute.side_effect = [gate_result, run_result]
-    
+
     response = test_client.post(
-        f"/v1/runs/{run_id}/gates/{gate_id}",
-        json={"decision": "approved", "notes": "Looks solid!"}
+        f"/v1/runs/{run_id}/gates/{gate_id}", json={"decision": "approved", "notes": "Looks solid!"}
     )
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -190,16 +190,13 @@ def test_decide_gate_approve_success(test_client: TestClient, mock_db_session: A
 def test_decide_gate_already_decided(test_client: TestClient, mock_db_session: AsyncMock) -> None:
     run_id = uuid.uuid4()
     gate_id = uuid.uuid4()
-    
+
     gate = Gate(id=gate_id, run_id=run_id, kind="validation_approve", state="approved")
     gate_result = MagicMock()
     gate_result.scalar_one_or_none.return_value = gate
     mock_db_session.execute.return_value = gate_result
-    
-    response = test_client.post(
-        f"/v1/runs/{run_id}/gates/{gate_id}",
-        json={"decision": "approved"}
-    )
+
+    response = test_client.post(f"/v1/runs/{run_id}/gates/{gate_id}", json={"decision": "approved"})
     assert response.status_code == status.HTTP_409_CONFLICT
     assert response.json()["error"]["code"] == "AF_ERR_CONFLICT"
 
@@ -208,20 +205,23 @@ def test_decide_gate_already_decided(test_client: TestClient, mock_db_session: A
 # Artifacts Endpoint Tests
 # ---------------------------------------------------------------------------
 
+
 def test_list_artifacts_success(test_client: TestClient, mock_db_session: AsyncMock) -> None:
     run_id = uuid.uuid4()
     run = Run(id=run_id, pillar="strategy", status="pending")
-    
-    artifact = Artifact(id=uuid.uuid4(), run_id=run_id, kind="lean_canvas", uri="org_test/canvas.json")
+
+    artifact = Artifact(
+        id=uuid.uuid4(), run_id=run_id, kind="lean_canvas", uri="org_test/canvas.json"
+    )
     artifact.created_at = datetime.now(UTC)
-    
+
     run_result = MagicMock()
     run_result.scalar_one_or_none.return_value = run
     artifacts_result = MagicMock()
     artifacts_result.scalars.return_value.all.return_value = [artifact]
-    
+
     mock_db_session.execute.side_effect = [run_result, artifacts_result]
-    
+
     response = test_client.get(f"/v1/runs/{run_id}/artifacts")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -233,17 +233,17 @@ def test_list_artifacts_success(test_client: TestClient, mock_db_session: AsyncM
 # Feedback Endpoint Tests
 # ---------------------------------------------------------------------------
 
+
 def test_submit_feedback_success(test_client: TestClient, mock_db_session: AsyncMock) -> None:
     run_id = uuid.uuid4()
     run = Run(id=run_id, pillar="strategy", status="pending")
-    
+
     run_result = MagicMock()
     run_result.scalar_one_or_none.return_value = run
     mock_db_session.execute.return_value = run_result
-    
+
     response = test_client.post(
-        "/v1/feedback",
-        json={"run_id": str(run_id), "rating": 5, "comment": "Amazing!"}
+        "/v1/feedback", json={"run_id": str(run_id), "rating": 5, "comment": "Amazing!"}
     )
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["data"] is True
@@ -253,11 +253,12 @@ def test_submit_feedback_success(test_client: TestClient, mock_db_session: Async
 # LLMOps Endpoint Tests
 # ---------------------------------------------------------------------------
 
+
 def test_get_cost_success(test_client: TestClient, mock_db_session: AsyncMock) -> None:
     cost_result = MagicMock()
     cost_result.scalar.return_value = 15.75
     mock_db_session.execute.return_value = cost_result
-    
+
     response = test_client.get("/v1/llmops/cost")
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["data"]["total_cost_usd"] == 15.75

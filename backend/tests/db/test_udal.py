@@ -12,7 +12,7 @@ Tests verify:
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -22,10 +22,10 @@ from app.db.graph import GraphClient
 from app.db.object_store import ObjectClient
 from app.db.udal import UDAL, CrossTenantViolation
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_udal(org_id: str = "org_alpha") -> tuple[UDAL, AsyncMock]:
     principal = Principal(organization_id=org_id, role="founder")
@@ -38,6 +38,7 @@ def _make_udal(org_id: str = "org_alpha") -> tuple[UDAL, AsyncMock]:
 # ---------------------------------------------------------------------------
 # ContextVar tests
 # ---------------------------------------------------------------------------
+
 
 def test_context_set_on_udal_init() -> None:
     udal, _ = _make_udal("org_test_ctx")
@@ -53,6 +54,7 @@ def test_context_isolated_per_token() -> None:
 # ---------------------------------------------------------------------------
 # Cross-tenant guard tests
 # ---------------------------------------------------------------------------
+
 
 def test_same_tenant_guard_passes() -> None:
     udal, _ = _make_udal("org_same")
@@ -78,6 +80,7 @@ def test_guard_passes_when_context_is_none() -> None:
     udal, _ = _make_udal("org_c")
     # Forcefully clear the context (reset to None)
     from app.db.context import _org_id_var
+
     token = _org_id_var.set(None)
     try:
         udal._guard()  # should not raise
@@ -88,6 +91,7 @@ def test_guard_passes_when_context_is_none() -> None:
 # ---------------------------------------------------------------------------
 # graph() always raises NotImplementedError
 # ---------------------------------------------------------------------------
+
 
 def test_graph_raises_not_implemented() -> None:
     udal, _ = _make_udal("org_graph")
@@ -106,6 +110,7 @@ def test_graph_upsert_node_raises() -> None:
 # ---------------------------------------------------------------------------
 # relational() sets search_path
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_relational_sets_search_path() -> None:
@@ -136,6 +141,7 @@ async def test_relational_guard_runs_before_session_use() -> None:
 # vector() returns VectorClient with correct org_id
 # ---------------------------------------------------------------------------
 
+
 def test_vector_returns_correct_org() -> None:
     udal, _ = _make_udal("org_vec")
     vc = udal.vector()
@@ -145,6 +151,7 @@ def test_vector_returns_correct_org() -> None:
 # ---------------------------------------------------------------------------
 # ObjectClient path scoping
 # ---------------------------------------------------------------------------
+
 
 def test_object_client_prefixes_path() -> None:
     client = ObjectClient(org_id="abc123")
@@ -164,6 +171,7 @@ def test_object_client_empty_path() -> None:
 # ---------------------------------------------------------------------------
 # UDAL.organization_id property
 # ---------------------------------------------------------------------------
+
 
 def test_udal_organization_id_property() -> None:
     udal, _ = _make_udal("org_prop")
