@@ -4,6 +4,7 @@ Runs after founder approves the Strategy Agent's HITL gate.
 Turns validated StrategyOutput into a PRD, requirements, user stories, and roadmap.
 Pure LLM synthesis — no external tool calls.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -43,9 +44,9 @@ class ProductPlannerAgent(BaseAgent[ProductPlannerInput, ProductPlannerOutput]):
     Verifies traceability coverage; retries once if below threshold.
     """
 
-    PILLAR = 1          # conceptual stage 1.5 (post-validation-gate sub-stage of Pillar 1)
+    PILLAR = 1  # conceptual stage 1.5 (post-validation-gate sub-stage of Pillar 1)
     AGENT_ID = "product_planner"
-    SLA_SECONDS = 600   # 10 min
+    SLA_SECONDS = 600  # 10 min
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -122,9 +123,9 @@ class ProductPlannerAgent(BaseAgent[ProductPlannerInput, ProductPlannerOutput]):
             requirements=requirements,
             user_stories=user_stories,
             roadmap=roadmap,
-            prd_markdown="",           # filled after verify()
-            coverage_score=0.0,        # filled by verify()
-            confidence="low",          # filled by verify()
+            prd_markdown="",  # filled after verify()
+            coverage_score=0.0,  # filled by verify()
+            confidence="low",  # filled by verify()
             total_llm_tokens_used=total_tokens,
         )
 
@@ -155,7 +156,9 @@ class ProductPlannerAgent(BaseAgent[ProductPlannerInput, ProductPlannerOutput]):
         if coverage < COVERAGE_THRESHOLD and output.requirements:
             logger.info(
                 "Coverage %.2f < %.2f — retrying generation with strict trace-or-drop for run %s",
-                coverage, COVERAGE_THRESHOLD, output.run_id,
+                coverage,
+                COVERAGE_THRESHOLD,
+                output.run_id,
             )
             retry_output = await self._retry_generation(output)
             retry_coverage = self._compute_coverage(retry_output)
@@ -174,7 +177,8 @@ class ProductPlannerAgent(BaseAgent[ProductPlannerInput, ProductPlannerOutput]):
             logger.warning(
                 "ProductPlanner run %s confidence=low (coverage=%.2f). "
                 "PRD flagged for human review.",
-                output.run_id, coverage,
+                output.run_id,
+                coverage,
             )
 
         return {"passed": True, "coverage_score": coverage, "confidence": output.confidence}
@@ -228,9 +232,7 @@ class ProductPlannerAgent(BaseAgent[ProductPlannerInput, ProductPlannerOutput]):
         data = self._parse_json(raw, "generate_prd")
         return PRD(**data), self._count_tokens(rendered, raw)
 
-    async def _extract_requirements(
-        self, prd: PRD, s: Any
-    ) -> tuple[list[Requirement], int]:
+    async def _extract_requirements(self, prd: PRD, s: Any) -> tuple[list[Requirement], int]:
         raw_template = self.prompts.get("product_planner/extract_requirements")
         rendered = Template(raw_template).render(
             prd=prd,
@@ -295,9 +297,7 @@ class ProductPlannerAgent(BaseAgent[ProductPlannerInput, ProductPlannerOutput]):
                 logger.warning("Skipping malformed milestone: %s", exc)
         return milestones, self._count_tokens(rendered, raw)
 
-    async def _retry_generation(
-        self, output: ProductPlannerOutput
-    ) -> ProductPlannerOutput:
+    async def _retry_generation(self, output: ProductPlannerOutput) -> ProductPlannerOutput:
         """Single retry with strict 'trace-or-drop' instruction for low-coverage runs."""
         # Re-extract requirements with a stricter trace-or-drop system message
         strict_prompt = (
@@ -367,8 +367,7 @@ class ProductPlannerAgent(BaseAgent[ProductPlannerInput, ProductPlannerOutput]):
 
     def _cache_key(self, input: ProductPlannerInput) -> str:
         payload = (
-            f"{input.strategy.run_id}:{input.strategy.domain}:"
-            f"{input.strategy.viability_score}"
+            f"{input.strategy.run_id}:{input.strategy.domain}:{input.strategy.viability_score}"
         )
         digest = hashlib.sha256(payload.encode()).hexdigest()[:16]
         return f"{_CACHE_PREFIX}:{digest}"

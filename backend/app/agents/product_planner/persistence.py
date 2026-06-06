@@ -1,4 +1,5 @@
 """PRD markdown rendering and artifact persistence for AF-039."""
+
 from __future__ import annotations
 
 import logging
@@ -49,9 +50,7 @@ def render_prd_markdown(output: ProductPlannerOutput) -> str:
         lines += ["| ID | Kind | Priority | Statement | Traces To |"]
         lines += ["|---|---|---|---|---|"]
         for r in output.requirements:
-            lines += [
-                f"| {r.id} | {r.kind} | {r.priority} | {r.statement} | {r.traces_to} |"
-            ]
+            lines += [f"| {r.id} | {r.kind} | {r.priority} | {r.statement} | {r.traces_to} |"]
         lines += [""]
 
     if output.user_stories:
@@ -92,9 +91,7 @@ async def persist_prd(udal: Any, *, run_id: str, org_id: str, markdown: str) -> 
     """Upload PRD markdown via UDAL object store. Returns public URL or None on failure."""
     path = f"prds/{run_id}/prd.md"
     try:
-        uri: str = await udal.object().upload(
-            path, markdown.encode("utf-8"), "text/markdown"
-        )
+        uri: str = await udal.object().upload(path, markdown.encode("utf-8"), "text/markdown")
         logger.info("PRD persisted for run %s → %s", run_id, uri)
         return uri
     except Exception as exc:

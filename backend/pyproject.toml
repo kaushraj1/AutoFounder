@@ -22,6 +22,7 @@ dependencies = [
   "jinja2>=3.1.2",
   "google-generativeai>=0.8.0",
   "langgraph>=0.2.0",
+  "prometheus-client>=0.21.0",
 ]
 
 [dependency-groups]
@@ -37,13 +38,14 @@ dev = [
   "mypy-protobuf>=5.1.0",
   "respx>=0.21.0",
 ]
-# Installed on demand: `uv sync --group agents`, etc. Wired up in later sprints.
+# Installed on demand (data/messaging/observability). langgraph + google-generativeai
+# are now core runtime deps, so there is no separate `agents` group.
 data = ["supabase>=2.9.0", "pgvector>=0.3.0"]
 messaging = ["confluent-kafka>=2.6.0"]
 observability = [
-  "prometheus-client>=0.21.0",
   "opentelemetry-sdk>=1.28.0",
   "opentelemetry-exporter-otlp>=1.28.0",
+  "opentelemetry-instrumentation-fastapi>=0.48b0",
 ]
 
 [build-system]

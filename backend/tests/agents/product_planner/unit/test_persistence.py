@@ -1,4 +1,5 @@
 """T10 + T12-T13 — PRD markdown rendering and persistence."""
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -31,24 +32,33 @@ def _make_output() -> ProductPlannerOutput:
         ),
         requirements=[
             Requirement(
-                id="FR-001", kind="functional",
-                statement="Sync calendars.", priority="must",
+                id="FR-001",
+                kind="functional",
+                statement="Sync calendars.",
+                priority="must",
                 traces_to="Calendar sync",
             )
         ],
         user_stories=[
             UserStory(
-                id="US-001", persona="Alex Chen", role="EM",
-                want="sync calendar", benefit="save time",
-                acceptance_criteria=["It syncs within 2s"], priority="must",
+                id="US-001",
+                persona="Alex Chen",
+                role="EM",
+                want="sync calendar",
+                benefit="save time",
+                acceptance_criteria=["It syncs within 2s"],
+                priority="must",
                 epic="Calendar Sync",
             )
         ],
         roadmap=[
             Milestone(
-                phase="MVP", title="Core Scheduling",
-                objective="Ship basic sync.", epics=["Calendar Sync"],
-                user_story_ids=["US-001"], target_weeks=8,
+                phase="MVP",
+                title="Core Scheduling",
+                objective="Ship basic sync.",
+                epics=["Calendar Sync"],
+                user_story_ids=["US-001"],
+                target_weeks=8,
             )
         ],
         prd_markdown="",

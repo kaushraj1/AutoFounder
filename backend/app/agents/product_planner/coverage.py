@@ -5,6 +5,7 @@ Three sub-ratios are averaged into a single coverage score:
   solution_coverage — canvas solution+problem items mapped to >=1 requirement
   story_anchoring   — user stories whose .persona resolves to a real persona name
 """
+
 from __future__ import annotations
 
 from app.agents.product_planner.schema import (
@@ -43,9 +44,7 @@ def score_coverage(
     # 2. solution_coverage: canvas solution+problem items that appear in >=1 requirement
     canvas_items = [i.strip().lower() for i in (canvas.solution + canvas.problem)]
     if canvas_items and requirements:
-        req_text = " ".join(
-            (r.statement + " " + (r.traces_to or "")).lower() for r in requirements
-        )
+        req_text = " ".join((r.statement + " " + (r.traces_to or "")).lower() for r in requirements)
         matched = sum(1 for item in canvas_items if item and item in req_text)
         solution_cov = matched / len(canvas_items)
     elif not canvas_items:

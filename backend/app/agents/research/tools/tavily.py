@@ -1,4 +1,5 @@
 """Tavily search tool wrapper."""
+
 from __future__ import annotations
 
 import httpx

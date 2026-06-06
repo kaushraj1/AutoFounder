@@ -1,4 +1,5 @@
 """SerpAPI search tool wrapper (Tavily fallback)."""
+
 from __future__ import annotations
 
 import httpx

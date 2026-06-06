@@ -1,4 +1,5 @@
 """Integration tests for ProductPlannerAgent — AF-039."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -21,6 +22,7 @@ def _make_agent(
     fake_udal: MagicMock | None = None,
 ) -> ProductPlannerAgent:
     from app.agents._providers.jinja_prompt_registry import JinjaPromptRegistry
+
     return ProductPlannerAgent(
         udal=fake_udal or make_fake_udal(),
         checkpointer=MagicMock(),
@@ -38,9 +40,7 @@ async def test_understand_rejects_missing_canvas(
 ) -> None:
     sample_strategy.__dict__["lean_canvas"] = None
     agent = _make_agent(fake_llm)
-    inp = ProductPlannerInput(
-        run_id="run-001", organization_id="org-001", strategy=sample_strategy
-    )
+    inp = ProductPlannerInput(run_id="run-001", organization_id="org-001", strategy=sample_strategy)
     with pytest.raises((ValueError, Exception)):
         await agent.run(inp)
 
@@ -103,6 +103,7 @@ async def test_cache_hit_skips_llm(
     sample_output: ProductPlannerOutput,
 ) -> None:
     import hashlib
+
     payload = (
         f"{planner_input.strategy.run_id}:{planner_input.strategy.domain}:"
         f"{planner_input.strategy.viability_score}"
@@ -139,6 +140,7 @@ async def test_persistence_failure_degrades_gracefully(
     planner_input: ProductPlannerInput,
 ) -> None:
     from unittest.mock import AsyncMock
+
     udal = make_fake_udal()
     obj = MagicMock()
     obj.upload = AsyncMock(side_effect=RuntimeError("Storage unavailable"))
@@ -181,6 +183,7 @@ async def test_run_executes_all_phases(
             return await super().learn(trace)
 
     from app.agents._providers.jinja_prompt_registry import JinjaPromptRegistry
+
     agent = TrackingAgent(
         udal=make_fake_udal(),
         checkpointer=MagicMock(),

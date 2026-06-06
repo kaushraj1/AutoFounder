@@ -1,4 +1,5 @@
 """G2 product reviews tool wrapper."""
+
 from __future__ import annotations
 
 import httpx

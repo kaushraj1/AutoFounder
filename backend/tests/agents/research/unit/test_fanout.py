@@ -1,4 +1,5 @@
 """T4–T7 — fan-out: parallel happy path, fallbacks, timeouts."""
+
 from __future__ import annotations
 
 import asyncio

@@ -5,6 +5,7 @@ Fan-out strategy:
 - Tavily <-> SerpAPI cross-fallback: if Tavily fails, retry with SerpAPI (and vice versa).
 - Crunchbase / G2 / SimilarWeb failures degrade gracefully → SourceResult(ok=False).
 """
+
 from __future__ import annotations
 
 import asyncio

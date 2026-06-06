@@ -23,31 +23,44 @@ def _canvas(**overrides: object) -> LeanCanvas:
 
 def _persona(name: str) -> BuyerPersona:
     return BuyerPersona(
-        name=name, role="PM", company_size="10-50",
-        pain_points=["scheduling pain"], goals=["save time"],
+        name=name,
+        role="PM",
+        company_size="10-50",
+        pain_points=["scheduling pain"],
+        goals=["save time"],
     )
 
 
 def _prd(*target_users: str) -> PRD:
     return PRD(
-        title="T", overview="O", problem_statement="Remote teams waste hours on scheduling",
-        goals=["g"], target_users=list(target_users),
+        title="T",
+        overview="O",
+        problem_statement="Remote teams waste hours on scheduling",
+        goals=["g"],
+        target_users=list(target_users),
         scope_in=["Smart calendar integration"],
     )
 
 
 def _req(traces_to: str = "Smart calendar integration") -> Requirement:
     return Requirement(
-        id="FR-001", kind="functional", statement="Sync calendars.",
-        priority="must", traces_to=traces_to,
+        id="FR-001",
+        kind="functional",
+        statement="Sync calendars.",
+        priority="must",
+        traces_to=traces_to,
     )
 
 
 def _story(persona: str) -> UserStory:
     return UserStory(
-        id="US-001", persona=persona, role="PM",
-        want="sync calendar", benefit="save time",
-        acceptance_criteria=["It works"], priority="must",
+        id="US-001",
+        persona=persona,
+        role="PM",
+        want="sync calendar",
+        benefit="save time",
+        acceptance_criteria=["It works"],
+        priority="must",
     )
 
 

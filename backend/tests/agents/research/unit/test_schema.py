@@ -1,4 +1,5 @@
 """T1 — schema bounds and validation."""
+
 import pytest
 from pydantic import ValidationError
 
@@ -13,9 +14,13 @@ from app.agents.research.schema import (
 
 def test_research_output_groundedness_bounds_valid() -> None:
     out = ResearchOutput(
-        run_id="r1", organization_id="o1", domain="SaaS",
-        findings=[], sources=[],
-        groundedness_score=0.75, confidence="medium",
+        run_id="r1",
+        organization_id="o1",
+        domain="SaaS",
+        findings=[],
+        sources=[],
+        groundedness_score=0.75,
+        confidence="medium",
     )
     assert out.groundedness_score == 0.75
 
@@ -23,25 +28,35 @@ def test_research_output_groundedness_bounds_valid() -> None:
 def test_research_output_groundedness_below_zero_rejected() -> None:
     with pytest.raises(ValidationError):
         ResearchOutput(
-            run_id="r1", organization_id="o1", domain="SaaS",
-            findings=[], sources=[],
-            groundedness_score=-0.1, confidence="low",
+            run_id="r1",
+            organization_id="o1",
+            domain="SaaS",
+            findings=[],
+            sources=[],
+            groundedness_score=-0.1,
+            confidence="low",
         )
 
 
 def test_research_output_groundedness_above_one_rejected() -> None:
     with pytest.raises(ValidationError):
         ResearchOutput(
-            run_id="r1", organization_id="o1", domain="SaaS",
-            findings=[], sources=[],
-            groundedness_score=1.1, confidence="high",
+            run_id="r1",
+            organization_id="o1",
+            domain="SaaS",
+            findings=[],
+            sources=[],
+            groundedness_score=1.1,
+            confidence="high",
         )
 
 
 def test_research_input_defaults() -> None:
     ri = ResearchInput(
-        run_id="r1", organization_id="o1",
-        idea_normalised="AI tool", domain="SaaS",
+        run_id="r1",
+        organization_id="o1",
+        idea_normalised="AI tool",
+        domain="SaaS",
     )
     assert "tavily" in ri.sources
     assert ri.queries == []

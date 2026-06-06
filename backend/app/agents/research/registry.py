@@ -3,6 +3,7 @@
 Dispatches tool_name -> tools/*.py HTTP functions.
 Swap this for the real AF-047 Tool Registry later — protocol unchanged.
 """
+
 from __future__ import annotations
 
 import logging
@@ -24,17 +25,46 @@ from app.core.config import get_settings
 logger = logging.getLogger("app.agents.research.registry")
 
 _MOCK_CITATIONS: dict[str, list[dict[str, Any]]] = {
-    "tavily": [{"source": "tavily", "url": "https://example.com/mock-tavily",
-                "title": "Mock Tavily Result", "snippet": "Mock market data from Tavily."}],
-    "serpapi": [{"source": "serpapi", "url": "https://example.com/mock-serp",
-                 "title": "Mock SerpAPI Result", "snippet": "Mock market data from SerpAPI."}],
-    "crunchbase": [{"source": "crunchbase", "url": "https://crunchbase.com/mock",
-                    "title": "Mock Company", "snippet": "Funding: $5M | Employees: 11-50"}],
-    "g2": [{"source": "g2", "url": "https://g2.com/mock",
-            "title": "Mock Product", "snippet": "G2 rating: 4.2/5 from 128 reviews"}],
-    "similarweb": [{"source": "similarweb", "url": "https://similarweb.com/mock",
-                    "title": "Traffic data: example.com",
-                    "snippet": "Monthly visits: 50000 | Bounce: 0.45"}],
+    "tavily": [
+        {
+            "source": "tavily",
+            "url": "https://example.com/mock-tavily",
+            "title": "Mock Tavily Result",
+            "snippet": "Mock market data from Tavily.",
+        }
+    ],
+    "serpapi": [
+        {
+            "source": "serpapi",
+            "url": "https://example.com/mock-serp",
+            "title": "Mock SerpAPI Result",
+            "snippet": "Mock market data from SerpAPI.",
+        }
+    ],
+    "crunchbase": [
+        {
+            "source": "crunchbase",
+            "url": "https://crunchbase.com/mock",
+            "title": "Mock Company",
+            "snippet": "Funding: $5M | Employees: 11-50",
+        }
+    ],
+    "g2": [
+        {
+            "source": "g2",
+            "url": "https://g2.com/mock",
+            "title": "Mock Product",
+            "snippet": "G2 rating: 4.2/5 from 128 reviews",
+        }
+    ],
+    "similarweb": [
+        {
+            "source": "similarweb",
+            "url": "https://similarweb.com/mock",
+            "title": "Traffic data: example.com",
+            "snippet": "Monthly visits: 50000 | Bounce: 0.45",
+        }
+    ],
 }
 
 

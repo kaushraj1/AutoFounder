@@ -5,6 +5,7 @@ lives in StrategyOutput gathered by Research Agent (AF-038).
 This registry satisfies BaseAgent DI and raises loudly if _call_tool
 is ever accidentally invoked.
 """
+
 from __future__ import annotations
 
 from typing import Any

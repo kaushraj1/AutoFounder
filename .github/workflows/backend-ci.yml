@@ -20,7 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        # pgvector image (not vanilla postgres:16) — the tenant migration runs
+        # CREATE EXTENSION vector, which the stock image does not ship.
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -47,6 +49,8 @@ jobs:
         run: uv python install 3.12
 
       - name: Install dependencies
+        # langgraph + google-generativeai are core runtime deps, so the default
+        # sync installs everything the orchestrator tests need.
         run: uv sync
 
       - name: Ruff lint

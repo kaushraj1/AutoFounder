@@ -1,4 +1,5 @@
 """Citation groundedness scorer for Research Agent."""
+
 from __future__ import annotations
 
 from app.agents.research.schema import Citation, ResearchFinding
@@ -17,9 +18,7 @@ def score_groundedness(findings: list[ResearchFinding], sources: list[Citation])
     if not findings:
         return 0.0
     valid_indices = set(range(len(sources)))
-    grounded = sum(
-        1 for f in findings if any(c in valid_indices for c in f.citations)
-    )
+    grounded = sum(1 for f in findings if any(c in valid_indices for c in f.citations))
     return round(grounded / len(findings), 4)
 
 

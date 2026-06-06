@@ -1,4 +1,5 @@
 """T8, T10–T13 — ResearchAgent integration: happy path, cache, retry, breaker."""
+
 from __future__ import annotations
 
 import pytest
@@ -32,6 +33,7 @@ def _make_agent(
 # T8 — synthesis produces cited findings
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_happy_path_produces_cited_findings(
     fake_llm: FakeResearchLLMRouter,
@@ -51,6 +53,7 @@ async def test_happy_path_produces_cited_findings(
 # T10 — low groundedness → retry synthesis
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_low_groundedness_triggers_retry(
     fake_tools: FakeToolRegistry,
@@ -65,13 +68,17 @@ async def test_low_groundedness_triggers_retry(
             # First call: no citations → low groundedness → triggers retry
             if call_count == 1:
                 import json
+
                 return json.dumps([{"claim": "Uncited claim", "citations": []}])
             # Second call: proper citations
             import json
-            return json.dumps([
-                {"claim": "Cited claim", "citations": [0]},
-                {"claim": "Another cited", "citations": [1]},
-            ])
+
+            return json.dumps(
+                [
+                    {"claim": "Cited claim", "citations": [0]},
+                    {"claim": "Another cited", "citations": [1]},
+                ]
+            )
 
     agent = _make_agent(LowGroundLLM(), fake_tools)
     output = await agent.run(research_input)
@@ -84,6 +91,7 @@ async def test_low_groundedness_triggers_retry(
 # T11 — Redis cache hit short-circuits tool calls
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_cache_hit_skips_tool_calls(
     fake_llm: FakeResearchLLMRouter,
@@ -91,17 +99,22 @@ async def test_cache_hit_skips_tool_calls(
 ) -> None:
     # Pre-build cache key the same way agent would
     import hashlib
+
     srcs = ",".join(sorted(research_input.sources))
     payload = f"{research_input.domain}:{research_input.idea_normalised}:{srcs}"
     digest = hashlib.sha256(payload.encode()).hexdigest()[:16]
     cache_key = f"research:{digest}"
 
     from app.agents.research.schema import ResearchOutput
+
     cached_output = ResearchOutput(
-        run_id="run-001", organization_id="org-001", domain="B2B SaaS",
+        run_id="run-001",
+        organization_id="org-001",
+        domain="B2B SaaS",
         findings=[{"claim": "Cached finding", "citations": [0]}],
         sources=[{"source": "tavily", "snippet": "cached", "url": None, "title": None}],
-        groundedness_score=0.8, confidence="high",
+        groundedness_score=0.8,
+        confidence="high",
     ).model_dump()
 
     fresh_tools = FakeToolRegistry()
@@ -115,6 +128,7 @@ async def test_cache_hit_skips_tool_calls(
 # ---------------------------------------------------------------------------
 # T12 — circuit breaker opens after repeated tool failure
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_breaker_opens_after_repeated_tool_failure(
@@ -139,6 +153,7 @@ async def test_breaker_opens_after_repeated_tool_failure(
             pass
 
     from app.agents.base import CircuitOpenError as COE
+
     with pytest.raises(COE):
         await agent._call_tool("tavily", {"query": "after open"})
 
@@ -146,6 +161,7 @@ async def test_breaker_opens_after_repeated_tool_failure(
 # ---------------------------------------------------------------------------
 # T13 — run() calls phases in order
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_run_calls_phases_in_order(
@@ -158,6 +174,7 @@ async def test_run_calls_phases_in_order(
         async def complete(self, *, task_class: str, prompt: str, **kw):
             phases.append(f"llm:{task_class}")
             import json
+
             return json.dumps([{"claim": "traced", "citations": [0]}])
 
     agent = _make_agent(TracingLLM(), fake_tools)

@@ -3,6 +3,7 @@
 Tool fan-out specialist: Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb,
 multi-source synthesis, citation groundedness check.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -116,8 +117,8 @@ class ResearchAgent(BaseAgent[ResearchInput, ResearchOutput]):
             domain=plan["domain"],
             findings=findings,
             sources=all_citations,
-            groundedness_score=0.0,   # filled by verify()
-            confidence="low",          # filled by verify()
+            groundedness_score=0.0,  # filled by verify()
+            confidence="low",  # filled by verify()
             partial_sources=partial_sources,
         )
 
@@ -137,7 +138,9 @@ class ResearchAgent(BaseAgent[ResearchInput, ResearchOutput]):
         if gs < GROUNDEDNESS_THRESHOLD and output.findings:
             logger.info(
                 "Groundedness %.2f < %.2f — retrying synthesis for run %s",
-                gs, GROUNDEDNESS_THRESHOLD, output.run_id,
+                gs,
+                GROUNDEDNESS_THRESHOLD,
+                output.run_id,
             )
             retry_findings = await self._synthesise(
                 idea_normalised=output.domain,
@@ -157,7 +160,8 @@ class ResearchAgent(BaseAgent[ResearchInput, ResearchOutput]):
             logger.warning(
                 "Research run %s confidence=low (groundedness=%.2f). "
                 "Findings flagged for human review.",
-                output.run_id, gs,
+                output.run_id,
+                gs,
             )
 
         return {"passed": True, "groundedness_score": gs, "confidence": output.confidence}
@@ -192,9 +196,7 @@ class ResearchAgent(BaseAgent[ResearchInput, ResearchOutput]):
         digest = hashlib.sha256(payload.encode()).hexdigest()[:16]
         return f"{_CACHE_PREFIX}:{digest}"
 
-    def _collect_citations(
-        self, results: list[SourceResult]
-    ) -> tuple[list[Citation], list[str]]:
+    def _collect_citations(self, results: list[SourceResult]) -> tuple[list[Citation], list[str]]:
         seen_urls: set[str] = set()
         citations: list[Citation] = []
         partial: list[str] = []
@@ -227,9 +229,7 @@ class ResearchAgent(BaseAgent[ResearchInput, ResearchOutput]):
             domain=domain,
             sources=[s.model_dump() for s in sources],
         )
-        raw = await self._call_llm(
-            task_class="research_synthesis", prompt=rendered, json_mode=True
-        )
+        raw = await self._call_llm(task_class="research_synthesis", prompt=rendered, json_mode=True)
 
         cleaned = raw.strip()
         if cleaned.startswith("```"):

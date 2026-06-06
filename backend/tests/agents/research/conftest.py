@@ -1,4 +1,5 @@
 """Shared fixtures for Research Agent tests."""
+
 from __future__ import annotations
 
 import json
@@ -118,10 +119,15 @@ def research_input() -> ResearchInput:
 def sample_citations() -> list[Citation]:
     return [
         Citation(source="tavily", url="https://a.com", title="Market Report", snippet="15% CAGR"),
-        Citation(source="serpapi", url="https://b.com",
-                 title="Competitor Analysis", snippet="Top 5 competitors"),
-        Citation(source="crunchbase", url="https://c.com",
-                 title="Company X", snippet="$20M raised"),
+        Citation(
+            source="serpapi",
+            url="https://b.com",
+            title="Competitor Analysis",
+            snippet="Top 5 competitors",
+        ),
+        Citation(
+            source="crunchbase", url="https://c.com", title="Company X", snippet="$20M raised"
+        ),
     ]
 
 
