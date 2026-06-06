@@ -1,683 +1,1880 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>dev → vishal-test · The Phase-1 Reconciliation</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,400..700&family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-<style>
-  :root{
-    --bg:#15110d;
-    --bg2:#1c1610;
-    --panel:#221a12;
-    --panel2:#2a2017;
-    --ink:#f4ece0;
-    --ink-soft:#d9cdba;
-    --muted:#a8987f;
-    --faint:#6f6250;
-    --line:#392e22;
-    --line-soft:#2c2319;
-    /* dev / old / removed */
-    --amber:#e79a52;
-    --amber-deep:#c2662f;
-    --rm:#e0705f;
-    --rm-bg:rgba(224,112,95,.10);
-    /* vishal-test / new / added */
-    --teal:#52c79c;
-    --teal-deep:#2e9f78;
-    --add:#5cc98a;
-    --add-bg:rgba(92,201,138,.10);
-    --gold:#ecc36a;
-    --shadow:0 30px 80px -30px rgba(0,0,0,.85);
-    --serif:"Fraunces",Georgia,serif;
-    --sans:"Archivo",system-ui,sans-serif;
-    --mono:"JetBrains Mono",ui-monospace,monospace;
-  }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dev → vishal-test · The Phase-1 Reconciliation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,400..700&family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #15110d;
+        --bg2: #1c1610;
+        --panel: #221a12;
+        --panel2: #2a2017;
+        --ink: #f4ece0;
+        --ink-soft: #d9cdba;
+        --muted: #a8987f;
+        --faint: #6f6250;
+        --line: #392e22;
+        --line-soft: #2c2319;
+        /* dev / old / removed */
+        --amber: #e79a52;
+        --amber-deep: #c2662f;
+        --rm: #e0705f;
+        --rm-bg: rgba(224, 112, 95, 0.1);
+        /* vishal-test / new / added */
+        --teal: #52c79c;
+        --teal-deep: #2e9f78;
+        --add: #5cc98a;
+        --add-bg: rgba(92, 201, 138, 0.1);
+        --gold: #ecc36a;
+        --shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.85);
+        --serif: "Fraunces", Georgia, serif;
+        --sans: "Archivo", system-ui, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, monospace;
+      }
 
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
-  body{
-    background:var(--bg);
-    color:var(--ink);
-    font-family:var(--sans);
-    overflow:hidden;
-    -webkit-font-smoothing:antialiased;
-  }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--sans);
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
 
-  /* ---------- atmosphere ---------- */
-  .atmos{position:fixed;inset:0;z-index:0;pointer-events:none}
-  .atmos .grid{
-    position:absolute;inset:0;
-    background-image:
-      linear-gradient(var(--line-soft) 1px,transparent 1px),
-      linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
-    background-size:64px 64px;
-    mask-image:radial-gradient(ellipse 80% 70% at 50% 42%,#000 35%,transparent 78%);
-    opacity:.5;
-  }
-  .atmos .glow1{
-    position:absolute;top:-18%;left:-10%;width:60vw;height:60vw;
-    background:radial-gradient(circle,rgba(231,154,82,.16),transparent 62%);
-    filter:blur(20px);
-  }
-  .atmos .glow2{
-    position:absolute;bottom:-22%;right:-12%;width:62vw;height:62vw;
-    background:radial-gradient(circle,rgba(82,199,156,.15),transparent 62%);
-    filter:blur(20px);
-  }
-  .atmos .grain{
-    position:absolute;inset:0;opacity:.045;mix-blend-mode:overlay;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
+      /* ---------- atmosphere ---------- */
+      .atmos {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+      }
+      .atmos .grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(var(--line-soft) 1px, transparent 1px),
+          linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+        background-size: 64px 64px;
+        mask-image: radial-gradient(ellipse 80% 70% at 50% 42%, #000 35%, transparent 78%);
+        opacity: 0.5;
+      }
+      .atmos .glow1 {
+        position: absolute;
+        top: -18%;
+        left: -10%;
+        width: 60vw;
+        height: 60vw;
+        background: radial-gradient(circle, rgba(231, 154, 82, 0.16), transparent 62%);
+        filter: blur(20px);
+      }
+      .atmos .glow2 {
+        position: absolute;
+        bottom: -22%;
+        right: -12%;
+        width: 62vw;
+        height: 62vw;
+        background: radial-gradient(circle, rgba(82, 199, 156, 0.15), transparent 62%);
+        filter: blur(20px);
+      }
+      .atmos .grain {
+        position: absolute;
+        inset: 0;
+        opacity: 0.045;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
 
-  /* ---------- deck / slides ---------- */
-  .deck{position:relative;z-index:1;height:100vh;width:100vw}
-  .slide{
-    position:absolute;inset:0;
-    display:flex;flex-direction:column;justify-content:center;
-    padding:clamp(28px,5.5vw,96px);
-    opacity:0;visibility:hidden;
-    transition:opacity .5s ease;
-    overflow:hidden;
-  }
-  .slide.active{opacity:1;visibility:visible}
-  .slide-inner{width:100%;max-width:1180px;margin:0 auto}
+      /* ---------- deck / slides ---------- */
+      .deck {
+        position: relative;
+        z-index: 1;
+        height: 100vh;
+        width: 100vw;
+      }
+      .slide {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: clamp(28px, 5.5vw, 96px);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.5s ease;
+        overflow: hidden;
+      }
+      .slide.active {
+        opacity: 1;
+        visibility: visible;
+      }
+      .slide-inner {
+        width: 100%;
+        max-width: 1180px;
+        margin: 0 auto;
+      }
 
-  /* reveal */
-  [data-reveal]{opacity:0;transform:translateY(22px);filter:blur(2px)}
-  .slide.active [data-reveal].in{
-    opacity:1;transform:none;filter:none;
-    transition:opacity .62s cubic-bezier(.2,.7,.2,1),transform .62s cubic-bezier(.2,.7,.2,1),filter .62s ease;
-  }
+      /* reveal */
+      [data-reveal] {
+        opacity: 0;
+        transform: translateY(22px);
+        filter: blur(2px);
+      }
+      .slide.active [data-reveal].in {
+        opacity: 1;
+        transform: none;
+        filter: none;
+        transition:
+          opacity 0.62s cubic-bezier(0.2, 0.7, 0.2, 1),
+          transform 0.62s cubic-bezier(0.2, 0.7, 0.2, 1),
+          filter 0.62s ease;
+      }
 
-  /* ---------- typographic primitives ---------- */
-  .kicker{
-    font-family:var(--mono);font-size:.74rem;letter-spacing:.34em;text-transform:uppercase;
-    color:var(--amber);display:flex;align-items:center;gap:14px;margin-bottom:26px;
-  }
-  .kicker::before{content:"";width:34px;height:1px;background:linear-gradient(90deg,var(--amber),transparent)}
-  .kicker.teal{color:var(--teal)}
-  .kicker.teal::before{background:linear-gradient(90deg,var(--teal),transparent)}
+      /* ---------- typographic primitives ---------- */
+      .kicker {
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        letter-spacing: 0.34em;
+        text-transform: uppercase;
+        color: var(--amber);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 26px;
+      }
+      .kicker::before {
+        content: "";
+        width: 34px;
+        height: 1px;
+        background: linear-gradient(90deg, var(--amber), transparent);
+      }
+      .kicker.teal {
+        color: var(--teal);
+      }
+      .kicker.teal::before {
+        background: linear-gradient(90deg, var(--teal), transparent);
+      }
 
-  h1{font-family:var(--serif);font-weight:600;font-size:clamp(2.6rem,7.6vw,6.6rem);line-height:.92;letter-spacing:-.02em}
-  h2{font-family:var(--serif);font-weight:600;font-size:clamp(2rem,4.4vw,3.5rem);line-height:1.02;letter-spacing:-.018em;margin-bottom:8px}
-  .lede{font-size:clamp(1rem,1.5vw,1.32rem);color:var(--ink-soft);line-height:1.55;max-width:64ch;font-weight:400}
-  .serif-em{font-family:var(--serif);font-style:italic;font-weight:400}
-  .amber{color:var(--amber)}.teal{color:var(--teal)}.gold{color:var(--gold)}
-  .rmc{color:var(--rm)}.addc{color:var(--add)}
-  .mono{font-family:var(--mono)}
-  .sub{color:var(--muted);font-size:.96rem;line-height:1.5}
+      h1 {
+        font-family: var(--serif);
+        font-weight: 600;
+        font-size: clamp(2.6rem, 7.6vw, 6.6rem);
+        line-height: 0.92;
+        letter-spacing: -0.02em;
+      }
+      h2 {
+        font-family: var(--serif);
+        font-weight: 600;
+        font-size: clamp(2rem, 4.4vw, 3.5rem);
+        line-height: 1.02;
+        letter-spacing: -0.018em;
+        margin-bottom: 8px;
+      }
+      .lede {
+        font-size: clamp(1rem, 1.5vw, 1.32rem);
+        color: var(--ink-soft);
+        line-height: 1.55;
+        max-width: 64ch;
+        font-weight: 400;
+      }
+      .serif-em {
+        font-family: var(--serif);
+        font-style: italic;
+        font-weight: 400;
+      }
+      .amber {
+        color: var(--amber);
+      }
+      .teal {
+        color: var(--teal);
+      }
+      .gold {
+        color: var(--gold);
+      }
+      .rmc {
+        color: var(--rm);
+      }
+      .addc {
+        color: var(--add);
+      }
+      .mono {
+        font-family: var(--mono);
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 0.96rem;
+        line-height: 1.5;
+      }
 
-  /* ---------- title slide ---------- */
-  .title-wrap{display:flex;flex-direction:column;gap:34px}
-  .branch-arrow{font-family:var(--serif);font-weight:300;color:var(--faint);padding:0 .2em}
-  .title-meta{display:flex;flex-wrap:wrap;gap:14px;margin-top:6px}
-  .chip{
-    font-family:var(--mono);font-size:.76rem;letter-spacing:.04em;
-    padding:8px 14px;border:1px solid var(--line);border-radius:999px;color:var(--ink-soft);
-    background:rgba(255,255,255,.012);display:inline-flex;align-items:center;gap:8px;
-  }
-  .dot{width:7px;height:7px;border-radius:50%}
-  .dot.a{background:var(--amber)}.dot.t{background:var(--teal)}
+      /* ---------- title slide ---------- */
+      .title-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 34px;
+      }
+      .branch-arrow {
+        font-family: var(--serif);
+        font-weight: 300;
+        color: var(--faint);
+        padding: 0 0.2em;
+      }
+      .title-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 6px;
+      }
+      .chip {
+        font-family: var(--mono);
+        font-size: 0.76rem;
+        letter-spacing: 0.04em;
+        padding: 8px 14px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink-soft);
+        background: rgba(255, 255, 255, 0.012);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+      }
+      .dot.a {
+        background: var(--amber);
+      }
+      .dot.t {
+        background: var(--teal);
+      }
 
-  .graph{margin-top:8px}
+      .graph {
+        margin-top: 8px;
+      }
 
-  /* ---------- two-branch cards ---------- */
-  .cols2{display:grid;grid-template-columns:1fr 1fr;gap:26px}
-  @media(max-width:820px){.cols2{grid-template-columns:1fr}}
-  .bcard{
-    border:1px solid var(--line);border-radius:18px;padding:30px 28px;position:relative;
-    background:linear-gradient(160deg,rgba(255,255,255,.022),rgba(255,255,255,0));
-    overflow:hidden;
-  }
-  .bcard::before{content:"";position:absolute;top:0;left:0;right:0;height:3px}
-  .bcard.old::before{background:linear-gradient(90deg,var(--amber),transparent)}
-  .bcard.new::before{background:linear-gradient(90deg,var(--teal),transparent)}
-  .bcard .tag{font-family:var(--mono);font-size:.78rem;letter-spacing:.06em;display:flex;align-items:center;gap:9px;margin-bottom:14px}
-  .bcard.old .tag{color:var(--amber)}.bcard.new .tag{color:var(--teal)}
-  .bcard h3{font-family:var(--serif);font-size:1.7rem;font-weight:600;margin-bottom:6px}
-  .bcard .one{color:var(--ink-soft);font-size:1rem;margin-bottom:18px;line-height:1.45}
-  .blist{list-style:none;display:flex;flex-direction:column;gap:11px}
-  .blist li{display:flex;gap:11px;font-size:.93rem;color:var(--muted);line-height:1.45}
-  .blist li b{color:var(--ink-soft);font-weight:600}
-  .blist .mk{font-family:var(--mono);flex:none;width:14px}
-  .old .mk{color:var(--amber)}.new .mk{color:var(--teal)}
+      /* ---------- two-branch cards ---------- */
+      .cols2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 26px;
+      }
+      @media (max-width: 820px) {
+        .cols2 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .bcard {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 30px 28px;
+        position: relative;
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0));
+        overflow: hidden;
+      }
+      .bcard::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+      }
+      .bcard.old::before {
+        background: linear-gradient(90deg, var(--amber), transparent);
+      }
+      .bcard.new::before {
+        background: linear-gradient(90deg, var(--teal), transparent);
+      }
+      .bcard .tag {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        letter-spacing: 0.06em;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-bottom: 14px;
+      }
+      .bcard.old .tag {
+        color: var(--amber);
+      }
+      .bcard.new .tag {
+        color: var(--teal);
+      }
+      .bcard h3 {
+        font-family: var(--serif);
+        font-size: 1.7rem;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .bcard .one {
+        color: var(--ink-soft);
+        font-size: 1rem;
+        margin-bottom: 18px;
+        line-height: 1.45;
+      }
+      .blist {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 11px;
+      }
+      .blist li {
+        display: flex;
+        gap: 11px;
+        font-size: 0.93rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      .blist li b {
+        color: var(--ink-soft);
+        font-weight: 600;
+      }
+      .blist .mk {
+        font-family: var(--mono);
+        flex: none;
+        width: 14px;
+      }
+      .old .mk {
+        color: var(--amber);
+      }
+      .new .mk {
+        color: var(--teal);
+      }
 
-  /* ---------- stats ---------- */
-  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:30px}
-  @media(max-width:820px){.stat-row{grid-template-columns:1fr}}
-  .stat{border-top:1px solid var(--line);padding-top:18px}
-  .stat .num{font-family:var(--serif);font-size:clamp(2.6rem,5.2vw,4.2rem);font-weight:600;line-height:1;letter-spacing:-.02em}
-  .stat .lab{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:12px}
-  .stat .sub{margin-top:6px;font-size:.84rem;color:var(--faint)}
-  .splitbar{display:flex;height:14px;border-radius:8px;overflow:hidden;margin-top:30px;border:1px solid var(--line)}
-  .splitbar i{display:block;height:100%}
-  .splitbar .real{background:linear-gradient(90deg,var(--teal-deep),var(--teal))}
-  .splitbar .vend{background:linear-gradient(90deg,#4a3a28,#6b5538)}
-  .splitlegend{display:flex;gap:24px;margin-top:14px;flex-wrap:wrap}
-  .splitlegend span{font-family:var(--mono);font-size:.78rem;color:var(--muted);display:flex;align-items:center;gap:8px}
-  .sq{width:11px;height:11px;border-radius:3px}
+      /* ---------- stats ---------- */
+      .stat-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        margin-top: 30px;
+      }
+      @media (max-width: 820px) {
+        .stat-row {
+          grid-template-columns: 1fr;
+        }
+      }
+      .stat {
+        border-top: 1px solid var(--line);
+        padding-top: 18px;
+      }
+      .stat .num {
+        font-family: var(--serif);
+        font-size: clamp(2.6rem, 5.2vw, 4.2rem);
+        font-weight: 600;
+        line-height: 1;
+        letter-spacing: -0.02em;
+      }
+      .stat .lab {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-top: 12px;
+      }
+      .stat .sub {
+        margin-top: 6px;
+        font-size: 0.84rem;
+        color: var(--faint);
+      }
+      .splitbar {
+        display: flex;
+        height: 14px;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-top: 30px;
+        border: 1px solid var(--line);
+      }
+      .splitbar i {
+        display: block;
+        height: 100%;
+      }
+      .splitbar .real {
+        background: linear-gradient(90deg, var(--teal-deep), var(--teal));
+      }
+      .splitbar .vend {
+        background: linear-gradient(90deg, #4a3a28, #6b5538);
+      }
+      .splitlegend {
+        display: flex;
+        gap: 24px;
+        margin-top: 14px;
+        flex-wrap: wrap;
+      }
+      .splitlegend span {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sq {
+        width: 11px;
+        height: 11px;
+        border-radius: 3px;
+      }
 
-  /* ---------- thesis numbered ---------- */
-  .reasons{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:8px}
-  @media(max-width:820px){.reasons{grid-template-columns:1fr}}
-  .reason{border:1px solid var(--line);border-radius:16px;padding:26px 24px;background:rgba(255,255,255,.014);position:relative}
-  .reason .rn{font-family:var(--serif);font-size:1.5rem;color:var(--amber);font-weight:600}
-  .reason h4{font-size:1.06rem;font-weight:700;margin:14px 0 8px;color:var(--ink)}
-  .reason p{font-size:.92rem;color:var(--muted);line-height:1.5}
-  .pull{font-family:var(--serif);font-style:italic;font-size:clamp(1.2rem,2.4vw,1.8rem);color:var(--gold);margin-top:30px;line-height:1.3;max-width:60ch}
+      /* ---------- thesis numbered ---------- */
+      .reasons {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 22px;
+        margin-top: 8px;
+      }
+      @media (max-width: 820px) {
+        .reasons {
+          grid-template-columns: 1fr;
+        }
+      }
+      .reason {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 26px 24px;
+        background: rgba(255, 255, 255, 0.014);
+        position: relative;
+      }
+      .reason .rn {
+        font-family: var(--serif);
+        font-size: 1.5rem;
+        color: var(--amber);
+        font-weight: 600;
+      }
+      .reason h4 {
+        font-size: 1.06rem;
+        font-weight: 700;
+        margin: 14px 0 8px;
+        color: var(--ink);
+      }
+      .reason p {
+        font-size: 0.92rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .pull {
+        font-family: var(--serif);
+        font-style: italic;
+        font-size: clamp(1.2rem, 2.4vw, 1.8rem);
+        color: var(--gold);
+        margin-top: 30px;
+        line-height: 1.3;
+        max-width: 60ch;
+      }
 
-  /* ---------- before/after trees ---------- */
-  .trees{display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:center;margin-top:6px}
-  @media(max-width:820px){.trees{grid-template-columns:1fr;gap:14px}}
-  .tree{border:1px solid var(--line);border-radius:16px;padding:22px;background:var(--bg2);font-family:var(--mono);font-size:.82rem;line-height:1.7}
-  .tree h5{font-family:var(--sans);font-size:.74rem;letter-spacing:.16em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-  .tree.old h5{color:var(--amber)}.tree.new h5{color:var(--teal)}
-  .tree .d{color:var(--faint)}
-  .tree .rmln{color:var(--rm)}
-  .tree .adln{color:var(--add)}
-  .tree .keep{color:var(--ink-soft)}
-  .morph{font-family:var(--serif);font-size:2.4rem;color:var(--gold);text-align:center}
-  @media(max-width:820px){.morph{transform:rotate(90deg)}}
+      /* ---------- before/after trees ---------- */
+      .trees {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 20px;
+        align-items: center;
+        margin-top: 6px;
+      }
+      @media (max-width: 820px) {
+        .trees {
+          grid-template-columns: 1fr;
+          gap: 14px;
+        }
+      }
+      .tree {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 22px;
+        background: var(--bg2);
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        line-height: 1.7;
+      }
+      .tree h5 {
+        font-family: var(--sans);
+        font-size: 0.74rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .tree.old h5 {
+        color: var(--amber);
+      }
+      .tree.new h5 {
+        color: var(--teal);
+      }
+      .tree .d {
+        color: var(--faint);
+      }
+      .tree .rmln {
+        color: var(--rm);
+      }
+      .tree .adln {
+        color: var(--add);
+      }
+      .tree .keep {
+        color: var(--ink-soft);
+      }
+      .morph {
+        font-family: var(--serif);
+        font-size: 2.4rem;
+        color: var(--gold);
+        text-align: center;
+      }
+      @media (max-width: 820px) {
+        .morph {
+          transform: rotate(90deg);
+        }
+      }
 
-  /* ---------- diff rows ---------- */
-  .diffs{display:flex;flex-direction:column;gap:10px;margin-top:6px}
-  .drow{
-    display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;
-    border:1px solid var(--line);border-radius:12px;padding:14px 18px;background:rgba(255,255,255,.012);
-  }
-  @media(max-width:820px){.drow{grid-template-columns:1fr;gap:6px;text-align:center}}
-  .drow .from{font-family:var(--mono);font-size:.9rem;color:var(--rm);background:var(--rm-bg);padding:7px 12px;border-radius:8px;border:1px solid rgba(224,112,95,.22)}
-  .drow .to{font-family:var(--mono);font-size:.9rem;color:var(--add);background:var(--add-bg);padding:7px 12px;border-radius:8px;border:1px solid rgba(92,201,138,.22)}
-  .drow .ar{color:var(--faint);font-size:1.1rem;font-family:var(--serif)}
+      /* ---------- diff rows ---------- */
+      .diffs {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 6px;
+      }
+      .drow {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 16px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px 18px;
+        background: rgba(255, 255, 255, 0.012);
+      }
+      @media (max-width: 820px) {
+        .drow {
+          grid-template-columns: 1fr;
+          gap: 6px;
+          text-align: center;
+        }
+      }
+      .drow .from {
+        font-family: var(--mono);
+        font-size: 0.9rem;
+        color: var(--rm);
+        background: var(--rm-bg);
+        padding: 7px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(224, 112, 95, 0.22);
+      }
+      .drow .to {
+        font-family: var(--mono);
+        font-size: 0.9rem;
+        color: var(--add);
+        background: var(--add-bg);
+        padding: 7px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(92, 201, 138, 0.22);
+      }
+      .drow .ar {
+        color: var(--faint);
+        font-size: 1.1rem;
+        font-family: var(--serif);
+      }
 
-  /* ---------- three-column lists (kept/pending) ---------- */
-  .klist{display:flex;flex-direction:column;gap:14px;margin-top:6px}
-  .kitem{display:flex;gap:16px;border-left:2px solid var(--teal-deep);padding:4px 0 4px 18px}
-  .kitem.warn{border-left-color:var(--amber-deep)}
-  .kitem .kt{font-weight:700;color:var(--ink);font-size:1rem;margin-bottom:3px}
-  .kitem .kd{color:var(--muted);font-size:.9rem;line-height:1.45}
-  .kitem .ico{font-family:var(--mono);color:var(--teal);flex:none;font-size:1.05rem;line-height:1.3}
-  .kitem.warn .ico{color:var(--amber)}
+      /* ---------- three-column lists (kept/pending) ---------- */
+      .klist {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-top: 6px;
+      }
+      .kitem {
+        display: flex;
+        gap: 16px;
+        border-left: 2px solid var(--teal-deep);
+        padding: 4px 0 4px 18px;
+      }
+      .kitem.warn {
+        border-left-color: var(--amber-deep);
+      }
+      .kitem .kt {
+        font-weight: 700;
+        color: var(--ink);
+        font-size: 1rem;
+        margin-bottom: 3px;
+      }
+      .kitem .kd {
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+      .kitem .ico {
+        font-family: var(--mono);
+        color: var(--teal);
+        flex: none;
+        font-size: 1.05rem;
+        line-height: 1.3;
+      }
+      .kitem.warn .ico {
+        color: var(--amber);
+      }
 
-  /* ---------- rationale table ---------- */
-  .rtable{width:100%;border-collapse:collapse;margin-top:8px;font-size:.93rem}
-  .rtable th,.rtable td{text-align:left;padding:15px 16px;border-bottom:1px solid var(--line-soft);vertical-align:top}
-  .rtable th{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:500}
-  .rtable td.dec{font-weight:700;color:var(--ink);width:34%}
-  .rtable td.dec .mono{color:var(--teal);font-weight:500;font-size:.86rem;display:block;margin-top:3px}
-  .rtable td.why{color:var(--muted);line-height:1.5}
-  .rtable tr:hover td{background:rgba(255,255,255,.015)}
+      /* ---------- rationale table ---------- */
+      .rtable {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+        font-size: 0.93rem;
+      }
+      .rtable th,
+      .rtable td {
+        text-align: left;
+        padding: 15px 16px;
+        border-bottom: 1px solid var(--line-soft);
+        vertical-align: top;
+      }
+      .rtable th {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--faint);
+        font-weight: 500;
+      }
+      .rtable td.dec {
+        font-weight: 700;
+        color: var(--ink);
+        width: 34%;
+      }
+      .rtable td.dec .mono {
+        color: var(--teal);
+        font-weight: 500;
+        font-size: 0.86rem;
+        display: block;
+        margin-top: 3px;
+      }
+      .rtable td.why {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .rtable tr:hover td {
+        background: rgba(255, 255, 255, 0.015);
+      }
 
-  /* ---------- verdict ---------- */
-  .verdict .big{font-family:var(--serif);font-size:clamp(1.6rem,3.4vw,2.8rem);font-weight:500;line-height:1.18;letter-spacing:-.01em;max-width:24ch}
-  .verdict .big .gold{font-style:italic}
-  .vfoot{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
-  @media(max-width:820px){.vfoot{grid-template-columns:1fr}}
-  .vfoot .vc{border-top:1px solid var(--line);padding-top:16px}
-  .vfoot .vc b{display:block;font-family:var(--serif);font-size:1.3rem;color:var(--gold);margin-bottom:6px}
-  .vfoot .vc span{font-size:.88rem;color:var(--muted);line-height:1.45}
+      /* ---------- verdict ---------- */
+      .verdict .big {
+        font-family: var(--serif);
+        font-size: clamp(1.6rem, 3.4vw, 2.8rem);
+        font-weight: 500;
+        line-height: 1.18;
+        letter-spacing: -0.01em;
+        max-width: 24ch;
+      }
+      .verdict .big .gold {
+        font-style: italic;
+      }
+      .vfoot {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-top: 40px;
+      }
+      @media (max-width: 820px) {
+        .vfoot {
+          grid-template-columns: 1fr;
+        }
+      }
+      .vfoot .vc {
+        border-top: 1px solid var(--line);
+        padding-top: 16px;
+      }
+      .vfoot .vc b {
+        display: block;
+        font-family: var(--serif);
+        font-size: 1.3rem;
+        color: var(--gold);
+        margin-bottom: 6px;
+      }
+      .vfoot .vc span {
+        font-size: 0.88rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
 
-  /* ---------- chrome: progress, dots, counter, hint ---------- */
-  .progress{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--amber),var(--gold),var(--teal));z-index:20;transition:width .5s ease}
-  .counter{position:fixed;bottom:26px;left:clamp(20px,4vw,52px);z-index:20;font-family:var(--mono);font-size:.78rem;color:var(--muted);letter-spacing:.1em}
-  .counter b{color:var(--ink)}
-  .nav{position:fixed;bottom:22px;right:clamp(20px,4vw,52px);z-index:20;display:flex;gap:10px}
-  .nav button{
-    width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.02);
-    color:var(--ink-soft);font-size:1.1rem;cursor:pointer;transition:.2s;display:grid;place-items:center;
-  }
-  .nav button:hover{border-color:var(--teal);color:var(--teal);background:rgba(82,199,156,.06)}
-  .nav button:disabled{opacity:.3;cursor:not-allowed}
-  .dots{position:fixed;top:50%;right:18px;transform:translateY(-50%);z-index:20;display:flex;flex-direction:column;gap:11px}
-  @media(max-width:820px){.dots{display:none}}
-  .dots button{width:9px;height:9px;border-radius:50%;border:1px solid var(--faint);background:transparent;cursor:pointer;padding:0;transition:.25s}
-  .dots button.on{background:var(--gold);border-color:var(--gold);transform:scale(1.25)}
-  .hint{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:20;font-family:var(--mono);font-size:.72rem;color:var(--faint);letter-spacing:.08em;transition:opacity .6s}
-  .repo{position:fixed;top:22px;right:clamp(20px,4vw,52px);z-index:20;font-family:var(--mono);font-size:.72rem;color:var(--faint);letter-spacing:.06em}
-  @media(max-width:680px){.repo{display:none}}
-</style>
-</head>
-<body>
-<div class="atmos">
-  <div class="glow1"></div><div class="glow2"></div><div class="grid"></div><div class="grain"></div>
-</div>
+      /* ---------- team roster ---------- */
+      .roster {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2px 30px;
+      }
+      @media (max-width: 820px) {
+        .roster {
+          grid-template-columns: 1fr;
+        }
+      }
+      .owner {
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        border-bottom: 1px solid var(--line-soft);
+        padding: 8px 0;
+      }
+      .owner .pn {
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        color: var(--teal);
+        flex: none;
+        width: 34px;
+        letter-spacing: 0.04em;
+      }
+      .owner .who {
+        font-weight: 700;
+        color: var(--ink);
+        font-size: 0.92rem;
+        flex: none;
+        min-width: 122px;
+      }
+      .owner .area {
+        color: var(--muted);
+        font-size: 0.83rem;
+        line-height: 1.3;
+      }
+      .ruleband {
+        margin-top: 20px;
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--teal);
+        border-radius: 12px;
+        padding: 16px 20px;
+        background: rgba(82, 199, 156, 0.05);
+      }
+      .ruleband .rt {
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 5px;
+        font-size: 0.96rem;
+      }
+      .ruleband p {
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.5;
+      }
+      .phasepills {
+        display: flex;
+        gap: 10px;
+        margin-top: 13px;
+        flex-wrap: wrap;
+      }
+      .phasepills span {
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+      }
+      .phasepills .done {
+        color: var(--add);
+        border-color: rgba(92, 201, 138, 0.3);
+        background: var(--add-bg);
+      }
+      .phasepills .todo {
+        color: var(--amber);
+        border-color: rgba(231, 154, 82, 0.3);
+        background: rgba(231, 154, 82, 0.06);
+      }
 
-<div class="progress" id="progress"></div>
-<div class="repo">euron-sudh/PROJECT-1-AutoFounder-AI</div>
-
-<div class="deck" id="deck">
-
-  <!-- 1 · TITLE -->
-  <section class="slide active">
-    <div class="slide-inner title-wrap">
-      <div class="kicker" data-reveal>Branch comparison · architecture changelog</div>
-      <h1 data-reveal><span class="amber">dev</span><span class="branch-arrow">→</span><span class="teal">vishal-test</span></h1>
-      <p class="lede" data-reveal>The Phase-1 <span class="serif-em gold">reconciliation</span> — bringing the repository's structure, docs, and tooling in line with decisions the team had <span class="serif-em">already made</span>, and pouring the first runnable backend foundation.</p>
-      <svg class="graph" data-reveal width="560" height="86" viewBox="0 0 560 86" fill="none">
-        <line x1="20" y1="43" x2="150" y2="43" stroke="#6f6250" stroke-width="2"/>
-        <path d="M150 43 C 220 43, 240 18, 320 18 L 540 18" stroke="var(--teal)" stroke-width="2.5" fill="none"/>
-        <path d="M150 43 C 220 43, 240 68, 320 68 L 540 68" stroke="var(--amber)" stroke-width="2.5" fill="none" stroke-dasharray="3 5"/>
-        <circle cx="150" cy="43" r="7" fill="#15110d" stroke="#ecc36a" stroke-width="2.5"/>
-        <circle cx="540" cy="18" r="7" fill="var(--teal)"/>
-        <circle cx="540" cy="68" r="6" fill="var(--amber)"/>
-        <text x="150" y="34" fill="#a8987f" font-family="JetBrains Mono" font-size="11" text-anchor="middle">merge-base 8d574b2</text>
-        <text x="540" y="13" fill="var(--teal)" font-family="JetBrains Mono" font-size="11" text-anchor="end">vishal-test · +31 commits</text>
-        <text x="540" y="84" fill="var(--amber)" font-family="JetBrains Mono" font-size="11" text-anchor="end">dev @ 5ca394c (pre-refactor)</text>
-      </svg>
-      <div class="title-meta" data-reveal>
-        <span class="chip"><span class="dot a"></span>dev @ 5ca394c = the older stage</span>
-        <span class="chip"><span class="dot t"></span>vishal-test = the refactor</span>
-        <span class="chip mono">482 files · +4,367 / −2,488</span>
-        <span class="chip"><span class="dot t"></span>since merged → dev (PR #7)</span>
-      </div>
+      /* ---------- chrome: progress, dots, counter, hint ---------- */
+      .progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--amber), var(--gold), var(--teal));
+        z-index: 20;
+        transition: width 0.5s ease;
+      }
+      .counter {
+        position: fixed;
+        bottom: 26px;
+        left: clamp(20px, 4vw, 52px);
+        z-index: 20;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--muted);
+        letter-spacing: 0.1em;
+      }
+      .counter b {
+        color: var(--ink);
+      }
+      .nav {
+        position: fixed;
+        bottom: 22px;
+        right: clamp(20px, 4vw, 52px);
+        z-index: 20;
+        display: flex;
+        gap: 10px;
+      }
+      .nav button {
+        width: 42px;
+        height: 42px;
+        border-radius: 11px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--ink-soft);
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: 0.2s;
+        display: grid;
+        place-items: center;
+      }
+      .nav button:hover {
+        border-color: var(--teal);
+        color: var(--teal);
+        background: rgba(82, 199, 156, 0.06);
+      }
+      .nav button:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+      .dots {
+        position: fixed;
+        top: 50%;
+        right: 18px;
+        transform: translateY(-50%);
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        gap: 11px;
+      }
+      @media (max-width: 820px) {
+        .dots {
+          display: none;
+        }
+      }
+      .dots button {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        border: 1px solid var(--faint);
+        background: transparent;
+        cursor: pointer;
+        padding: 0;
+        transition: 0.25s;
+      }
+      .dots button.on {
+        background: var(--gold);
+        border-color: var(--gold);
+        transform: scale(1.25);
+      }
+      .hint {
+        position: fixed;
+        bottom: 28px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--faint);
+        letter-spacing: 0.08em;
+        transition: opacity 0.6s;
+      }
+      .repo {
+        position: fixed;
+        top: 22px;
+        right: clamp(20px, 4vw, 52px);
+        z-index: 20;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--faint);
+        letter-spacing: 0.06em;
+      }
+      @media (max-width: 680px) {
+        .repo {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="atmos">
+      <div class="glow1"></div>
+      <div class="glow2"></div>
+      <div class="grid"></div>
+      <div class="grain"></div>
     </div>
-  </section>
 
-  <!-- 2 · TWO BRANCHES AT A GLANCE -->
-  <section class="slide">
-    <div class="slide-inner">
-      <div class="kicker" data-reveal>01 · The two branches</div>
-      <h2 data-reveal>Same decisions. Two states of reality.</h2>
-      <p class="sub" data-reveal style="margin-bottom:26px;max-width:70ch">Both branches agreed on the stack. <b class="amber">dev</b> still wore the old physical shape; <b class="teal">vishal-test</b> reshapes the repo to match.</p>
-      <div class="cols2">
-        <div class="bcard old" data-reveal>
-          <div class="tag"><span class="dot a"></span>BRANCH · dev</div>
-          <h3>The blueprint stage</h3>
-          <p class="one">Decisions on paper — scaffolding on disk.</p>
-          <ul class="blist">
-            <li><span class="mk">▪</span><span>Five fragmented services: <b>apps/{api, ai-services, orchestrator, web, admin}</b> — mostly empty <span class="mono">.gitkeep</span> placeholders</span></li>
-            <li><span class="mk">▪</span><span>No runnable backend — <b>apps/api</b> was a bare skeleton</span></li>
-            <li><span class="mk">▪</span><span>Architecture docs still carried <b>retired-stack terms</b> + <span class="mono">tenant_id</span></span></li>
-            <li><span class="mk">▪</span><span>Repo debt: <b>tracked node_modules</b>, stray <span class="mono">test.py / test.txt</span>, loose root planning files</span></li>
-          </ul>
-        </div>
-        <div class="bcard new" data-reveal>
-          <div class="tag"><span class="dot t"></span>BRANCH · vishal-test</div>
-          <h3>The foundation stage</h3>
-          <p class="one">The same decisions, made real.</p>
-          <ul class="blist">
-            <li><span class="mk">▸</span><span>One consolidated <b>backend/</b> FastAPI modular monolith — actually runs</span></li>
-            <li><span class="mk">▸</span><span><b>frontend/</b> + <span class="mono">/admin</span> route group; <b>packages/</b> kept TypeScript-only</span></li>
-            <li><span class="mk">▸</span><span>Architecture docs <b>migrated to the canonical stack</b> + <span class="mono">organization_id</span></span></li>
-            <li><span class="mk">▸</span><span>Root tooling + <b>CI pipelines</b> + dev scripts + a typed api-client</span></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
+    <div class="progress" id="progress"></div>
+    <div class="repo">euron-sudh/PROJECT-1-AutoFounder-AI</div>
 
-  <!-- 3 · BY THE NUMBERS -->
-  <section class="slide">
-    <div class="slide-inner">
-      <div class="kicker teal" data-reveal>02 · By the numbers</div>
-      <h2 data-reveal>What the refactor moved</h2>
-      <div class="stat-row">
-        <div class="stat" data-reveal>
-          <div class="num teal" data-count="482" data-suffix="">0</div>
-          <div class="lab">files changed</div>
-          <div class="sub">303 deleted · 72 added · 99 modified · 8 renamed</div>
-        </div>
-        <div class="stat" data-reveal>
-          <div class="num addc" data-count="3758" data-prefix="+">0</div>
-          <div class="lab">real lines added</div>
-          <div class="sub">code · docs · config (excludes vendored)</div>
-        </div>
-        <div class="stat" data-reveal>
-          <div class="num rmc" data-count="2002" data-prefix="−">0</div>
-          <div class="lab">real lines removed</div>
-          <div class="sub">across 141 hand-edited files</div>
-        </div>
-      </div>
-      <div class="splitbar" data-reveal>
-        <i class="real" style="width:29%"></i><i class="vend" style="width:71%"></i>
-      </div>
-      <div class="splitlegend" data-reveal>
-        <span><span class="sq" style="background:var(--teal)"></span>141 real files — the actual work (+3,758 / −2,002)</span>
-        <span><span class="sq" style="background:#6b5538"></span>341 vendored files — node_modules &amp; lockfile churn (+609 / −486)</span>
-      </div>
-      <p class="sub" data-reveal style="margin-top:24px;max-width:72ch">Headline diff is 482 files across 31 commits — but most is lockfile / vendored noise. The <b class="teal">signal</b> is ~141 files: a new backend, migrated docs, and project tooling.</p>
-    </div>
-  </section>
-
-  <!-- 4 · THESIS · WHY CHANGE WAS REQUIRED -->
-  <section class="slide">
-    <div class="slide-inner">
-      <div class="kicker" data-reveal>03 · Why the change was required</div>
-      <h2 data-reveal>The repo had drifted from its own decisions</h2>
-      <div class="reasons" style="margin-top:26px">
-        <div class="reason" data-reveal>
-          <div class="rn">1</div>
-          <h4>Structure ≠ stack</h4>
-          <p>The specs already said “one Python FastAPI backend.” The disk still showed <span class="mono">apps/api</span>, <span class="mono">apps/orchestrator</span>, <span class="mono">apps/ai-services</span> — five split shells, mostly empty.</p>
-        </div>
-        <div class="reason" data-reveal>
-          <div class="rn">2</div>
-          <h4>Nothing ran</h4>
-          <p>There was no executable backend — only placeholders. You couldn't <span class="mono">uv run</span>, couldn't test, couldn't gate a PR on anything real.</p>
-        </div>
-        <div class="reason" data-reveal>
-          <div class="rn">3</div>
-          <h4>Docs + debt lied</h4>
-          <p>Architecture docs still named <b>EKS, Prisma, NestJS</b> and <span class="mono">tenant_id</span>; the repo tracked node_modules and junk test files. New contributors would trust the wrong map.</p>
-        </div>
-      </div>
-      <p class="pull" data-reveal>The stack was already decided. The repository simply hadn't caught up to it.</p>
-    </div>
-  </section>
-
-  <!-- 5 · STRUCTURAL CHANGE -->
-  <section class="slide">
-    <div class="slide-inner">
-      <div class="kicker teal" data-reveal>04 · The headline change</div>
-      <h2 data-reveal>Five fragmented apps → one consolidated backend</h2>
-      <div class="trees" style="margin-top:24px">
-        <div class="tree old" data-reveal>
-          <h5><span class="dot a"></span>dev · apps/* (split)</h5>
-          <div class="rmln">apps/</div>
-          <div class="rmln">├─ api/        <span class="d">skeleton</span></div>
-          <div class="rmln">├─ ai-services/ <span class="d">.gitkeep</span></div>
-          <div class="rmln">├─ orchestrator/<span class="d">.gitkeep</span></div>
-          <div class="rmln">├─ web/         <span class="d">stub</span></div>
-          <div class="rmln">└─ admin/       <span class="d">.gitkeep</span></div>
-          <div class="d">packages/  <span class="keep">(mixed TS + Py)</span></div>
-        </div>
-        <div class="morph" data-reveal>⇒</div>
-        <div class="tree new" data-reveal>
-          <h5><span class="dot t"></span>vishal-test · consolidated</h5>
-          <div class="adln">backend/   <span class="d">FastAPI monolith</span></div>
-          <div class="adln">├─ app/    <span class="d">api·agents·db·…</span></div>
-          <div class="adln">├─ alembic/ tests/</div>
-          <div class="adln">frontend/  <span class="d">+ /admin group</span></div>
-          <div class="keep">packages/  <span class="d">(TypeScript only)</span></div>
-          <div class="keep">infra/  mobile-app/  website/</div>
-        </div>
-      </div>
-      <p class="sub" data-reveal style="margin-top:24px;max-width:74ch"><b class="teal">Why a modular monolith?</b> The agent/ML ecosystem (LangGraph, LlamaIndex, DSPy, TruLens) is Python-native — splitting it across services adds subprocess/HTTP latency on the hot path. One deployable now; split back into ECS services in <b>Phase 4</b> only if scale demands it.</p>
-    </div>
-  </section>
-
-  <!-- 6 · BACKEND NOW REAL -->
-  <section class="slide">
-    <div class="slide-inner">
-      <div class="kicker teal" data-reveal>05 · The new backend, actually runnable</div>
-      <h2 data-reveal>backend/app — a clean-architecture skeleton</h2>
-      <div class="cols2" style="margin-top:24px">
-        <div class="tree new" data-reveal style="font-size:.84rem">
-          <h5><span class="dot t"></span>app/ layout</h5>
-          <div class="adln">api/v1/ <span class="d">health · ideas · runs · deps</span></div>
-          <div class="adln">core/ <span class="d">config · logging · security</span></div>
-          <div class="adln">db/ <span class="d">base · session · <b>udal</b></span></div>
-          <div class="adln">models/ <span class="d">run · artifact · gate · mixins</span></div>
-          <div class="adln">schemas/ services/ <span class="d">run_service</span></div>
-          <div class="adln">agents/ <span class="d">base + strategy/research/planner</span></div>
-          <div class="adln">orchestrator/ guardrails/ workers/</div>
-        </div>
-        <div data-reveal style="display:flex;flex-direction:column;gap:16px;justify-content:center">
-          <div class="kitem"><span class="ico">✓</span><div><div class="kt">Runs out of the box</div><div class="kd">Live <span class="mono">/health</span>, <span class="mono">/v1/ideas</span>, <span class="mono">/v1/runs</span> — tenant-scoped, in-memory store.</div></div></div>
-          <div class="kitem"><span class="ico">✓</span><div><div class="kt">Real persistence layer</div><div class="kd">SQLAlchemy 2 models (runs / artifacts / gates) + Alembic <span class="mono">0001</span> migration.</div></div></div>
-          <div class="kitem"><span class="ico">✓</span><div><div class="kt">Tested &amp; clean</div><div class="kd">7-test pytest suite · <span class="mono">ruff</span> + <span class="mono">mypy</span> clean · multi-stage non-root Dockerfile.</div></div></div>
-          <div class="kitem"><span class="ico">✓</span><div><div class="kt">UDAL enforced</div><div class="kd">Agents never touch the DB directly — every call routes through the Unified Data Access Layer.</div></div></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 7 · DOCS MIGRATION -->
-  <section class="slide">
-    <div class="slide-inner">
-      <div class="kicker" data-reveal>06 · The last place legacy hid</div>
-      <h2 data-reveal>Architecture docs migrated to the canonical stack</h2>
-      <p class="sub" data-reveal style="margin-bottom:22px;max-width:72ch">HLD, LLD, <span class="mono">architecture.md</span>, and all 7 per-agent design docs were swept clean of retired-stack terms. Verified: <b class="teal">zero retired-stack terms remain</b> (bar legitimate “Claude Sonnet fallback” notes).</p>
-      <div class="diffs">
-        <div class="drow" data-reveal><span class="from">EKS · Kubernetes · Helm · ArgoCD</span><span class="ar">→</span><span class="to">ECS Fargate + AWS CodeDeploy</span></div>
-        <div class="drow" data-reveal><span class="from">Prisma</span><span class="ar">→</span><span class="to">SQLAlchemy + Alembic</span></div>
-        <div class="drow" data-reveal><span class="from">NestJS</span><span class="ar">→</span><span class="to">FastAPI · Python 3.12</span></div>
-        <div class="drow" data-reveal><span class="from">Claude Sonnet · GPT-4o · voyage-code</span><span class="ar">→</span><span class="to">Gemini 3.5 Flash · gemini-embedding-2</span></div>
-        <div class="drow" data-reveal><span class="from">tenant_id</span><span class="ar">→</span><span class="to">organization_id  (JWT · schemas · keys)</span></div>
-        <div class="drow" data-reveal><span class="from">UDAL @ packages/db</span><span class="ar">→</span><span class="to">UDAL @ backend/app/db</span></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 8 · HYGIENE -->
-  <section class="slide">
-    <div class="slide-inner">
-      <div class="kicker" data-reveal>07 · Repo hygiene</div>
-      <h2 data-reveal>Sweeping out the debt</h2>
-      <div class="cols2" style="margin-top:22px">
-        <div data-reveal>
-          <div class="tree old" style="font-size:.84rem">
-            <h5><span class="dot a"></span>removed / relocated</h5>
-            <div class="rmln">✗ test.py · test.txt · test_file.py</div>
-            <div class="rmln">✗ projectstructure-steps.txt</div>
-            <div class="rmln">✗ mobile-app/.DS_Store</div>
-            <div class="rmln">✗ scripts/dev-setup.* <span class="d">(dupes)</span></div>
-            <div class="adln">↳ PLAN.md → .claude/PLAN-BUILD-SEQUENCE.md</div>
-            <div class="adln">↳ task_assigned.md → .claude/</div>
+    <div class="deck" id="deck">
+      <!-- 1 · TITLE -->
+      <section class="slide active">
+        <div class="slide-inner title-wrap">
+          <div class="kicker" data-reveal>Branch comparison · architecture changelog</div>
+          <h1 data-reveal>
+            <span class="amber">dev</span><span class="branch-arrow">→</span
+            ><span class="teal">vishal-test</span>
+          </h1>
+          <p class="lede" data-reveal>
+            The Phase-1 <span class="serif-em gold">reconciliation</span> — bringing the
+            repository's structure, docs, and tooling in line with decisions the team had
+            <span class="serif-em">already made</span>, pouring the first runnable backend, purging
+            years of repo debt, and handing every pillar to a
+            <span class="serif-em">named owner</span>.
+          </p>
+          <svg class="graph" data-reveal width="560" height="86" viewBox="0 0 560 86" fill="none">
+            <line x1="20" y1="43" x2="150" y2="43" stroke="#6f6250" stroke-width="2" />
+            <path
+              d="M150 43 C 220 43, 240 18, 320 18 L 540 18"
+              stroke="var(--teal)"
+              stroke-width="2.5"
+              fill="none"
+            />
+            <path
+              d="M150 43 C 220 43, 240 68, 320 68 L 540 68"
+              stroke="var(--amber)"
+              stroke-width="2.5"
+              fill="none"
+              stroke-dasharray="3 5"
+            />
+            <circle cx="150" cy="43" r="7" fill="#15110d" stroke="#ecc36a" stroke-width="2.5" />
+            <circle cx="540" cy="18" r="7" fill="var(--teal)" />
+            <circle cx="540" cy="68" r="6" fill="var(--amber)" />
+            <text
+              x="150"
+              y="34"
+              fill="#a8987f"
+              font-family="JetBrains Mono"
+              font-size="11"
+              text-anchor="middle"
+            >
+              merge-base 8d574b2
+            </text>
+            <text
+              x="540"
+              y="13"
+              fill="var(--teal)"
+              font-family="JetBrains Mono"
+              font-size="11"
+              text-anchor="end"
+            >
+              vishal-test · +32 commits
+            </text>
+            <text
+              x="540"
+              y="84"
+              fill="var(--amber)"
+              font-family="JetBrains Mono"
+              font-size="11"
+              text-anchor="end"
+            >
+              dev @ 5ca394c (pre-refactor)
+            </text>
+          </svg>
+          <div class="title-meta" data-reveal>
+            <span class="chip"><span class="dot a"></span>dev @ 5ca394c = the older stage</span>
+            <span class="chip"
+              ><span class="dot t"></span>vishal-test = refactor + cleanup + team plans</span
+            >
+            <span class="chip mono">169 source files · node_modules 2,982 → 0</span>
+            <span class="chip"
+              ><span class="dot t"></span>merged → dev (PR #7) · now +17 ahead</span
+            >
           </div>
         </div>
-        <div data-reveal style="display:flex;flex-direction:column;gap:16px;justify-content:center">
-          <div class="kitem"><span class="ico">✓</span><div><div class="kt">Lowercase directories</div><div class="kd">Standard <span class="mono">backend/ frontend/</span> naming — after an interim <span class="mono">UPPERCASE</span> experiment was tried and deliberately reversed.</div></div></div>
-          <div class="kitem"><span class="ico">✓</span><div><div class="kt">admin de-duplicated</div><div class="kd">The separate <span class="mono">apps/admin</span> shell is gone; admin is now a role-guarded <span class="mono">/admin</span> route group inside the frontend.</div></div></div>
-          <div class="kitem warn"><span class="ico">~</span><div><div class="kt">node_modules trimmed, not purged</div><div class="kd">281 vendored files dropped (with the deleted apps); ~2,701 are <b>still tracked</b> — a known follow-up.</div></div></div>
+      </section>
+
+      <!-- 2 · TWO BRANCHES AT A GLANCE -->
+      <section class="slide">
+        <div class="slide-inner">
+          <div class="kicker" data-reveal>01 · The two branches</div>
+          <h2 data-reveal>Same decisions. Two states of reality.</h2>
+          <p class="sub" data-reveal style="margin-bottom: 26px; max-width: 70ch">
+            Both branches agreed on the stack. <b class="amber">dev</b> still wore the old physical
+            shape; <b class="teal">vishal-test</b> reshapes the repo to match.
+          </p>
+          <div class="cols2">
+            <div class="bcard old" data-reveal>
+              <div class="tag"><span class="dot a"></span>BRANCH · dev</div>
+              <h3>The blueprint stage</h3>
+              <p class="one">Decisions on paper — scaffolding on disk.</p>
+              <ul class="blist">
+                <li>
+                  <span class="mk">▪</span
+                  ><span
+                    >Five fragmented services:
+                    <b>apps/{api, ai-services, orchestrator, web, admin}</b> — mostly empty
+                    <span class="mono">.gitkeep</span> placeholders</span
+                  >
+                </li>
+                <li>
+                  <span class="mk">▪</span
+                  ><span>No runnable backend — <b>apps/api</b> was a bare skeleton</span>
+                </li>
+                <li>
+                  <span class="mk">▪</span
+                  ><span
+                    >Architecture docs still carried <b>retired-stack terms</b> +
+                    <span class="mono">tenant_id</span></span
+                  >
+                </li>
+                <li>
+                  <span class="mk">▪</span
+                  ><span
+                    >Repo debt: <b>tracked node_modules</b>, stray
+                    <span class="mono">test.py / test.txt</span>, loose root planning files</span
+                  >
+                </li>
+              </ul>
+            </div>
+            <div class="bcard new" data-reveal>
+              <div class="tag"><span class="dot t"></span>BRANCH · vishal-test</div>
+              <h3>The foundation stage</h3>
+              <p class="one">The same decisions, made real.</p>
+              <ul class="blist">
+                <li>
+                  <span class="mk">▸</span
+                  ><span
+                    >One consolidated <b>backend/</b> FastAPI modular monolith — actually runs</span
+                  >
+                </li>
+                <li>
+                  <span class="mk">▸</span
+                  ><span
+                    ><b>frontend/</b> + <span class="mono">/admin</span> route group;
+                    <b>packages/</b> kept TypeScript-only</span
+                  >
+                </li>
+                <li>
+                  <span class="mk">▸</span
+                  ><span
+                    >Architecture docs <b>migrated to the canonical stack</b> +
+                    <span class="mono">organization_id</span></span
+                  >
+                </li>
+                <li>
+                  <span class="mk">▸</span
+                  ><span
+                    >Root tooling + <b>CI pipelines</b> + dev scripts + a typed api-client</span
+                  >
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </section>
+      </section>
 
-  <!-- 9 · TOOLING & CI -->
-  <section class="slide">
-    <div class="slide-inner">
-      <div class="kicker teal" data-reveal>08 · Tooling &amp; CI added</div>
-      <h2 data-reveal>From “open in editor” to “gated on green”</h2>
-      <div class="reasons" style="margin-top:24px">
-        <div class="reason" data-reveal>
-          <div class="rn mono teal" style="font-size:1.1rem">▸ root tooling</div>
-          <h4>Consistent by default</h4>
-          <p><span class="mono">.editorconfig</span>, <span class="mono">.prettierrc</span>, <span class="mono">.prettierignore</span>, <span class="mono">tsconfig.base.json</span>, <span class="mono">.pre-commit-config.yaml</span> — one formatting truth across the monorepo.</p>
+      <!-- 3 · BY THE NUMBERS -->
+      <section class="slide">
+        <div class="slide-inner">
+          <div class="kicker teal" data-reveal>02 · By the numbers</div>
+          <h2 data-reveal>What 32 commits moved</h2>
+          <div class="stat-row">
+            <div class="stat" data-reveal>
+              <div class="num teal" data-count="169" data-suffix="">0</div>
+              <div class="lab">real files changed</div>
+              <div class="sub">+14,296 / −2,998 — code, docs &amp; team plans</div>
+            </div>
+            <div class="stat" data-reveal>
+              <div class="num rmc" data-count="2982" data-prefix="−">0</div>
+              <div class="lab">node_modules files purged</div>
+              <div class="sub">2,982 → 0 · ≈881k lines · now gitignored</div>
+            </div>
+            <div class="stat" data-reveal>
+              <div class="num addc" data-count="7563" data-prefix="+">0</div>
+              <div class="lab">lines of team plans</div>
+              <div class="sub">14 per-developer execution blueprints</div>
+            </div>
+          </div>
+          <div class="splitbar" data-reveal>
+            <i class="real" style="width: 5%"></i><i class="vend" style="width: 95%"></i>
+          </div>
+          <div class="splitlegend" data-reveal>
+            <span
+              ><span class="sq" style="background: var(--teal)"></span>169 real files — backend,
+              migrated docs &amp; team plans</span
+            >
+            <span
+              ><span class="sq" style="background: #6b5538"></span>3,009 vendored files — the
+              one-time node_modules purge</span
+            >
+          </div>
+          <p class="sub" data-reveal style="margin-top: 24px; max-width: 74ch">
+            Raw diff is 3,178 files — but ~3,000 are the <b>one-time node_modules purge</b>. The
+            <b class="teal">signal</b> is ~169 files: a runnable backend, migrated docs, hardened
+            tooling, and a 10-person execution plan.
+          </p>
         </div>
-        <div class="reason" data-reveal>
-          <div class="rn mono teal" style="font-size:1.1rem">▸ CI pipelines</div>
-          <h4>Quality gates live</h4>
-          <p><span class="mono">backend-ci.yml</span>: uv → ruff + mypy + Alembic + pytest against a real Postgres 16 service. <span class="mono">lint.yml</span>: prettier check.</p>
+      </section>
+
+      <!-- 4 · THESIS · WHY CHANGE WAS REQUIRED -->
+      <section class="slide">
+        <div class="slide-inner">
+          <div class="kicker" data-reveal>03 · Why the change was required</div>
+          <h2 data-reveal>The repo had drifted from its own decisions</h2>
+          <div class="reasons" style="margin-top: 26px">
+            <div class="reason" data-reveal>
+              <div class="rn">1</div>
+              <h4>Structure ≠ stack</h4>
+              <p>
+                The specs already said “one Python FastAPI backend.” The disk still showed
+                <span class="mono">apps/api</span>, <span class="mono">apps/orchestrator</span>,
+                <span class="mono">apps/ai-services</span> — five split shells, mostly empty.
+              </p>
+            </div>
+            <div class="reason" data-reveal>
+              <div class="rn">2</div>
+              <h4>Nothing ran</h4>
+              <p>
+                There was no executable backend — only placeholders. You couldn't
+                <span class="mono">uv run</span>, couldn't test, couldn't gate a PR on anything
+                real.
+              </p>
+            </div>
+            <div class="reason" data-reveal>
+              <div class="rn">3</div>
+              <h4>Docs + debt lied</h4>
+              <p>
+                Architecture docs still named <b>EKS, Prisma, NestJS</b> and
+                <span class="mono">tenant_id</span>; the repo tracked node_modules and junk test
+                files. New contributors would trust the wrong map.
+              </p>
+            </div>
+          </div>
+          <p class="pull" data-reveal>
+            The stack was already decided. The repository simply hadn't caught up to it.
+          </p>
         </div>
-        <div class="reason" data-reveal>
-          <div class="rn mono teal" style="font-size:1.1rem">▸ DX</div>
-          <h4>Onboarding in one command</h4>
-          <p><span class="mono">scripts/setup-dev</span> + <span class="mono">deploy-backend-dev</span> (PowerShell + bash). <span class="mono">packages/api-client</span>: a typed client stub (OpenAPI-generated in Phase 2).</p>
+      </section>
+
+      <!-- 5 · STRUCTURAL CHANGE -->
+      <section class="slide">
+        <div class="slide-inner">
+          <div class="kicker teal" data-reveal>04 · The headline change</div>
+          <h2 data-reveal>Five fragmented apps → one consolidated backend</h2>
+          <div class="trees" style="margin-top: 24px">
+            <div class="tree old" data-reveal>
+              <h5><span class="dot a"></span>dev · apps/* (split)</h5>
+              <div class="rmln">apps/</div>
+              <div class="rmln">├─ api/ <span class="d">skeleton</span></div>
+              <div class="rmln">├─ ai-services/ <span class="d">.gitkeep</span></div>
+              <div class="rmln">├─ orchestrator/<span class="d">.gitkeep</span></div>
+              <div class="rmln">├─ web/ <span class="d">stub</span></div>
+              <div class="rmln">└─ admin/ <span class="d">.gitkeep</span></div>
+              <div class="d">packages/ <span class="keep">(mixed TS + Py)</span></div>
+            </div>
+            <div class="morph" data-reveal>⇒</div>
+            <div class="tree new" data-reveal>
+              <h5><span class="dot t"></span>vishal-test · consolidated</h5>
+              <div class="adln">backend/ <span class="d">FastAPI monolith</span></div>
+              <div class="adln">├─ app/ <span class="d">api·agents·db·…</span></div>
+              <div class="adln">├─ alembic/ tests/</div>
+              <div class="adln">frontend/ <span class="d">+ /admin group</span></div>
+              <div class="keep">packages/ <span class="d">(TypeScript only)</span></div>
+              <div class="keep">infra/ mobile-app/ website/</div>
+            </div>
+          </div>
+          <p class="sub" data-reveal style="margin-top: 24px; max-width: 74ch">
+            <b class="teal">Why a modular monolith?</b> The agent/ML ecosystem (LangGraph,
+            LlamaIndex, DSPy, TruLens) is Python-native — splitting it across services adds
+            subprocess/HTTP latency on the hot path. One deployable now; split back into ECS
+            services in <b>Phase 4</b> only if scale demands it.
+          </p>
         </div>
-      </div>
-      <p class="sub" data-reveal style="margin-top:22px">No direct push to <span class="mono">main</span>; a PR now has something real to fail against.</p>
+      </section>
+
+      <!-- 6 · BACKEND NOW REAL -->
+      <section class="slide">
+        <div class="slide-inner">
+          <div class="kicker teal" data-reveal>05 · The new backend, actually runnable</div>
+          <h2 data-reveal>backend/app — a clean-architecture skeleton</h2>
+          <div class="cols2" style="margin-top: 24px">
+            <div class="tree new" data-reveal style="font-size: 0.84rem">
+              <h5><span class="dot t"></span>app/ layout</h5>
+              <div class="adln">api/v1/ <span class="d">health · ideas · runs · deps</span></div>
+              <div class="adln">core/ <span class="d">config · logging · security</span></div>
+              <div class="adln">
+                db/ <span class="d">base · session · <b>udal</b></span>
+              </div>
+              <div class="adln">models/ <span class="d">run · artifact · gate · mixins</span></div>
+              <div class="adln">schemas/ services/ <span class="d">run_service</span></div>
+              <div class="adln">
+                agents/ <span class="d">base + strategy/research/planner</span>
+              </div>
+              <div class="adln">orchestrator/ guardrails/ workers/</div>
+            </div>
+            <div
+              data-reveal
+              style="display: flex; flex-direction: column; gap: 16px; justify-content: center"
+            >
+              <div class="kitem">
+                <span class="ico">✓</span>
+                <div>
+                  <div class="kt">Runs out of the box</div>
+                  <div class="kd">
+                    Live <span class="mono">/health</span>, <span class="mono">/v1/ideas</span>,
+                    <span class="mono">/v1/runs</span> — tenant-scoped, in-memory store.
+                  </div>
+                </div>
+              </div>
+              <div class="kitem">
+                <span class="ico">✓</span>
+                <div>
+                  <div class="kt">Real persistence layer</div>
+                  <div class="kd">
+                    SQLAlchemy 2 models (runs / artifacts / gates) + Alembic
+                    <span class="mono">0001</span> migration.
+                  </div>
+                </div>
+              </div>
+              <div class="kitem">
+                <span class="ico">✓</span>
+                <div>
+                  <div class="kt">Tested &amp; clean</div>
+                  <div class="kd">
+                    7-test pytest suite · <span class="mono">ruff</span> +
+                    <span class="mono">mypy</span> clean · multi-stage non-root Dockerfile.
+                  </div>
+                </div>
+              </div>
+              <div class="kitem">
+                <span class="ico">✓</span>
+                <div>
+                  <div class="kt">UDAL enforced</div>
+                  <div class="kd">
+                    Agents never touch the DB directly — every call routes through the Unified Data
+                    Access Layer.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7 · DOCS MIGRATION -->
+      <section class="slide">
+        <div class="slide-inner">
+          <div class="kicker" data-reveal>06 · The last place legacy hid</div>
+          <h2 data-reveal>Architecture docs migrated to the canonical stack</h2>
+          <p class="sub" data-reveal style="margin-bottom: 22px; max-width: 72ch">
+            HLD, LLD, <span class="mono">architecture.md</span>, and all 7 per-agent design docs
+            were swept clean of retired-stack terms. Verified:
+            <b class="teal">zero retired-stack terms remain</b> (bar legitimate “Claude Sonnet
+            fallback” notes).
+          </p>
+          <div class="diffs">
+            <div class="drow" data-reveal>
+              <span class="from">EKS · Kubernetes · Helm · ArgoCD</span><span class="ar">→</span
+              ><span class="to">ECS Fargate + AWS CodeDeploy</span>
+            </div>
+            <div class="drow" data-reveal>
+              <span class="from">Prisma</span><span class="ar">→</span
+              ><span class="to">SQLAlchemy + Alembic</span>
+            </div>
+            <div class="drow" data-reveal>
+              <span class="from">NestJS</span><span class="ar">→</span
+              ><span class="to">FastAPI · Python 3.12</span>
+            </div>
+            <div class="drow" data-reveal>
+              <span class="from">Claude Sonnet · GPT-4o · voyage-code</span><span class="ar">→</span
+              ><span class="to">Gemini 3.5 Flash · gemini-embedding-2</span>
+            </div>
+            <div class="drow" data-reveal>
+              <span class="from">tenant_id</span><span class="ar">→</span
+              ><span class="to">organization_id (JWT · schemas · keys)</span>
+            </div>
+            <div class="drow" data-reveal>
+              <span class="from">UDAL @ packages/db</span><span class="ar">→</span
+              ><span class="to">UDAL @ backend/app/db</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8 · HYGIENE -->
+      <section class="slide">
+        <div class="slide-inner">
+          <div class="kicker" data-reveal>07 · Repo hygiene</div>
+          <h2 data-reveal>Sweeping out the debt</h2>
+          <div class="cols2" style="margin-top: 22px">
+            <div data-reveal>
+              <div class="tree old" style="font-size: 0.84rem">
+                <h5><span class="dot a"></span>removed / relocated</h5>
+                <div class="rmln">
+                  ✗ node_modules/ <span class="d">2,982 files · ≈881k lines</span>
+                </div>
+                <div class="rmln">✗ every .DS_Store <span class="d">(repo-wide)</span></div>
+                <div class="rmln">✗ test.py · test.txt · test_file.py</div>
+                <div class="rmln">✗ projectstructure-steps.txt · dev-setup.* dupes</div>
+                <div class="rmln">
+                  ✗ packages/agents/** <span class="d">11 retired .gitkeep stubs</span>
+                </div>
+                <div class="rmln">
+                  ✗ website/dist/ <span class="d">build output · now untracked</span>
+                </div>
+                <div class="adln">↳ PLAN.md → .claude/PLAN-BUILD-SEQUENCE.md</div>
+                <div class="adln">↳ task_assigned.md → .claude/</div>
+              </div>
+            </div>
+            <div
+              data-reveal
+              style="display: flex; flex-direction: column; gap: 16px; justify-content: center"
+            >
+              <div class="kitem">
+                <span class="ico">✓</span>
+                <div>
+                  <div class="kt">Lowercase directories</div>
+                  <div class="kd">
+                    Standard <span class="mono">backend/ frontend/</span> naming — after an interim
+                    <span class="mono">UPPERCASE</span> experiment was tried and deliberately
+                    reversed.
+                  </div>
+                </div>
+              </div>
+              <div class="kitem">
+                <span class="ico">✓</span>
+                <div>
+                  <div class="kt">admin de-duplicated</div>
+                  <div class="kd">
+                    The separate <span class="mono">apps/admin</span> shell is gone; admin is now a
+                    role-guarded <span class="mono">/admin</span> route group inside the frontend.
+                  </div>
+                </div>
+              </div>
+              <div class="kitem">
+                <span class="ico">✓</span>
+                <div>
+                  <div class="kt">node_modules fully purged</div>
+                  <div class="kd">
+                    All <b>2,982 → 0</b> tracked vendored files gone (≈881k lines), now in
+                    <span class="mono">.gitignore</span> with
+                    <span class="mono">__pycache__</span> · <span class="mono">.venv</span> ·
+                    <span class="mono">.DS_Store</span>.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9 · TOOLING & CI -->
+      <section class="slide">
+        <div class="slide-inner">
+          <div class="kicker teal" data-reveal>08 · Tooling &amp; CI added</div>
+          <h2 data-reveal>From “open in editor” to “gated on green”</h2>
+          <div class="reasons" style="margin-top: 24px">
+            <div class="reason" data-reveal>
+              <div class="rn mono teal" style="font-size: 1.1rem">▸ root tooling</div>
+              <h4>Consistent by default</h4>
+              <p>
+                <span class="mono">.editorconfig</span>, <span class="mono">.prettierrc</span>,
+                <span class="mono">.prettierignore</span>,
+                <span class="mono">tsconfig.base.json</span>,
+                <span class="mono">.pre-commit-config.yaml</span> — one formatting truth across the
+                monorepo.
+              </p>
+            </div>
+            <div class="reason" data-reveal>
+              <div class="rn mono teal" style="font-size: 1.1rem">▸ CI pipelines</div>
+              <h4>Quality gates live</h4>
+              <p>
+                <span class="mono">backend-ci.yml</span>: uv → ruff + mypy + Alembic + pytest
+                against a real Postgres 16 service. <span class="mono">lint.yml</span>: prettier
+                check.
+              </p>
+            </div>
+            <div class="reason" data-reveal>
+              <div class="rn mono teal" style="font-size: 1.1rem">▸ DX</div>
+              <h4>Onboarding in one command</h4>
+              <p>
+                <span class="mono">scripts/setup-dev</span> +
+                <span class="mono">deploy-backend-dev</span> (PowerShell + bash).
+                <span class="mono">packages/api-client</span>: a typed client stub
+                (OpenAPI-generated in Phase 2).
+              </p>
+            </div>
+          </div>
+          <p class="sub" data-reveal style="margin-top: 22px">
+            No direct push to <span class="mono">main</span>; a PR now has something real to fail
+            against.
+          </p>
+        </div>
+      </section>
+
+      <!-- 10 · WHY NOT ALL · PRESERVED -->
+      <section class="slide">
+        <div class="slide-inner">
+          <div class="kicker teal" data-reveal>
+            09 · Why <em style="font-style: italic">not</em> everything changed — kept on purpose
+          </div>
+          <h2 data-reveal>What was deliberately left untouched</h2>
+          <div class="klist" style="margin-top: 20px">
+            <div class="kitem" data-reveal>
+              <span class="ico">✓</span>
+              <div>
+                <div class="kt">The brand &amp; the npm scope</div>
+                <div class="kd">
+                  “AutoFounder AI” and the <span class="mono">@autofounder-ai</span> scope stay —
+                  only <span class="mono">frontend-web</span> →
+                  <span class="mono">frontend</span> was renamed.
+                </div>
+              </div>
+            </div>
+            <div class="kitem" data-reveal>
+              <span class="ico">✓</span>
+              <div>
+                <div class="kt">The stack decisions themselves</div>
+                <div class="kd">
+                  FastAPI, Supabase, ECS, Gemini were <b>already correct</b> in dev's specs. This
+                  refactor reconciles reality to them — it does not re-litigate them.
+                </div>
+              </div>
+            </div>
+            <div class="kitem" data-reveal>
+              <span class="ico">✓</span>
+              <div>
+                <div class="kt">packages/ as a TypeScript home</div>
+                <div class="kd">
+                  Kept strictly for <span class="mono">shared</span> +
+                  <span class="mono">api-client</span> — the retired per-domain
+                  <span class="mono">agents/…</span> <span class="mono">.gitkeep</span> stubs have
+                  since been removed to match the canonical structure.
+                </div>
+              </div>
+            </div>
+            <div class="kitem" data-reveal>
+              <span class="ico">✓</span>
+              <div>
+                <div class="kt">mobile-app · website · vscode-extension · infra</div>
+                <div class="kd">Out of Phase-1 scope — left intact rather than churned.</div>
+              </div>
+            </div>
+            <div class="kitem" data-reveal>
+              <span class="ico">✓</span>
+              <div>
+                <div class="kt">coder-agent.md's <span class="mono">apps/*</span> references</div>
+                <div class="kd">
+                  Intentionally not migrated — they describe the <b>generated client app</b>, not
+                  this platform's own layout.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11 · WHY NOT ALL · PENDING -->
+      <section class="slide">
+        <div class="slide-inner">
+          <div class="kicker" data-reveal>
+            10 · Why <em style="font-style: italic">not</em> everything changed — deferred on
+            purpose
+          </div>
+          <h2 data-reveal>A foundation, not the finished house</h2>
+          <p class="sub" data-reveal style="margin-bottom: 20px; max-width: 72ch">
+            Phase 1 = ship a runnable, tested skeleton first; fill it in sprint by sprint. So plenty
+            is intentionally still stubbed — but each piece now has a
+            <b class="teal">named owner</b> (next slide):
+          </p>
+          <div class="klist">
+            <div class="kitem warn" data-reveal>
+              <span class="ico">~</span>
+              <div>
+                <div class="kt">frontend/ is still a stub</div>
+                <div class="kd">
+                  Only <span class="mono">placeholder.ts</span> exists — the
+                  <span class="mono">/admin</span> route group is a recorded <b>decision</b>, not
+                  yet built UI. → <b class="teal">Raunak (web) · Yogesh (mobile)</b>, on mock data.
+                </div>
+              </div>
+            </div>
+            <div class="kitem warn" data-reveal>
+              <span class="ico">~</span>
+              <div>
+                <div class="kt">Agents are skeletons</div>
+                <div class="kd">
+                  Base contract + Strategy / Research / Product-Planner stubs; orchestrator &amp;
+                  guardrails are scaffolds. →
+                  <b class="teal"
+                    >Somesh, Kaushlendra, Kartik, Vishal, Prasenjit, Pallavi, Purnima</b
+                  >
+                  (Pillars 1–7).
+                </div>
+              </div>
+            </div>
+            <div class="kitem warn" data-reveal>
+              <span class="ico">~</span>
+              <div>
+                <div class="kt">Shared foundation lands first</div>
+                <div class="kd">
+                  UDAL, BaseAgent, the LLM Router &amp; Prompt Registry are still stubs — the
+                  platform groundwork every pillar depends on. → <b class="teal">Asit + Purnima</b>.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12 · RATIONALE TABLE -->
+      <section class="slide">
+        <div class="slide-inner">
+          <div class="kicker teal" data-reveal>11 · The decisions, with reasons</div>
+          <h2 data-reveal>Reconciliation rationale</h2>
+          <table class="rtable">
+            <thead>
+              <tr>
+                <th data-reveal>Decision</th>
+                <th data-reveal>Why it was made</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-reveal>
+                <td class="dec">
+                  One FastAPI backend<span class="mono">apps/* → backend/app</span>
+                </td>
+                <td class="why">
+                  The whole agent/ML ecosystem is Python-native; cross-language bridging adds
+                  latency &amp; ops complexity on the hot agent path.
+                </td>
+              </tr>
+              <tr data-reveal>
+                <td class="dec">
+                  Modular monolith, for now<span class="mono">split deferred → Phase 4</span>
+                </td>
+                <td class="why">
+                  One thing to build, test, and deploy. Re-split into separate ECS services only
+                  when scale actually requires it.
+                </td>
+              </tr>
+              <tr data-reveal>
+                <td class="dec">
+                  Supabase platform<span class="mono"
+                    >PG + pgvector + auth + storage + realtime</span
+                  >
+                </td>
+                <td class="why">
+                  Collapses RDS + Qdrant/Pinecone + Auth0 + S3 into one hosted platform — far less
+                  operational overhead.
+                </td>
+              </tr>
+              <tr data-reveal>
+                <td class="dec">
+                  ECS Fargate, not EKS<span class="mono">CodeDeploy blue/green</span>
+                </td>
+                <td class="why">
+                  No Kubernetes control-plane to operate for v1; serverless containers + managed
+                  blue/green deploys.
+                </td>
+              </tr>
+              <tr data-reveal>
+                <td class="dec">
+                  organization_id<span class="mono">tenant_id → organization_id</span>
+                </td>
+                <td class="why">
+                  One consistent multi-tenant claim across JWT, per-tenant schemas, S3 prefixes, and
+                  API keys.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 13 · TEAM EXECUTION PLAN -->
+      <section class="slide">
+        <div class="slide-inner">
+          <div class="kicker teal" data-reveal>12 · How the rest gets built</div>
+          <h2 data-reveal>From a foundation to a 10-person plan</h2>
+          <p class="sub" data-reveal style="margin-bottom: 18px; max-width: 80ch">
+            The latest commit adds <span class="mono">.claude/developer-plans/</span> —
+            <b>14 per-developer technical blueprints</b> (+7,563 lines), each a 10-section +
+            3-appendix spec. Every pillar and surface now has a named owner.
+          </p>
+          <div class="roster" data-reveal>
+            <div class="owner">
+              <span class="pn">LEAD</span><span class="who">Asit Piri</span
+              ><span class="area">Platform · Guardrails · VS Code ext · Finance/Ops-Risk</span>
+            </div>
+            <div class="owner">
+              <span class="pn">P5</span><span class="who">Prasenjit</span
+              ><span class="area">Deployment &amp; Infrastructure</span>
+            </div>
+            <div class="owner">
+              <span class="pn">P1</span><span class="who">Somesh</span
+              ><span class="area">Idea Validation &amp; Market Research</span>
+            </div>
+            <div class="owner">
+              <span class="pn">P6</span><span class="who">Pallavi</span
+              ><span class="area">Marketing &amp; Launch Automation</span>
+            </div>
+            <div class="owner">
+              <span class="pn">P2</span><span class="who">Kaushlendra</span
+              ><span class="area">Architecture &amp; Tech-Stack Design</span>
+            </div>
+            <div class="owner">
+              <span class="pn">P7</span><span class="who">Purnima</span
+              ><span class="area">LLMOps + shared Router / Prompt / Eval</span>
+            </div>
+            <div class="owner">
+              <span class="pn">P3</span><span class="who">Kartik</span
+              ><span class="area">Autonomous Code Generation</span>
+            </div>
+            <div class="owner">
+              <span class="pn">WEB</span><span class="who">Raunak</span
+              ><span class="area">Web Founder Portal (on mock data)</span>
+            </div>
+            <div class="owner">
+              <span class="pn">P4</span><span class="who">Vishal Prasad</span
+              ><span class="area">Testing &amp; Self-Healing</span>
+            </div>
+            <div class="owner">
+              <span class="pn">APP</span><span class="who">Yogesh</span
+              ><span class="area">Mobile app · Expo (on mock data)</span>
+            </div>
+          </div>
+          <div class="ruleband" data-reveal>
+            <div class="rt">The one rule that orders every dependency</div>
+            <p>
+              Every pillar (1–7) needs the <b>shared backend foundation first</b> — UDAL, BaseAgent,
+              the LLM Router + Prompt Registry, and the Orchestrator (Asit + Purnima). Until those
+              land, owners build <span class="mono">offline</span> — prompts, tools, schemas, mocked
+              tests; web &amp; mobile run on mock data and swap in the real API client later.
+            </p>
+            <div class="phasepills">
+              <span class="done">Phase 1 ✓ done — Validation Engine</span
+              ><span class="todo">Phase 2 ✗ not started</span
+              ><span class="done">Target: 10 pilot clients</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 14 · WHERE IT STANDS NOW -->
+      <section class="slide">
+        <div class="slide-inner">
+          <div class="kicker teal" data-reveal>13 · Where it stands now</div>
+          <h2 data-reveal>dev caught up once — vishal-test is already a lap ahead</h2>
+          <p class="sub" data-reveal style="margin-bottom: 22px; max-width: 78ch">
+            This deck compares <b class="amber">dev at its pre-refactor snapshot</b> (commit
+            <span class="mono">5ca394c</span>) against <b class="teal">vishal-test</b>. The branch
+            history since:
+          </p>
+          <div class="klist">
+            <div class="kitem" data-reveal>
+              <span class="ico">✓</span>
+              <div>
+                <div class="kt">PR #7 merged the refactor → dev</div>
+                <div class="kd">
+                  Live <span class="mono">dev</span> (<span class="mono">6d34c41</span>) now ships
+                  <span class="mono">backend/app</span> and dropped
+                  <span class="mono">apps/api</span>. The structure was reviewed and adopted.
+                </div>
+              </div>
+            </div>
+            <div class="kitem warn" data-reveal>
+              <span class="ico">~</span>
+              <div>
+                <div class="kt">vishal-test then moved on again</div>
+                <div class="kd">
+                  It's <b>+17 commits / 53 files</b> ahead of dev: the node_modules purge, 14 team
+                  plans, and the fleshed-out specs — dev's <b>next</b> merge.
+                </div>
+              </div>
+            </div>
+            <div class="kitem warn" data-reveal>
+              <span class="ico">~</span>
+              <div>
+                <div class="kt">dev still carries the old debt for now</div>
+                <div class="kd">
+                  <span class="mono">origin/dev</span> still tracks <b>2,701 node_modules</b> + 5
+                  <span class="mono">.DS_Store</span> until this cleanup wave lands.
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="pull" data-reveal style="margin-top: 24px">
+            The refactor is now the project's real structure — and the cleanup is right behind it.
+          </p>
+        </div>
+      </section>
+
+      <!-- 15 · VERDICT -->
+      <section class="slide verdict">
+        <div class="slide-inner">
+          <div class="kicker teal" data-reveal>14 · Verdict</div>
+          <p class="big" data-reveal>
+            The repo now tells <span class="gold">one story</span> end-to-end — structure, docs, and
+            tooling finally agree with the decisions.
+          </p>
+          <div class="vfoot">
+            <div class="vc" data-reveal>
+              <b>Aligned</b
+              ><span>Physical structure now equals the decided stack. No more lying map.</span>
+            </div>
+            <div class="vc" data-reveal>
+              <b>Runnable</b
+              ><span
+                >First backend that builds, tests, lints, and gates a PR — green from day one.</span
+              >
+            </div>
+            <div class="vc" data-reveal>
+              <b>Scoped</b
+              ><span>Everything left as a stub was deferred on purpose, not by accident.</span>
+            </div>
+          </div>
+          <p class="pull" data-reveal style="margin-top: 36px">
+            dev laid the blueprint. vishal-test poured the foundation.
+          </p>
+        </div>
+      </section>
     </div>
-  </section>
 
-  <!-- 10 · WHY NOT ALL · PRESERVED -->
-  <section class="slide">
-    <div class="slide-inner">
-      <div class="kicker teal" data-reveal>09 · Why <em style="font-style:italic">not</em> everything changed — kept on purpose</div>
-      <h2 data-reveal>What was deliberately left untouched</h2>
-      <div class="klist" style="margin-top:20px">
-        <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">The brand &amp; the npm scope</div><div class="kd">“AutoFounder AI” and the <span class="mono">@autofounder-ai</span> scope stay — only <span class="mono">frontend-web</span> → <span class="mono">frontend</span> was renamed.</div></div></div>
-        <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">The stack decisions themselves</div><div class="kd">FastAPI, Supabase, ECS, Gemini were <b>already correct</b> in dev's specs. This refactor reconciles reality to them — it does not re-litigate them.</div></div></div>
-        <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">packages/ as a TypeScript home</div><div class="kd">Kept for <span class="mono">shared</span> + <span class="mono">api-client</span>; <span class="mono">agents/db/eval/guardrails/prompts/tools</span> remain as <span class="mono">.gitkeep</span> placeholders for later.</div></div></div>
-        <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">mobile-app · website · vscode-extension · infra</div><div class="kd">Out of Phase-1 scope — left intact rather than churned.</div></div></div>
-        <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">coder-agent.md's <span class="mono">apps/*</span> references</div><div class="kd">Intentionally not migrated — they describe the <b>generated client app</b>, not this platform's own layout.</div></div></div>
-      </div>
+    <!-- chrome -->
+    <div class="dots" id="dots"></div>
+    <div class="counter"><b id="cur">01</b> / <span id="total">15</span></div>
+    <div class="hint" id="hint">← → · space · scroll · tap dots to navigate</div>
+    <div class="nav">
+      <button id="prev" aria-label="Previous">←</button>
+      <button id="next" aria-label="Next">→</button>
     </div>
-  </section>
 
-  <!-- 11 · WHY NOT ALL · PENDING -->
-  <section class="slide">
-    <div class="slide-inner">
-      <div class="kicker" data-reveal>10 · Why <em style="font-style:italic">not</em> everything changed — deferred on purpose</div>
-      <h2 data-reveal>A foundation, not the finished house</h2>
-      <p class="sub" data-reveal style="margin-bottom:20px;max-width:70ch">Phase 1 = ship a runnable, tested skeleton first; fill it in sprint by sprint. So plenty is intentionally still stubbed:</p>
-      <div class="klist">
-        <div class="kitem warn" data-reveal><span class="ico">~</span><div><div class="kt">frontend/ is still a stub</div><div class="kd">Only <span class="mono">placeholder.ts</span> exists — the <span class="mono">/admin</span> route group is a recorded <b>decision</b>, not yet built UI.</div></div></div>
-        <div class="kitem warn" data-reveal><span class="ico">~</span><div><div class="kt">Agents are skeletons</div><div class="kd">Base contract + Strategy / Research / Product-Planner stubs; orchestrator &amp; guardrails are scaffolds, not full implementations.</div></div></div>
-        <div class="kitem warn" data-reveal><span class="ico">~</span><div><div class="kt">packages/* domains are placeholders</div><div class="kd">Empty <span class="mono">.gitkeep</span> folders reserved for future sprints.</div></div></div>
-        <div class="kitem warn" data-reveal><span class="ico">~</span><div><div class="kt">node_modules still tracked (~2,701 files)</div><div class="kd">Remaining hygiene debt to purge + .gitignore — a clean follow-up, kept out of this structural PR.</div></div></div>
-      </div>
-    </div>
-  </section>
+    <script>
+      (function () {
+        const slides = [...document.querySelectorAll(".slide")];
+        const total = slides.length;
+        let i = 0,
+          lock = false;
+        const progress = document.getElementById("progress");
+        const cur = document.getElementById("cur");
+        const prevBtn = document.getElementById("prev");
+        const nextBtn = document.getElementById("next");
+        const dotsWrap = document.getElementById("dots");
+        const hint = document.getElementById("hint");
+        document.getElementById("total").textContent = String(total).padStart(2, "0");
 
-  <!-- 12 · RATIONALE TABLE -->
-  <section class="slide">
-    <div class="slide-inner">
-      <div class="kicker teal" data-reveal>11 · The decisions, with reasons</div>
-      <h2 data-reveal>Reconciliation rationale</h2>
-      <table class="rtable">
-        <thead><tr><th data-reveal>Decision</th><th data-reveal>Why it was made</th></tr></thead>
-        <tbody>
-          <tr data-reveal><td class="dec">One FastAPI backend<span class="mono">apps/* → backend/app</span></td><td class="why">The whole agent/ML ecosystem is Python-native; cross-language bridging adds latency &amp; ops complexity on the hot agent path.</td></tr>
-          <tr data-reveal><td class="dec">Modular monolith, for now<span class="mono">split deferred → Phase 4</span></td><td class="why">One thing to build, test, and deploy. Re-split into separate ECS services only when scale actually requires it.</td></tr>
-          <tr data-reveal><td class="dec">Supabase platform<span class="mono">PG + pgvector + auth + storage + realtime</span></td><td class="why">Collapses RDS + Qdrant/Pinecone + Auth0 + S3 into one hosted platform — far less operational overhead.</td></tr>
-          <tr data-reveal><td class="dec">ECS Fargate, not EKS<span class="mono">CodeDeploy blue/green</span></td><td class="why">No Kubernetes control-plane to operate for v1; serverless containers + managed blue/green deploys.</td></tr>
-          <tr data-reveal><td class="dec">organization_id<span class="mono">tenant_id → organization_id</span></td><td class="why">One consistent multi-tenant claim across JWT, per-tenant schemas, S3 prefixes, and API keys.</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+        // dots
+        slides.forEach((_, k) => {
+          const b = document.createElement("button");
+          b.addEventListener("click", () => go(k));
+          dotsWrap.appendChild(b);
+        });
+        const dots = [...dotsWrap.children];
 
-  <!-- 13 · WHERE IT STANDS NOW -->
-  <section class="slide">
-    <div class="slide-inner">
-      <div class="kicker teal" data-reveal>12 · Where it stands now</div>
-      <h2 data-reveal>The refactor was accepted — and merged</h2>
-      <p class="sub" data-reveal style="margin-bottom:22px;max-width:76ch">This deck compares <b class="amber">dev at its pre-refactor snapshot</b> (commit <span class="mono">5ca394c</span>) against <b class="teal">vishal-test</b>. Since that snapshot, the work has landed in <span class="mono">dev</span> itself:</p>
-      <div class="klist">
-        <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">PR #7 merged vishal-test → dev</div><div class="kd">Live <span class="mono">dev</span> (<span class="mono">6d34c41</span>) now ships <span class="mono">backend/app</span> and no longer carries <span class="mono">apps/api</span>.</div></div></div>
-        <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">The branches are now in sync</div><div class="kd">Today <span class="mono">dev</span> and <span class="mono">vishal-test</span> differ by just <b>3 trivial files</b> — a README, a placeholder server, and package.json.</div></div></div>
-        <div class="kitem" data-reveal><span class="ico">✓</span><div><div class="kt">“Why the change?” — answered by adoption</div><div class="kd">It wasn't merely proposed; it was reviewed and accepted as the project's real structure.</div></div></div>
-      </div>
-      <p class="pull" data-reveal style="margin-top:26px">The “older stage” is now history — dev caught up to vishal-test.</p>
-    </div>
-  </section>
+        function reveal(slide) {
+          const els = [...slide.querySelectorAll("[data-reveal]")];
+          els.forEach((e) => e.classList.remove("in"));
+          els.forEach((e, k) => setTimeout(() => e.classList.add("in"), 90 + k * 85));
+          slide.querySelectorAll("[data-count]").forEach(countUp);
+        }
 
-  <!-- 14 · VERDICT -->
-  <section class="slide verdict">
-    <div class="slide-inner">
-      <div class="kicker teal" data-reveal>13 · Verdict</div>
-      <p class="big" data-reveal>The repo now tells <span class="gold">one story</span> end-to-end — structure, docs, and tooling finally agree with the decisions.</p>
-      <div class="vfoot">
-        <div class="vc" data-reveal><b>Aligned</b><span>Physical structure now equals the decided stack. No more lying map.</span></div>
-        <div class="vc" data-reveal><b>Runnable</b><span>First backend that builds, tests, lints, and gates a PR — green from day one.</span></div>
-        <div class="vc" data-reveal><b>Scoped</b><span>Everything left as a stub was deferred on purpose, not by accident.</span></div>
-      </div>
-      <p class="pull" data-reveal style="margin-top:36px">dev laid the blueprint. vishal-test poured the foundation.</p>
-    </div>
-  </section>
+        function countUp(el) {
+          const target = parseFloat(el.dataset.count);
+          const pre = el.dataset.prefix || "";
+          const suf = el.dataset.suffix || "";
+          const dur = 1100;
+          const t0 = performance.now();
+          function fmt(n) {
+            return pre + Math.round(n).toLocaleString("en-US") + suf;
+          }
+          function step(t) {
+            const p = Math.min((t - t0) / dur, 1);
+            const e = 1 - Math.pow(1 - p, 3);
+            el.textContent = fmt(target * e);
+            if (p < 1) requestAnimationFrame(step);
+          }
+          el.textContent = fmt(0);
+          requestAnimationFrame(step);
+        }
 
-</div>
+        function go(n) {
+          if (lock || n < 0 || n >= total || n === i) return;
+          lock = true;
+          slides[i].classList.remove("active");
+          i = n;
+          slides[i].classList.add("active");
+          reveal(slides[i]);
+          progress.style.width = (i / (total - 1)) * 100 + "%";
+          cur.textContent = String(i + 1).padStart(2, "0");
+          dots.forEach((d, k) => d.classList.toggle("on", k === i));
+          prevBtn.disabled = i === 0;
+          nextBtn.disabled = i === total - 1;
+          setTimeout(() => (lock = false), 520);
+        }
+        const next = () => go(i + 1),
+          prev = () => go(i - 1);
 
-<!-- chrome -->
-<div class="dots" id="dots"></div>
-<div class="counter"><b id="cur">01</b> / <span id="total">14</span></div>
-<div class="hint" id="hint">← → · space · scroll · tap dots to navigate</div>
-<div class="nav">
-  <button id="prev" aria-label="Previous">←</button>
-  <button id="next" aria-label="Next">→</button>
-</div>
+        nextBtn.addEventListener("click", next);
+        prevBtn.addEventListener("click", prev);
 
-<script>
-(function(){
-  const slides=[...document.querySelectorAll('.slide')];
-  const total=slides.length;
-  let i=0,lock=false;
-  const progress=document.getElementById('progress');
-  const cur=document.getElementById('cur');
-  const prevBtn=document.getElementById('prev');
-  const nextBtn=document.getElementById('next');
-  const dotsWrap=document.getElementById('dots');
-  const hint=document.getElementById('hint');
-  document.getElementById('total').textContent=String(total).padStart(2,'0');
+        window.addEventListener("keydown", (e) => {
+          if (["ArrowRight", "PageDown", " "].includes(e.key)) {
+            e.preventDefault();
+            next();
+          } else if (["ArrowLeft", "PageUp"].includes(e.key)) {
+            e.preventDefault();
+            prev();
+          } else if (e.key === "Home") go(0);
+          else if (e.key === "End") go(total - 1);
+        });
 
-  // dots
-  slides.forEach((_,k)=>{
-    const b=document.createElement('button');
-    b.addEventListener('click',()=>go(k));
-    dotsWrap.appendChild(b);
-  });
-  const dots=[...dotsWrap.children];
+        // wheel (debounced)
+        let wlock = false;
+        window.addEventListener(
+          "wheel",
+          (e) => {
+            if (wlock) return;
+            if (Math.abs(e.deltaY) < 24) return;
+            wlock = true;
+            e.deltaY > 0 ? next() : prev();
+            setTimeout(() => (wlock = false), 720);
+          },
+          { passive: true },
+        );
 
-  function reveal(slide){
-    const els=[...slide.querySelectorAll('[data-reveal]')];
-    els.forEach(e=>e.classList.remove('in'));
-    els.forEach((e,k)=>setTimeout(()=>e.classList.add('in'),90+k*85));
-    slide.querySelectorAll('[data-count]').forEach(countUp);
-  }
+        // touch
+        let sy = null,
+          sx = null;
+        window.addEventListener(
+          "touchstart",
+          (e) => {
+            sy = e.touches[0].clientY;
+            sx = e.touches[0].clientX;
+          },
+          { passive: true },
+        );
+        window.addEventListener(
+          "touchend",
+          (e) => {
+            if (sy === null) return;
+            const dy = e.changedTouches[0].clientY - sy,
+              dx = e.changedTouches[0].clientX - sx;
+            if (Math.abs(dy) > 50 || Math.abs(dx) > 50) {
+              dy < -50 || dx < -50 ? next() : prev();
+            }
+            sy = sx = null;
+          },
+          { passive: true },
+        );
 
-  function countUp(el){
-    const target=parseFloat(el.dataset.count);
-    const pre=el.dataset.prefix||'';
-    const suf=el.dataset.suffix||'';
-    const dur=1100;const t0=performance.now();
-    function fmt(n){return pre+Math.round(n).toLocaleString('en-US')+suf;}
-    function step(t){
-      const p=Math.min((t-t0)/dur,1);
-      const e=1-Math.pow(1-p,3);
-      el.textContent=fmt(target*e);
-      if(p<1)requestAnimationFrame(step);
-    }
-    el.textContent=fmt(0);requestAnimationFrame(step);
-  }
+        // fade hint
+        setTimeout(() => {
+          if (hint) hint.style.opacity = "0";
+        }, 4200);
 
-  function go(n){
-    if(lock||n<0||n>=total||n===i)return;
-    lock=true;
-    slides[i].classList.remove('active');
-    i=n;
-    slides[i].classList.add('active');
-    reveal(slides[i]);
-    progress.style.width=((i)/(total-1)*100)+'%';
-    cur.textContent=String(i+1).padStart(2,'0');
-    dots.forEach((d,k)=>d.classList.toggle('on',k===i));
-    prevBtn.disabled=i===0;nextBtn.disabled=i===total-1;
-    setTimeout(()=>lock=false,520);
-  }
-  const next=()=>go(i+1), prev=()=>go(i-1);
-
-  nextBtn.addEventListener('click',next);
-  prevBtn.addEventListener('click',prev);
-
-  window.addEventListener('keydown',e=>{
-    if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();next();}
-    else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();prev();}
-    else if(e.key==='Home')go(0);
-    else if(e.key==='End')go(total-1);
-  });
-
-  // wheel (debounced)
-  let wlock=false;
-  window.addEventListener('wheel',e=>{
-    if(wlock)return;
-    if(Math.abs(e.deltaY)<24)return;
-    wlock=true; e.deltaY>0?next():prev();
-    setTimeout(()=>wlock=false,720);
-  },{passive:true});
-
-  // touch
-  let sy=null,sx=null;
-  window.addEventListener('touchstart',e=>{sy=e.touches[0].clientY;sx=e.touches[0].clientX;},{passive:true});
-  window.addEventListener('touchend',e=>{
-    if(sy===null)return;
-    const dy=e.changedTouches[0].clientY-sy, dx=e.changedTouches[0].clientX-sx;
-    if(Math.abs(dy)>50||Math.abs(dx)>50){(dy<-50||dx<-50)?next():prev();}
-    sy=sx=null;
-  },{passive:true});
-
-  // fade hint
-  setTimeout(()=>{if(hint)hint.style.opacity='0';},4200);
-
-  // init
-  progress.style.width='0%';
-  prevBtn.disabled=true;
-  dots[0].classList.add('on');
-  reveal(slides[0]);
-})();
-</script>
-</body>
+        // init
+        progress.style.width = "0%";
+        prevBtn.disabled = true;
+        dots[0].classList.add("on");
+        reveal(slides[0]);
+      })();
+    </script>
+  </body>
 </html>
