@@ -1,6 +1,7 @@
 """Integration tests for REST API endpoints (ideas, runs, gates, artifacts, feedback, cost)."""
 
 import uuid
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
@@ -52,7 +53,7 @@ def mock_udal(mock_db_session: AsyncMock) -> MagicMock:
 
 
 @pytest.fixture
-def test_client(mock_udal: MagicMock) -> TestClient:
+def test_client(mock_udal: MagicMock) -> Iterator[TestClient]:
     """FastAPI TestClient with UDAL dependency overridden."""
     app = create_app()
     app.dependency_overrides[get_udal] = lambda: mock_udal
