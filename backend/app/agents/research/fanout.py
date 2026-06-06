@@ -53,7 +53,7 @@ async def fan_out(
         s: asyncio.create_task(_call_one(call_tool, s, query, limit, per_tool_timeout))
         for s in sources
     }
-    results_raw = dict(zip(tasks.keys(), await asyncio.gather(*tasks.values())))
+    results_raw = dict(zip(tasks.keys(), await asyncio.gather(*tasks.values()), strict=True))
 
     results: list[SourceResult] = []
     attempted_fallback: set[str] = set()
