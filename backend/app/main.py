@@ -16,7 +16,9 @@ from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
+from app.core.metrics import PrometheusMiddleware, metrics_app
 from app.core.middleware import RequestIdMiddleware
+from app.core.observability import setup_tracing
 
 logger = get_logger(__name__)
 
@@ -27,7 +29,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     import asyncio  # noqa: PLC0415
 
     settings = get_settings()
-    configure_logging(settings.log_level)
+    configure_logging(settings.log_level, env=settings.app_env)
     logger.info("backend.startup", env=settings.app_env, version=__version__)
     from app.db.redis_pool import get_redis, init_redis  # noqa: PLC0415
     from app.db.session import SessionLocal  # noqa: PLC0415
@@ -76,12 +78,20 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    if settings.metrics_enabled:
+        app.add_middleware(PrometheusMiddleware)  # times every request
     app.add_middleware(RequestIdMiddleware)  # outermost — stamps request_id first
 
     register_exception_handlers(app)
 
     app.include_router(health_router, prefix="/health", tags=["health"])
     app.include_router(api_router, prefix="/v1")
+
+    # Observability (AF-024 Prometheus /metrics · AF-023 OTel tracing, gated).
+    if settings.metrics_enabled:
+        app.mount("/metrics", metrics_app())
+    setup_tracing(app, settings)
+
     return app
 
 

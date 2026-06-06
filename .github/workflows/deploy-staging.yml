@@ -1,14 +1,28 @@
 name: Deploy to UAT
 
+# Rolling deploy of the backend image to the staging (UAT) ECS service.
+# Names match the Terraform-created resources (autofounder-ai-staging-*). The ECS
+# service's deployment circuit breaker (AF-013) auto-rolls-back a failed deploy.
+# CodeDeploy blue/green is the production enhancement (see infra/codedeploy/).
+
 on:
   push:
     branches: [uat]
 
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: autofounder-ai/backend
+  ECS_CLUSTER: autofounder-ai-staging-cluster
+  ECS_SERVICE: backend
+  TASK_FAMILY: autofounder-ai-staging-backend
+  CONTAINER_NAME: backend
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: uat
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -17,33 +31,35 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to ECR
+      - name: Login to Amazon ECR
+        id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push backend image
+      - name: Build and push image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
         run: |
-          docker build \
-            --platform linux/amd64 \
-            -t ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:uat-${{ github.sha }} \
+          docker build --platform linux/amd64 \
+            -t "$REGISTRY/$ECR_REPOSITORY:sha-${{ github.sha }}" \
+            -t "$REGISTRY/$ECR_REPOSITORY:staging-latest" \
             ./backend
-          docker push ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:uat-${{ github.sha }}
+          docker push "$REGISTRY/$ECR_REPOSITORY:sha-${{ github.sha }}"
+          docker push "$REGISTRY/$ECR_REPOSITORY:staging-latest"
 
-      - name: Update ECS service
-        run: |
-          aws ecs update-service \
-            --cluster autofounderai-cluster \
-            --service autofounderai-backend-uat \
-            --force-new-deployment \
-            --region ${{ secrets.AWS_REGION }}
+      - name: Render task definition with new image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition-family: ${{ env.TASK_FAMILY }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
 
-      - name: Wait for deployment
-        run: |
-          aws ecs wait services-stable \
-            --cluster autofounderai-cluster \
-            --services autofounderai-backend-uat \
-            --region ${{ secrets.AWS_REGION }}
-
-      - name: Notify success
-        run: echo "UAT deployment complete - ${{ github.sha }}"
+      - name: Deploy (rolling, circuit-breaker rollback)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

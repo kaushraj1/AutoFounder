@@ -1,0 +1,18 @@
+# AWS CodeDeploy AppSpec for ECS blue/green (AF-022).
+# Used by amazon-ecs-deploy-task-definition (codedeploy-appspec input) once
+# blue/green is activated. <TASK_DEFINITION> is substituted at deploy time with
+# the rendered task-definition ARN.
+version: 0.0
+Resources:
+  - TargetService:
+      Type: AWS::ECS::Service
+      Properties:
+        TaskDefinition: <TASK_DEFINITION>
+        LoadBalancerInfo:
+          ContainerName: backend
+          ContainerPort: 8000
+        PlatformVersion: LATEST
+# Lifecycle hooks (optional) — wire smoke-test Lambdas to gate traffic shift:
+# Hooks:
+#   - BeforeAllowTraffic: "autofounder-ai-prod-smoketest"
+#   - AfterAllowTraffic:  "autofounder-ai-prod-verify"
