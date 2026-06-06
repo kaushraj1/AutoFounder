@@ -11,8 +11,8 @@ ENVIRONMENT="${1:-}"
 REGION="${2:-ap-south-1}"
 LOCK_TABLE="autofounder-ai-tfstate-lock"
 
-if [[ "${ENVIRONMENT}" != "staging" && "${ENVIRONMENT}" != "production" ]]; then
-  echo "Usage: $0 <staging|production> [region]" >&2
+if [[ "${ENVIRONMENT}" != "staging" && "${ENVIRONMENT}" != "production" && "${ENVIRONMENT}" != "global" ]]; then
+  echo "Usage: $0 <staging|production|global> [region]" >&2
   exit 1
 fi
 
@@ -68,6 +68,8 @@ if aws dynamodb describe-table --table-name "${LOCK_TABLE}" --region "${REGION}"
   echo "==> Lock table ${LOCK_TABLE} already exists."
 else
   echo "==> Creating DynamoDB lock table ${LOCK_TABLE}..."
+  # SSE uses the AWS-managed DynamoDB KMS key intentionally — the lock table
+  # holds only LockIDs/digests, no sensitive data, so no CMK is warranted.
   aws dynamodb create-table \
     --table-name "${LOCK_TABLE}" \
     --attribute-definitions AttributeName=LockID,AttributeType=S \

@@ -40,3 +40,27 @@ output "interface_endpoint_ids" {
   description = "Interface VPC endpoint IDs by service."
   value       = module.networking.interface_endpoint_ids
 }
+
+# --- Secrets / KMS (AF-020) -------------------------------------------------
+
+output "kms_key_arn" {
+  description = "Platform CMK ARN."
+  value       = module.secrets.kms_key_arn
+}
+
+output "secret_arns" {
+  description = "Map of secret key -> Secrets Manager secret ARN (values populated out-of-band)."
+  value       = module.secrets.secret_arns
+}
+
+# --- IAM (AF-019) -----------------------------------------------------------
+
+output "task_execution_role_arn" {
+  description = "ECS task execution role ARN (for task definitions)."
+  value       = module.iam.task_execution_role_arn
+}
+
+output "task_role_arns" {
+  description = "Map of service name -> ECS task role ARN."
+  value       = module.iam.task_role_arns
+}

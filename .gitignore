@@ -80,6 +80,12 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
+# The Terraform 'secrets' MODULE is infra-as-code (KMS + Secrets Manager resource
+# DEFINITIONS, never secret values) — re-include it despite the broad `secrets/`
+# ignore in the Environment & Secrets section above.
+!infra/terraform/modules/secrets/
+!infra/terraform/modules/secrets/**
+
 # ─── IDE & Editor ─────────────────────────────────────────────────────────────
 .vscode/
 !.vscode/extensions.json

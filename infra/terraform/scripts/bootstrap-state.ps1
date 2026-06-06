@@ -14,7 +14,7 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
-  [ValidateSet("staging", "production")]
+  [ValidateSet("staging", "production", "global")]
   [string]$Environment,
 
   [string]$Region = "ap-south-1"
@@ -79,6 +79,7 @@ if ($tableExists) {
 }
 else {
   Write-Host "==> Creating DynamoDB lock table $LockTable..."
+  # SSE uses the AWS-managed DynamoDB KMS key intentionally (lock table holds no secrets).
   aws dynamodb create-table --table-name $LockTable --attribute-definitions AttributeName=LockID,AttributeType=S --key-schema AttributeName=LockID,KeyType=HASH --billing-mode PAY_PER_REQUEST --sse-specification Enabled=true,SSEType=KMS --region $Region
   aws dynamodb wait table-exists --table-name $LockTable --region $Region
   # Point-in-time recovery so a corrupted lock table is recoverable.

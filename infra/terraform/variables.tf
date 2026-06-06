@@ -54,3 +54,15 @@ variable "flow_logs_retention_days" {
   type        = number
   default     = 30
 }
+
+variable "services" {
+  description = "ECS services that get a dedicated task role (AF-019)."
+  type        = list(string)
+  default     = ["backend", "web"]
+}
+
+variable "ecr_repository_names" {
+  description = "Shared ECR repo service names the execution role may pull (must match the global stack's ecr_repository_names)."
+  type        = list(string)
+  default     = ["backend", "web"]
+}

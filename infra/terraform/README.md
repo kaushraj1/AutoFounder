@@ -3,9 +3,16 @@
 Infrastructure-as-code for the AutoFounder AI platform on AWS (region **ap-south-1**).
 This is the root composition; reusable building blocks live under [`modules/`](modules/).
 
-> **Status:** `AF-012` networking — ✅ delivered. `AF-013` ecs, `AF-015` elasticache,
-> `AF-016` s3, `AF-017` messaging, `AF-018` alb, `AF-019` iam, `AF-020` secrets,
-> `AF-021` ecr — pending (add their `module` blocks to [`main.tf`](main.tf) as they land).
+> **Status:** ✅ delivered — `AF-012` networking, `AF-019` iam, `AF-020` secrets (per-env),
+> and `AF-021` ecr (in the [`global/`](global/) stack). ⏳ pending — `AF-013` ecs,
+> `AF-015` elasticache, `AF-016` s3, `AF-017` messaging, `AF-018` alb
+> (add their `module` blocks to [`main.tf`](main.tf) as they land).
+>
+> **Two stacks:** this directory is the **per-environment** stack (one state per
+> env: networking, iam, secrets, + future ecs/alb/cache). [`global/`](global/) is
+> the **account-global** stack (one shared state: ECR, since images are promoted
+> staging→prod by digest). Bootstrap each state target once:
+> `./scripts/bootstrap-state.sh {staging|production|global}`.
 
 > ⚠️ **Naming collision to resolve before `AF-013`:** the existing CD workflows
 > (`.github/workflows/deploy-{staging,prod}.yml`) hardcode `autofounderai-cluster`,
@@ -34,8 +41,14 @@ infra/terraform/
 ├── scripts/
 │   ├── bootstrap-state.sh      # create state bucket + lock table (Linux/macOS)
 │   └── bootstrap-state.ps1     # create state bucket + lock table (Windows)
-└── modules/
-    └── networking/             # AF-012: VPC, subnets, NAT, VPC endpoints, flow logs
+├── modules/
+│   ├── networking/             # AF-012: VPC, subnets, NAT, VPC endpoints, flow logs
+│   ├── secrets/                # AF-020: KMS CMK + Secrets Manager containers
+│   ├── iam/                    # AF-019: ECS task execution + per-service task roles
+│   └── ecr/                    # AF-021: ECR repositories (consumed by global/)
+└── global/                     # account-global stack (own state): ECR
+    ├── main.tf  backend.tf  providers.tf  variables.tf  locals.tf  outputs.tf  versions.tf
+    └── global.backend.hcl      # global state bucket + key
 ```
 
 ## Prerequisites
