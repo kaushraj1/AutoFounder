@@ -23,9 +23,7 @@ class GraphClient:
         )
 
     def upsert_node(self, label: str, properties: dict) -> str:
-        raise NotImplementedError(
-            "Graph DB not yet provisioned.  See stack.md § Open Decisions."
-        )
+        raise NotImplementedError("Graph DB not yet provisioned.  See stack.md § Open Decisions.")
 
     def upsert_edge(
         self,
@@ -34,6 +32,4 @@ class GraphClient:
         rel_type: str,
         properties: dict | None = None,
     ) -> None:
-        raise NotImplementedError(
-            "Graph DB not yet provisioned.  See stack.md § Open Decisions."
-        )
+        raise NotImplementedError("Graph DB not yet provisioned.  See stack.md § Open Decisions.")

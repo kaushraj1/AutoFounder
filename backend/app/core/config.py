@@ -38,6 +38,16 @@ class Settings(BaseSettings):
     # Authorization & OPA
     opa_url: str = "http://localhost:8181"
 
+    # AWS & Messaging (AF-034)
+    aws_region: str = "us-east-1"
+    eventbridge_bus_name: str = "autofounder-platform"
+    sqs_gate_decisions_queue_url: str | None = None
+    sqs_pillar_queues: dict[str, str] = {}
+    sqs_poll_wait_time_seconds: int = 20
+
+    # Agent Workers
+    workers_grpc_host: str = "localhost:50052"
+
     # Mutual TLS (mTLS) for internal service-to-service calls
     mtls_enabled: bool = False
     mtls_allowed_dns: str = "CN=orchestrator.internal,CN=workers.internal"

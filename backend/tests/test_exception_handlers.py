@@ -22,7 +22,6 @@ from app.core.errors import (
 )
 from app.core.middleware import RequestIdMiddleware
 
-
 # ---------------------------------------------------------------------------
 # Minimal test app
 # ---------------------------------------------------------------------------

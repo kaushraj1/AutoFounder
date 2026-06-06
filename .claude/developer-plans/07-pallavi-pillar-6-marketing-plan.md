@@ -86,7 +86,7 @@ Pillar 6 is the **Go-To-Market (GTM) automation engine**. It receives a deployed
 | Live URL | AF-043 | Prasenjit | Placeholder URL; mark CTAs `[PENDING_DEPLOY]` |
 | Prompt Registry | AF-048 | Purnima | Load Jinja2 from filesystem |
 | Guardrails | AF-046 | Unassigned | Built-in hallucination node + PII regex |
-| Redis | AF-032 | Asit | In-memory TTL dict; Postgres-based approval polling |
+| Redis | AF-032 | Somesh | In-memory TTL dict; Postgres-based approval polling |
 
 ### 2.3 Fallback Behavior Matrix
 

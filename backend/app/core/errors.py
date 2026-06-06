@@ -155,9 +155,7 @@ async def _handle_app_error(request: Request, exc: AppError) -> JSONResponse:
     )
 
 
-async def _handle_validation_error(
-    request: Request, exc: RequestValidationError
-) -> JSONResponse:
+async def _handle_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     return _make_error_response(
         request_id=_get_request_id(request),
         code=ErrorCode.VALIDATION,
@@ -167,9 +165,7 @@ async def _handle_validation_error(
     )
 
 
-async def _handle_http_exception(
-    request: Request, exc: StarletteHTTPException
-) -> JSONResponse:
+async def _handle_http_exception(request: Request, exc: StarletteHTTPException) -> JSONResponse:
     code = _HTTP_STATUS_TO_CODE.get(exc.status_code, ErrorCode.INTERNAL)
     message = exc.detail if isinstance(exc.detail, str) else "An error occurred."
     return _make_error_response(

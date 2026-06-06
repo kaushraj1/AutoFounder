@@ -91,7 +91,7 @@ Pillar 4 is the **quality-gate and self-healing engine** of the Auto-Founder AI 
 | Guardrails Pipeline | AF-046 | Unassigned | Built-in OWASP hard-block + JSON-schema validators |
 | Architect feature list | AF-040 | Kaushlendra | Skip "implements-features" judge check |
 | SonarQube instance | AF-024 infra | Asit | Skip gate; `quality_gate_passed = false` |
-| Redis | AF-032 | Asit | In-memory TTL dict for escalation pub/sub |
+| Redis | AF-032 | Somesh | In-memory TTL dict for escalation pub/sub |
 | Firecracker / gVisor | AF-043 infra | Prasenjit | Plain Docker + egress allow-list; harden Phase 2 |
 
 ### 2.3 Fallback Behavior Matrix

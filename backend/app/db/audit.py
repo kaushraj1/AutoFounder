@@ -62,9 +62,7 @@ async def emit_audit_event(
                 "resource_id": resource_id,
                 "actor": actor,
                 "outcome": outcome,
-                "metadata": (
-                    __import__("json").dumps(metadata) if metadata else "{}"
-                ),
+                "metadata": (__import__("json").dumps(metadata) if metadata else "{}"),
                 "org_id": org_id,
             },
         )

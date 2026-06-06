@@ -36,10 +36,7 @@ def _supabase_client():
             settings.supabase_service_key,
         )
     except ImportError as exc:
-        raise ImportError(
-            "supabase package not installed.  "
-            "Run: uv sync --group data"
-        ) from exc
+        raise ImportError("supabase package not installed.  Run: uv sync --group data") from exc
 
 
 class ObjectClient:

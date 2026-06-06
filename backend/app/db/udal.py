@@ -27,9 +27,11 @@ from __future__ import annotations
 
 import logging
 
+import redis.asyncio as aioredis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import Principal
+from app.db.cache import CacheClient
 from app.db.context import get_tenant_context, set_tenant_context
 from app.db.graph import GraphClient
 from app.db.object_store import ObjectClient
@@ -50,9 +52,15 @@ class CrossTenantViolation(RuntimeError):
 class UDAL:
     """Tenant-scoped façade over PostgreSQL, pgvector, graph DB, and object store."""
 
-    def __init__(self, principal: Principal, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        principal: Principal,
+        session: AsyncSession,
+        redis: aioredis.Redis | None = None,
+    ) -> None:
         self._principal = principal
         self._session = session
+        self._redis = redis
         set_tenant_context(principal.organization_id)
 
     # ------------------------------------------------------------------
@@ -124,3 +132,16 @@ class UDAL:
         """
         self._guard()
         return ObjectClient(org_id=self._principal.organization_id)
+
+    def cache(self) -> CacheClient:
+        """Tenant-scoped Redis cache client.
+
+        Raises RuntimeError if UDAL was constructed without a Redis client.
+        All keys are prefixed org:{org_id}: — cross-tenant access is impossible.
+        """
+        if self._redis is None:
+            raise RuntimeError(
+                "UDAL constructed without Redis — pass redis=get_redis() to enable cache()."
+            )
+        self._guard()
+        return CacheClient(org_id=self._principal.organization_id, redis=self._redis)

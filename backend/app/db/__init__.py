@@ -1,5 +1,6 @@
 """Database layer: async engine/session and the Unified Data Access Layer (UDAL)."""
 
+from app.db.cache import CacheClient
 from app.db.context import (
     TenantContextMissing,
     get_tenant_context,
@@ -9,6 +10,7 @@ from app.db.context import (
 )
 from app.db.graph import GraphClient
 from app.db.object_store import ObjectClient
+from app.db.redis_pool import close_redis, get_redis, init_redis
 from app.db.relational import RelationalClient
 from app.db.session import SessionLocal, engine, get_session
 from app.db.udal import UDAL, CrossTenantViolation
@@ -23,10 +25,15 @@ __all__ = [
     "VectorClient",
     "GraphClient",
     "ObjectClient",
+    "CacheClient",
     # Session
     "engine",
     "SessionLocal",
     "get_session",
+    # Redis pool
+    "init_redis",
+    "close_redis",
+    "get_redis",
     # Tenant context
     "set_tenant_context",
     "get_tenant_context",
