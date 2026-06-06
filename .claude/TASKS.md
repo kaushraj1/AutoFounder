@@ -9,14 +9,14 @@
 | Phase | Description | Total | ✅ Done | ❌ Pending |
 |-------|-------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | 11 | 11 | 0 |
-| Phase 2 | Infrastructure & Cloud | 13 | 6 | 7 |
+| Phase 2 | Infrastructure & Cloud | 13 | 10 | 3 |
 | Phase 3 | Backend — FastAPI + Agents | 26 | 11 | 15 |
 | Phase 4 | Frontend — Next.js 14 | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | 9 | 0 | 9 |
 | Phase 6 | VS Code Extension | 7 | 0 | 7 |
-| **Total** | | **78** | **28** | **50** |
+| **Total** | | **78** | **32** | **46** |
 
-> Phase 2: `AF-012/013/018/019/020/021` delivered on branch `feat/infra/terraform-networking` (validated; pending PR → `dev`). Remaining: AF-014 Supabase, AF-015 ElastiCache, AF-016 S3, AF-017 messaging, AF-022 CI/CD (CI done), AF-023 OTel (JSON logs done), AF-024 Prometheus.
+> Phase 2: **10/13 delivered** (`AF-012`,`013`,`014`,`015`,`016`,`017`,`018`,`019`,`020`,`021`) on branch `feat/infra/terraform-networking` (`terraform validate`-clean; pending PR → `dev`). Remaining: `AF-022` CI/CD (CI done, CD pending), `AF-023` OTel (JSON logs done), `AF-024` Prometheus/Grafana.
 
 ---
 
@@ -50,10 +50,10 @@
 |----|------|--------|--------|
 | AF-012 | Terraform module `networking` — VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints for S3/ECR/Secrets | `feature/terraform-networking` | ✅ Completed |
 | AF-013 | Terraform module `ecs` — ECS Fargate cluster, task definitions per service, auto-scaling target-tracking policies | `feature/terraform-ecs` | ✅ Completed |
-| AF-014 | Supabase project setup — link Supabase project (`supabase link`), configure RLS policies, pgvector extension, schema-per-tenant migrations; Supabase is hosted (no RDS provisioning required) | `feature/supabase-setup` | ❌ Pending |
-| AF-015 | Terraform module `elasticache` — Redis 7 cluster (Multi-AZ), subnet groups, auth token | `feature/terraform-elasticache` | ❌ Pending |
-| AF-016 | Terraform module `s3` — artifacts bucket, RLHF data lake, prompt-templates bucket; S3 Object Lock on audit bucket (7 yr) | `feature/terraform-s3` | ❌ Pending |
-| AF-017 | Terraform module `messaging` — Confluent Kafka cluster (primary inter-agent bus + LLMOps telemetry), EventBridge custom bus + rules, per-pillar SQS queues + DLQs, SNS notification topic | `feature/terraform-messaging` | ❌ Pending |
+| AF-014 | Supabase project setup — link Supabase project (`supabase link`), configure RLS policies, pgvector extension, schema-per-tenant migrations; Supabase is hosted (no RDS provisioning required) | `feature/supabase-setup` | ✅ Completed |
+| AF-015 | Terraform module `elasticache` — Redis 7 cluster (Multi-AZ), subnet groups, auth token | `feature/terraform-elasticache` | ✅ Completed |
+| AF-016 | Terraform module `s3` — artifacts bucket, RLHF data lake, prompt-templates bucket; S3 Object Lock on audit bucket (7 yr) | `feature/terraform-s3` | ✅ Completed |
+| AF-017 | Terraform module `messaging` — Confluent Kafka cluster (primary inter-agent bus + LLMOps telemetry), EventBridge custom bus + rules, per-pillar SQS queues + DLQs, SNS notification topic | `feature/terraform-messaging` | ✅ Completed² |
 | AF-018 | Terraform module `alb` — Application Load Balancer (L7), HTTPS listener, target groups per ECS service; CloudFront + WAF + Shield | `feature/terraform-alb` | ✅ Completed¹ |
 | AF-019 | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | ✅ Completed |
 | AF-020 | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | ✅ Completed |
@@ -63,6 +63,7 @@
 | AF-024 | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost attribution panel; LangSmith project created and wired | `feature/metrics-dashboards` | ❌ Pending |
 
 > ¹ AF-018 ships ALB + HTTPS/HTTP listeners + per-service target groups + WAFv2 (AWS managed rules). CloudFront + Shield Advanced are a documented follow-up (CloudFront needs a us-east-1 ACM cert; Shield Advanced is a paid add-on).
+> ² AF-017 ships the AWS-native bus (EventBridge + per-pillar SQS/DLQs + gate-decisions queue + SNS) the orchestrator uses. Confluent Kafka is deferred (separate provider + Confluent Cloud account).
 
 ---
 
