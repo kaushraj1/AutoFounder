@@ -56,14 +56,14 @@ Think of the project like building a house. You can't paint a room (build your a
 | Phase | Description | Lead Owner(s) | Total | ✅ Done | ❌ Pending |
 |-------|-------------|---------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | Team | 11 | 11 | 0 |
-| Phase 2 | Infrastructure & Cloud | Asit (Vishal exec) | 13 | 10 | 3 |
+| Phase 2 | Infrastructure & Cloud | Asit (Vishal exec) | 13 | 13 | 0 |
 | Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 11 | 15 |
 | Phase 4 | Frontend — Next.js 14 | Raunak | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | Yogesh | 9 | 0 | 9 |
 | Phase 6 | VS Code Extension | **Asit** | 7 | 0 | 7 |
-| **Total** | | | **78** | **32** | **46** |
+| **Total** | | | **78** | **35** | **43** |
 
-**Per-person task count:** Asit **24** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 46 pending + 32 done = **78**.
+**Per-person task count:** Asit **24** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 43 pending + 35 done = **78**.
 
 
 ---
@@ -94,7 +94,7 @@ Think of the project like building a house. You can't paint a room (build your a
 
 > AWS networking, ECS services, managed databases, messaging, CI/CD pipeline, and observability baseline. **Depends on: Phase 1 (done) → unblocked.**
 >
-> **Progress (2026-06-06, Vishal):** ✅ **10/13** — `AF-012` networking, `AF-013` ecs, `AF-014` supabase-config, `AF-015` elasticache, `AF-016` s3, `AF-017` messaging (*AWS-native EventBridge/SQS/SNS; Confluent Kafka deferred), `AF-018` alb (ALB+WAFv2; CloudFront/Shield deferred), `AF-019` iam, `AF-020` secrets, `AF-021` ecr — built + `terraform validate`-clean on branch `feat/infra/terraform-networking` (pending PR → `dev`). ECR lives in account-global stack `infra/terraform/global/`. **Remaining:** AF-022 CI/CD (CI done, CD pending), AF-023 OTel (JSON logs done), AF-024 Prometheus/Grafana.
+> **Progress (2026-06-06, Vishal):** ✅ **Phase 2 = 13/13 delivered** on branch `feat/infra/terraform-networking` (pending PR → `dev`). Terraform AF-012–021 `validate`-clean; backend observability (AF-023/024) `pytest`/`ruff`/`mypy`-clean; CD workflows (AF-022) reconciled to the real `autofounder-ai-*` resources. ECR is in the account-global stack `infra/terraform/global/`. **`*` = documented follow-ups (not regressions):** AF-017 Confluent Kafka, AF-018 CloudFront/Shield, AF-022 CodeDeploy blue/green canary (rolling CD active now) + CD-OIDC, AF-023 FireLens sidecar into the task def, AF-024 deployed Prometheus/Grafana + live LangSmith. 🔴 **Unrelated SEV-1 found:** `.env.example` had real secrets committed — scrubbed in the working tree; rotation + git-history purge still required.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
@@ -108,9 +108,9 @@ Think of the project like building a house. You can't paint a room (build your a
 | AF-019 | Asit→Vishal | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | AF-012 | 🟢 | ✅ |
 | AF-020 | Asit→Vishal | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ✅ |
 | AF-021 | Asit→Vishal | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ✅ |
-| AF-022 | Asit | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ❌ |
-| AF-023 | Asit (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ❌ |
-| AF-024 | Asit (← Purnima support) | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ❌ |
+| AF-022 | Asit→Vishal | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ✅* |
+| AF-023 | Vishal (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ✅* |
+| AF-024 | Vishal (← Purnima support) | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ✅* |
 
 ## Phase 3 — Backend (FastAPI + LangGraph + Agents)
 
@@ -239,9 +239,9 @@ _Phase 2 — Infrastructure & Cloud_
 | AF-019 | Asit→Vishal | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | AF-012 | 🟢 | ✅ |
 | AF-020 | Asit→Vishal | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ✅ |
 | AF-021 | Asit→Vishal | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ✅ |
-| AF-022 | Asit | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ❌ |
-| AF-023 | Asit (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ❌ |
-| AF-024 | Asit (← Purnima support) | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ❌ |
+| AF-022 | Asit→Vishal | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ✅* |
+| AF-023 | Vishal (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ✅* |
+| AF-024 | Vishal (← Purnima support) | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ✅* |
 
 _Phase 3a — Core API & Data Layer_
 

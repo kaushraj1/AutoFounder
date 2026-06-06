@@ -148,8 +148,8 @@ Since the snapshot above was written:
 
 - **PR #12 merged** into `dev` (merge commit `3d3266d`) — orchestrator AF-032–035 is now in `dev`.
 - **Phase 2 infra started by Vishal** on branch `feat/infra/terraform-networking` (each batch validated with real `terraform validate`; pending PR → `dev`):
-  - ✅ **10/13** — `AF-012` networking · `AF-013` ecs · `AF-014` supabase-config · `AF-015` elasticache · `AF-016` s3 · `AF-017` messaging (AWS-native; Confluent deferred) · `AF-018` alb (ALB+WAFv2; CloudFront/Shield deferred) · `AF-019` iam · `AF-020` secrets · `AF-021` ecr (account-global stack `infra/terraform/global/`).
-  - **Remaining Phase 2:** `AF-022` CI/CD (CI done, CD pending), `AF-023` OTel (JSON logs done), `AF-024` Prometheus/Grafana.
+  - ✅ **Phase 2 = 13/13 delivered** — `AF-012` networking · `AF-013` ecs · `AF-014` supabase-config · `AF-015` elasticache · `AF-016` s3 · `AF-017` messaging · `AF-018` alb · `AF-019` iam · `AF-020` secrets · `AF-021` ecr (account-global stack) · `AF-022` CI/CD (workflows reconciled, functional rolling CD) · `AF-023` OTel + JSON-log fields · `AF-024` Prometheus `/metrics` + Grafana dashboard.
+  - **Documented follow-ups** (not regressions): AF-017 Confluent Kafka · AF-018 CloudFront/Shield · AF-022 CodeDeploy blue/green canary + CD-OIDC · AF-023 FireLens sidecar in the task def · AF-024 deployed Prometheus/Grafana + live LangSmith.
   - ⚠️ Fixed a `.gitignore` trap: the broad `env/` (venv) rule had excluded `infra/terraform/env/` from every prior infra commit — backfilled the staging/production tfvars + backend configs (commit `ee7a980`).
 - Trackers synced: [`.claude/TASKS.md`](TASKS.md), [`.claude/task_assigned.md`](task_assigned.md).
 
