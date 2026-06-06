@@ -1,36 +1,7 @@
-"""Research agent (Pillar 1) — market/user/competitor/tech research."""
+"""Research Agent (Pillar 1) — AF-038."""
 
-from app.agents.base import (
-    Agent,
-    AgentInput,
-    AgentOutput,
-    ExecutionTrace,
-    Intent,
-    Plan,
-    StepEvent,
-    VerifyResult,
-)
+from app.agents.research.agent import ResearchAgent
+from app.agents.research.registry import ResearchToolRegistry
+from app.agents.research.schema import ResearchInput, ResearchOutput
 
-_TODO = "ResearchAgent logic lands in Phase 1 Sprint 1"
-
-
-class ResearchAgent(Agent):
-    """Gathers and synthesizes external research to support validation."""
-
-    id = "research.v1"
-    capabilities = ["planning", "reasoning", "tool_use", "memory"]
-
-    async def understand(self, agent_input: AgentInput) -> Intent:
-        raise NotImplementedError(_TODO)
-
-    async def plan(self, intent: Intent) -> Plan:
-        raise NotImplementedError(_TODO)
-
-    async def execute(self, plan: Plan) -> list[StepEvent]:
-        raise NotImplementedError(_TODO)
-
-    async def verify(self, output: AgentOutput) -> VerifyResult:
-        raise NotImplementedError(_TODO)
-
-    async def learn(self, trace: ExecutionTrace) -> None:
-        raise NotImplementedError(_TODO)
+__all__ = ["ResearchAgent", "ResearchToolRegistry", "ResearchInput", "ResearchOutput"]

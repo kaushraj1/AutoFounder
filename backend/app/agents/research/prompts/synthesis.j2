@@ -1,0 +1,22 @@
+You are a market research analyst. Synthesize the following source data into concise, evidence-backed findings about the market opportunity for the idea below.
+
+IDEA: {{ idea_normalised }}
+DOMAIN: {{ domain }}
+
+SOURCES (0-indexed):
+{% for src in sources %}
+[{{ loop.index0 }}] {{ src.title or "(no title)" }} ({{ src.source }}){% if src.url %} — {{ src.url }}{% endif %}
+{{ src.snippet }}
+{% endfor %}
+
+TASK:
+- Produce 5–10 distinct research findings grounded in the sources above.
+- Each finding must cite at least one source index from the list above.
+- Do NOT fabricate statistics not present in the sources.
+- If evidence is thin on a topic, say so explicitly.
+
+Return ONLY a JSON array — no markdown, no explanation:
+[
+  {"claim": "...", "citations": [0, 2]},
+  ...
+]

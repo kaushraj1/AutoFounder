@@ -52,6 +52,15 @@ class Settings(BaseSettings):
     mtls_enabled: bool = False
     mtls_allowed_dns: str = "CN=orchestrator.internal,CN=workers.internal"
 
+    # Pillar 1 — Strategy / Research (AF-037 / AF-038 / AF-039)
+    gemini_api_key: str = ""
+    strategy_model: str = "gemini-2.5-flash"
+    tavily_api_key: str = ""
+    serpapi_key: str = ""
+    crunchbase_api_key: str = ""
+    g2_api_key: str = ""
+    similarweb_api_key: str = ""
+
     # Observability (AF-023 OTel · AF-024 Prometheus/LangSmith)
     otel_enabled: bool = False
     otel_exporter_otlp_endpoint: str | None = None

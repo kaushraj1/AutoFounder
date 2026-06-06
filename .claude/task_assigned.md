@@ -57,13 +57,13 @@ Think of the project like building a house. You can't paint a room (build your a
 |-------|-------------|---------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | Team | 11 | 11 | 0 |
 | Phase 2 | Infrastructure & Cloud | Asit (Vishal exec) | 13 | 13 | 0 |
-| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 11 | 15 |
+| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 13 | 13 |
 | Phase 4 | Frontend — Next.js 14 | Raunak | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | Yogesh | 9 | 0 | 9 |
 | Phase 6 | VS Code Extension | **Asit** | 7 | 0 | 7 |
-| **Total** | | | **78** | **35** | **43** |
+| **Total** | | | **78** | **37** | **41** |
 
-**Per-person task count:** Asit **24** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 43 pending + 35 done = **78**.
+**Per-person task count:** Asit **24** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 41 pending + 37 done = **78** (Phase 2 done by Vishal; Phase 3 advanced by Somesh).
 
 
 ---
@@ -141,10 +141,10 @@ Think of the project like building a house. You can't paint a room (build your a
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-036 | **Asit / ⚪ shared** | **⭐ `BaseAgent` ABC** — `understand()`, `plan()`, `execute()`, `verify()`, `learn()`; typed error hierarchy; circuit breakers on LLM + tool calls. **Blocks ALL agents below.** | `feature/base-agent` | AF-027 | 🔴 | ❌ |
-| AF-037 | **Somesh** | Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability 0–100, bias audit, 3 pivots; SLA < 30 min | `feature/strategy-agent` | AF-036, AF-048, AF-049 | 🟡 | ❌ |
-| AF-038 | **Somesh** | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb fan-out, synthesis, citation groundedness check | `feature/research-agent` | AF-036, AF-047 | 🟡 | ❌ |
-| AF-039 | **Somesh** | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | AF-037 | 🟡 | ❌ |
+| AF-036 | **Asit / ⚪ shared** | **⭐ `BaseAgent` ABC** — `understand()`, `plan()`, `execute()`, `verify()`, `learn()`; typed error hierarchy; circuit breakers on LLM + tool calls. **Blocks ALL agents below.** | `feature/base-agent` | AF-027 | 🟢 | ✅ |
+| AF-037 | **Somesh** | Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability 0–100, bias audit, 3 pivots; SLA < 30 min | `feature/strategy-agent` | AF-036, AF-048, AF-049 | 🟢 | ✅ |
+| AF-038 | **Somesh** | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb fan-out, synthesis, citation groundedness check | `feature/research-agent` | AF-036, AF-047 | 🟢 | ✅ |
+| AF-039 | **Somesh** | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | AF-037 | 🟢 | ✅ |
 | AF-040 | **Kaushlendra** | Architect Agent (Pillar 2) — FR/NFR extraction, ERD, OpenAPI contract, stack selection, microservice boundaries, cost forecast; HITL approval gate | `feature/architect-agent` | AF-036, AF-039 | 🟡 | ❌ |
 | AF-041 | **Kartik** | Coder Agent (Pillar 3) — Frontend Specialist (Next.js 14 + Tailwind + shadcn/ui) ∥ Backend Specialist (FastAPI + SQLAlchemy + Supabase Auth + Stripe); Alembic migrations; zero lint errors; CI/CD scaffold | `feature/coder-agent` | AF-036, AF-040 | 🟡 | ❌ |
 | AF-042 | **Vishal** | Reviewer / Self-Healer Agent (Pillar 4) — static analysis, unit + integration test gen, security scans (Trivy/Semgrep/Snyk), sandbox execution, AST-aware patching, LLM-as-judge; max 5 cycles; coverage ≥ 80% | `feature/reviewer-agent` | AF-036, AF-041 | 🟡 | ❌ |
@@ -268,7 +268,7 @@ _Agent foundation + Tool Registry shell_
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-036 | Asit / ⚪ shared | **⭐ `BaseAgent` ABC** — `understand()`, `plan()`, `execute()`, `verify()`, `learn()`; typed error hierarchy; circuit breakers on LLM + tool calls. **Blocks ALL agents.** | `feature/base-agent` | AF-027 | 🔴 | ❌ |
+| AF-036 | Asit / ⚪ shared | **⭐ `BaseAgent` ABC** — `understand()`, `plan()`, `execute()`, `verify()`, `learn()`; typed error hierarchy; circuit breakers on LLM + tool calls. **Blocks ALL agents.** | `feature/base-agent` | AF-027 | 🟢 | ✅ |
 | AF-047 | Asit (shell) + all pillars (entries) | Tool Registry + tools — `ToolRegistry` singleton; research tools (Tavily, SerpAPI, Crunchbase, G2); engineering tools (GitHub, Stripe, AWS Pricing API); marketing tools (X, LinkedIn, Resend, ProductHunt) | `feature/tool-registry` | AF-027 | 🟡 | ❌ |
 
 **🟢 Do today (no blockers):** All of Phase 2 infra. Drive the **critical path** in this order:
@@ -292,9 +292,9 @@ Those turn **7 pillar owners from 🟡 to 🟢**.
 | AF-033 | Somesh | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🟢 | ✅ |
 | AF-034 | Somesh | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🟢 | ✅ |
 | AF-035 | Somesh | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🟢 | ✅ |
-| AF-037 | Somesh | Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability 0–100, bias audit, 3 pivots; SLA < 30 min | `feature/strategy-agent` | AF-036, AF-048, AF-049 | 🟡 | ❌ |
-| AF-038 | Somesh | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb fan-out, synthesis, citation groundedness check | `feature/research-agent` | AF-036, AF-047 | 🟡 | ❌ |
-| AF-039 | Somesh | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | AF-037 | 🟡 | ❌ |
+| AF-037 | Somesh | Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability 0–100, bias audit, 3 pivots; SLA < 30 min | `feature/strategy-agent` | AF-036, AF-048, AF-049 | 🟢 | ✅ |
+| AF-038 | Somesh | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb fan-out, synthesis, citation groundedness check | `feature/research-agent` | AF-036, AF-047 | 🟢 | ✅ |
+| AF-039 | Somesh | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | AF-037 | 🟢 | ✅ |
 
 **🟢 Do today (offline — no platform needed):**
 - Jinja2 **prompt templates**: market sizing (TAM/SAM/SOM), competitor discovery, persona generation, Lean Canvas, viability scoring, bias audit, pivot suggestions, PRD generation.
@@ -531,6 +531,7 @@ These are real parts of the plan/architecture with **no clear owner**. Asit to a
 
 | Date | Version | Description |
 |------|---------|-------------|
+| 2026-06-06 | 3.3.0 | AF-036 to AF-039 marked ✅ (Somesh). BaseAgent ABC, Strategy & Ideation Agent, Research Agent, Product Planner Agent — all complete on somesh-feature, pushed to origin. Pillar 1 fully unblocked. |
 | 2026-06-06 | 3.2.0 | AF-032 to AF-035 marked ✅ and assigned to Somesh. Redis integration, RunState TypedDict + StateGraph factory, HITL gate state machine, and SQS worker loop are now complete. Overload on Lead reduced. |
 | 2026-06-04 | 3.1.0 | AF-027 UDAL marked ✅ (Somesh). Implemented: context.py, audit.py, relational.py, vector.py, graph.py, object_store.py, udal.py rewrite, get_udal() dep, supabase settings. 14 unit tests, ruff+mypy clean. Phase 3 done: 2→3, pending: 24→23. Total done: 13→14. |
 | 2026-06-04 | 3.0.0 | Assigned all previously-unassigned work to **Asit**: AF-046 (Guardrails), AF-072→AF-078 (VS Code Extension), Finance & Ops/Risk agents (Phase 4). Updated roster, status overview, per-person counts (Asit 26→34, Unassigned 8→0), Part A (3d + Phase 6 owners), Part B, Part D gaps A/C/E (resolved), Part E. Added `developer-plans/11–13`. Flagged Asit overload (bus-factor 1) + delegation recommendation. |

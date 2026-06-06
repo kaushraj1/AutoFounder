@@ -19,6 +19,9 @@ dependencies = [
   "pyjwt>=2.8.0",
   "redis[hiredis]>=5.0.0",
   "boto3>=1.34.0",
+  "jinja2>=3.1.2",
+  "google-generativeai>=0.8.0",
+  "langgraph>=0.2.0",
   "prometheus-client>=0.21.0",
 ]
 
@@ -33,9 +36,10 @@ dev = [
   "fakeredis>=2.26.0",
   "grpcio-tools>=1.71.2",
   "mypy-protobuf>=5.1.0",
+  "respx>=0.21.0",
 ]
-# Installed on demand: `uv sync --group agents`, etc. Wired up in later sprints.
-agents = ["google-generativeai>=0.8.0", "langgraph>=0.2.0"]
+# Installed on demand (data/messaging/observability). langgraph + google-generativeai
+# are now core runtime deps, so there is no separate `agents` group.
 data = ["supabase>=2.9.0", "pgvector>=0.3.0"]
 messaging = ["confluent-kafka>=2.6.0"]
 observability = [
@@ -61,7 +65,8 @@ extend-exclude = ["alembic", "*_pb2.py", "*_pb2_grpc.py"]
 select = ["E", "F", "I", "UP", "B"]
 # B008: FastAPI's `param: T = Depends(...)` is the idiomatic DI pattern, not a bug.
 # UP046: Support Generic[T] classes without forcing Python 3.12-only type parameter syntax.
-ignore = ["B008", "UP046"]
+# UP047: Support generic functions without forcing Python 3.12-only type parameter syntax.
+ignore = ["B008", "UP046", "UP047"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]

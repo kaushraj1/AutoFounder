@@ -49,9 +49,9 @@ jobs:
         run: uv python install 3.12
 
       - name: Install dependencies
-        # Include the agents group so the LangGraph orchestrator tests actually
-        # run in CI (otherwise they importorskip and silently never execute).
-        run: uv sync --group agents
+        # langgraph + google-generativeai are core runtime deps, so the default
+        # sync installs everything the orchestrator tests need.
+        run: uv sync
 
       - name: Ruff lint
         run: uv run ruff check app tests

@@ -1,0 +1,43 @@
+You are a senior business analyst extracting requirements from a PRD.
+Use ONLY the PRD and Lean Canvas below. Do NOT fabricate requirements absent from these sources.
+Every requirement MUST name the exact canvas item or persona it traces to in the traces_to field.
+
+PRD TITLE: {{ prd.title }}
+PRD PROBLEM: {{ prd.problem_statement }}
+PRD GOALS:
+{% for g in prd.goals %}
+- {{ g }}
+{% endfor %}
+PRD SCOPE IN:
+{% for s in prd.scope_in %}
+- {{ s }}
+{% endfor %}
+
+LEAN CANVAS:
+- Problem: {{ canvas.problem | join("; ") }}
+- Solution: {{ canvas.solution | join("; ") }}
+- Key Metrics: {{ canvas.key_metrics | join("; ") }}
+- Revenue Streams: {{ canvas.revenue_streams | join("; ") }}
+
+PERSONAS:
+{% for p in personas %}
+- {{ p.name }}: {{ p.pain_points | join("; ") }}
+{% endfor %}
+
+TASK:
+Extract 8-15 requirements as a JSON array. Each requirement must have:
+- id: "FR-001", "FR-002", ... for functional; "NFR-001", ... for non-functional
+- kind: "functional" or "non_functional"
+- statement: one clear, testable requirement sentence
+- priority: MoSCoW — "must", "should", "could", or "wont"
+- rationale: why this requirement exists (one sentence)
+- traces_to: the exact canvas item text or persona name this requirement derives from
+
+Include at least 2 NFRs (performance, security, or scalability).
+Drop any requirement you cannot trace to a canvas item or persona.
+
+Return ONLY a JSON array — no markdown fences, no explanation:
+[
+  {"id": "FR-001", "kind": "functional", "statement": "...", "priority": "must", "rationale": "...", "traces_to": "..."},
+  ...
+]
