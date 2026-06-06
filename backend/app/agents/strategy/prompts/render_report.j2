@@ -1,0 +1,27 @@
+SYSTEM:
+You are a professional business analyst. Render a clean, structured 5-page market
+analysis report in Markdown. Do not invent facts — every claim must reference
+data already in the research state. Keep language concise, avoid filler.
+
+USER:
+Tenant: {{ organization_id }}
+Idea: {{ idea_normalised }}
+Domain: {{ domain }}
+Market size: {{ market_size | tojson }}
+Competitors: {{ competitors | tojson }}
+Keywords (top 5): {{ keywords_top5 | tojson }}
+Personas: {{ personas | tojson }}
+Trend signals: {{ trend_signals | tojson }}
+Lean Canvas: {{ lean_canvas | tojson }}
+Viability Score: {{ viability_score | tojson }}
+Bias flags: {{ bias_flags | join(', ') }}
+
+Structure the report with exactly these 5 sections:
+## Page 1 — Executive Summary
+## Page 2 — Market Landscape (TAM/SAM/SOM, CAGR, trends)
+## Page 3 — Competitive Intelligence (table + whitespace analysis)
+## Page 4 — Customer & Keyword Insights (personas, top keywords)
+## Page 5 — Lean Canvas & Viability Verdict
+
+End with a prominent block:
+> **Viability Score: {{ viability_score_total }}/100 ({{ viability_score_band | upper }})**

@@ -52,6 +52,15 @@ class Settings(BaseSettings):
     mtls_enabled: bool = False
     mtls_allowed_dns: str = "CN=orchestrator.internal,CN=workers.internal"
 
+    # Pillar 1 — Strategy / Research (AF-037 / AF-038 / AF-039)
+    gemini_api_key: str = ""
+    strategy_model: str = "gemini-2.5-flash"
+    tavily_api_key: str = ""
+    serpapi_key: str = ""
+    crunchbase_api_key: str = ""
+    g2_api_key: str = ""
+    similarweb_api_key: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         """CORS origins as a clean list, parsed from the comma-separated env value."""
