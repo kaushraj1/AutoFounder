@@ -32,8 +32,8 @@ The agent runs as a LangGraph stateful graph with a mandatory **Human-in-the-Loo
 | Sub-task | Node | Target |
 |---|---|---|
 | Ingest + validate CoderOutput | `ingest_input` | < 15 s |
-| HITL infrastructure spend approval | `hitl_spend_gate` | async (10 min timeout) |
-| VPC + subnets + security groups | `provision_networking` | < 3 min |
+| HITL infrastructure spend approval | `hitl_spend_gate` | async (15 min timeout) |
+| Attach shared foundation VPC + create product-tier overlays (SGs, ALB, target groups) | `attach_foundation_network` | < 1 min |
 | ECS Fargate cluster + services (web + api) | `provision_compute` | < 4 min |
 | RDS PostgreSQL + ElastiCache + S3 bucket | `provision_data_layer` | < 3 min |
 | AWS Secrets Manager seeding | `provision_secrets` | < 30 s |
@@ -435,7 +435,7 @@ class DevOpsState(BaseModel):
 |---|---|---|---|
 | `ingest_input` | Sequential | Deserialise + validate CoderOutput from gRPC | — (validation only) |
 | `hitl_spend_gate` | HITL / Async | Block until Founder approves AWS spend | — |
-| `provision_networking` | Sequential | Terraform: VPC, subnets, SGs, NAT, IGW | Claude Sonnet (plan gen) |
+| `attach_foundation_network` | Sequential | Read shared foundation VPC / subnet / SG outputs from Asit's modules via `terraform_remote_state`; create only product-tier overlays for this MVP (ECS task SG, RDS SG, Redis SG, ALB + ALB SG, target groups, VPC endpoints). Does **not** create VPC / subnets / NAT / IGW. | Claude Sonnet (overlay HCL gen) |
 | `provision_compute` | Sequential | Terraform: ECS Fargate cluster + services (web + api) + ALB target groups | Claude Sonnet |
 | `provision_data_layer` | Parallel branch | Terraform: RDS PostgreSQL + ElastiCache + S3 | Claude Sonnet |
 | `infra_join` | Barrier | Waits for compute + data layer | — |
@@ -464,7 +464,7 @@ from .schema import DevOpsState
 from .nodes import (
     ingest_input,
     hitl_spend_gate,
-    provision_networking,
+    attach_foundation_network,
     provision_compute,
     provision_data_layer,
     infra_join,
@@ -484,7 +484,7 @@ from .nodes import (
 from .routers import (
     route_after_ingest,
     route_after_approval,
-    route_after_networking,
+    route_after_network_attach,
     route_after_infra_join,
     route_after_secrets,
     route_after_deploy_join,
@@ -500,10 +500,10 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
     graph = StateGraph(DevOpsState)
 
     # -- Node registration --------------------------------------------------
-    graph.add_node("ingest_input",          ingest_input)
-    graph.add_node("hitl_spend_gate",       hitl_spend_gate)
-    graph.add_node("provision_networking",  provision_networking)
-    graph.add_node("provision_compute",     provision_compute)
+    graph.add_node("ingest_input",                ingest_input)
+    graph.add_node("hitl_spend_gate",             hitl_spend_gate)
+    graph.add_node("attach_foundation_network",   attach_foundation_network)
+    graph.add_node("provision_compute",           provision_compute)
     graph.add_node("provision_data_layer",  provision_data_layer)
     graph.add_node("infra_join",            infra_join)
     graph.add_node("provision_secrets",     provision_secrets)
@@ -532,20 +532,20 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- HITL spend gate → networking (sequential) -------------------------
+    # -- HITL spend gate → attach foundation network (sequential) ---------
     graph.add_conditional_edges(
         "hitl_spend_gate",
         route_after_approval,
         {
-            "provision_networking": "provision_networking",
-            "error_handler":        "error_handler",  # rejected or timed out
+            "attach_foundation_network": "attach_foundation_network",
+            "error_handler":             "error_handler",  # rejected or timed out
         },
     )
 
-    # -- Networking → compute (sequential: compute depends on VPC) ---------
+    # -- Network attach → compute + data layer (parallel) -----------------
     graph.add_conditional_edges(
-        "provision_networking",
-        route_after_networking,
+        "attach_foundation_network",
+        route_after_network_attach,
         {
             "parallel": ["provision_compute", "provision_data_layer"],
             "error_handler": "error_handler",
@@ -667,11 +667,11 @@ def route_after_ingest(state: DevOpsState) -> str:
 
 def route_after_approval(state: DevOpsState) -> str:
     if state.approval_status == ApprovalStatus.APPROVED:
-        return "provision_networking"
+        return "attach_foundation_network"
     return "error_handler"
 
 
-def route_after_networking(state: DevOpsState) -> str | list[str]:
+def route_after_network_attach(state: DevOpsState) -> str | list[str]:
     if state.fatal_error or state.vpc_config is None:
         return "error_handler"
     return "parallel"
@@ -736,11 +736,11 @@ flowchart TD
     ingest_input -->|missing services| error_handler
     ingest_input -->|ok| hitl_spend_gate
 
-    hitl_spend_gate -->|approved| provision_networking
+    hitl_spend_gate -->|approved| attach_foundation_network
     hitl_spend_gate -->|rejected / timeout| error_handler
 
-    provision_networking -->|vpc nil| error_handler
-    provision_networking -->|ok| provision_compute & provision_data_layer
+    attach_foundation_network -->|vpc nil| error_handler
+    attach_foundation_network -->|ok| provision_compute & provision_data_layer
 
     provision_compute    --> infra_join
     provision_data_layer --> infra_join
@@ -1132,20 +1132,20 @@ github_upsert_file = StructuredTool.from_function(
 # ---------------------------------------------------------------------------
 
 TOOL_REGISTRY: dict[str, list] = {
-    "ingest_input":         [],
-    "hitl_spend_gate":      [],
-    "provision_networking": [terraform_run],
-    "provision_compute":    [terraform_run],
-    "provision_data_layer": [terraform_run],
-    "provision_secrets":    [secrets_manager_create],
-    "build_task_defs":      [],                               # task def JSON generation only
-    "configure_codedeploy": [],                               # appspec generation only
-    "deploy_application":   [codedeploy_create_deployment, ecs_update_service],
-    "configure_dns_ssl":    [route53_upsert, acm_request_certificate],
-    "configure_monitoring": [],                               # CloudWatch via boto3 in node
-    "configure_cicd":       [github_upsert_file],
-    "smoke_test":           [http_health_check],
-    "render_deploy_report": [],
+    "ingest_input":                  [],
+    "hitl_spend_gate":               [],
+    "attach_foundation_network":     [terraform_run],   # only product-tier overlays; foundation VPC read via terraform_remote_state
+    "provision_compute":             [terraform_run],
+    "provision_data_layer":          [terraform_run],
+    "provision_secrets":             [secrets_manager_create],
+    "build_task_defs":               [],                               # task def JSON generation only
+    "configure_codedeploy":          [],                               # appspec generation only
+    "deploy_application":            [codedeploy_create_deployment, ecs_update_service],
+    "configure_dns_ssl":             [route53_upsert, acm_request_certificate],
+    "configure_monitoring":          [],                               # CloudWatch via boto3 in node
+    "configure_cicd":                [github_upsert_file],
+    "smoke_test":                    [http_health_check],
+    "render_deploy_report":          [],
 }
 ```
 
@@ -1169,36 +1169,53 @@ TOOL_REGISTRY: dict[str, list] = {
 
 All prompts use **Claude Sonnet** (infrastructure reasoning, Terraform plan generation) or **GPT-4o** (manifest generation, structured YAML output) per the model routing policy.
 
-### 5.1 `provision_networking` — Terraform VPC Plan
+### 5.1 `attach_foundation_network` — Terraform Foundation-VPC Attach + Product-Tier Overlays
+
+> **Scope rule**: Networking is **not** a DevOps responsibility. This node never creates a VPC, subnets, NAT, IGW, or route tables. It reads the shared foundation VPC outputs from Asit's modules (AF-012–021) via a `terraform_remote_state` data source and creates only the product-tier overlays a single MVP needs.
 
 ```jinja2
-{# packages/agents/devops/prompts/provision_networking.j2 #}
+{# packages/agents/devops/prompts/attach_foundation_network.j2 #}
 
 SYSTEM:
 You are a senior cloud infrastructure engineer generating Terraform for AWS.
-You will produce the VPC + networking Terraform module for a multi-tenant SaaS platform.
+You will produce the product-tier network overlay for ONE tenant MVP. The shared
+foundation VPC, subnets, NAT, and IGW have already been provisioned by the platform's
+foundation module (AF-012–021). DO NOT create VPC / subnet / NAT / IGW / route-table
+resources — read them from the foundation `terraform_remote_state` data source.
+
+Forbidden resources (build will fail if present):
+  aws_vpc, aws_subnet, aws_nat_gateway, aws_internet_gateway,
+  aws_route_table, aws_route_table_association, aws_eip (for NAT)
 
 Mandatory constraints:
 - Region: {{ aws_region }}
-- CIDR: 10.0.0.0/16
-- 2 public subnets (10.0.0.0/24, 10.0.1.0/24) and 2 private subnets (10.0.10.0/24, 10.0.11.0/24)
-  across 2 AZs: ap-south-1a and ap-south-1b
-- NAT Gateway in public subnet (cost-optimised: 1 NAT, not HA)
-- Internet Gateway for public subnets
-- Security groups: ALB (80, 443 inbound from 0.0.0.0/0), ECS tasks (container ports 3000/8000 from ALB SG only), Redis (6379 from ECS tasks SG only), RDS Postgres (5432 from ECS tasks SG only — no public ingress).
+- Data source: `terraform_remote_state` "foundation":
+    backend = "s3"
+    config  = { bucket = "autofounder-tf-state", key = "foundation/network.tfstate", region = "{{ aws_region }}" }
+  Consume: vpc_id, public_subnet_ids, private_subnet_ids, availability_zones,
+           nat_gateway_id, internet_gateway_id.
+- Create only these product-tier overlays for this run:
+    * ALB security group (80, 443 inbound from 0.0.0.0/0)
+    * ECS tasks security group (container ports 3000 / 8000 from ALB SG only)
+    * Redis security group (6379 from ECS tasks SG only)
+    * RDS Postgres security group (5432 from ECS tasks SG only — no public ingress)
+    * Application Load Balancer in the foundation public subnets
+    * One target group per service
+    * VPC interface endpoints (only if this run requires them: ecr.api, ecr.dkr, logs, secretsmanager)
 - Tag all resources: Tenant={{ organization_id }}, RunId={{ run_id }}, ManagedBy=terraform
 
 Rules:
 - Return ONLY the Terraform HCL (no markdown fences, no explanation).
-- Use terraform-aws-modules/vpc/aws module (version ~> 5.0).
-- Output all resource IDs as Terraform outputs.
-- Store state in S3: bucket=autofounder-tf-state, key={{ organization_id }}/{{ run_id }}/networking.tfstate
+- Output (Terraform `output` blocks): vpc_id (passthrough), public_subnet_ids, private_subnet_ids,
+  security_group_ids (map: alb, ecs_tasks, redis, rds), alb_arn, alb_dns_name, target_group_arns (map).
+- State: autofounder-tf-state/{{ organization_id }}/{{ run_id }}/network_overlays.tfstate
 
 USER:
 Tenant ID: {{ organization_id }}
 Run ID: {{ run_id }}
 Region: {{ aws_region }}
 Domain: {{ domain }}
+Services needing target groups: {{ services | map(attribute='name') | join(', ') }}
 
 Generate main.tf, variables.tf, and outputs.tf as a single HCL block with file headers as comments.
 ```
@@ -1253,8 +1270,8 @@ Generate main.tf, variables.tf, and outputs.tf.
 # packages/agents/engineering/devops/nodes/provision_data_layer.py
 async def provision_data_layer(state: DevOpsState) -> dict:
     organization_id, run_id = state.organization_id, state.run_id
-    vpc = state.vpc_config  # populated by provision_networking
-    assert vpc is not None, "provision_networking must run first"
+    vpc = state.vpc_config  # populated by attach_foundation_network (from foundation outputs)
+    assert vpc is not None, "attach_foundation_network must run first"
 
     # 1. Generate per-tenant RDS master password and stash in Secrets Manager
     #    BEFORE terraform apply (so the HCL references the secret ARN, not the
@@ -1684,9 +1701,9 @@ sequenceDiagram
     API ->> Redis: HSET devops:approval:{run_id} status=approved
     API ->> Graph: resume(DevOpsState)
 
-    Graph ->> TF: terraform apply (networking module)
-    TF ->> TF: create VPC, subnets, NAT, SGs, ALB
-    TF -->> Graph: vpc_config { vpc_id, subnet_ids, sg_ids, alb_arn }
+    Graph ->> TF: terraform apply (network_overlays module)
+    TF ->> TF: read foundation VPC outputs via terraform_remote_state; create product-tier SGs, ALB, target groups
+    TF -->> Graph: vpc_config { vpc_id (foundation), subnet_ids (foundation), sg_ids, alb_arn }
 
     par Parallel infrastructure provisioning
         Graph ->> TF: terraform apply (compute module)
@@ -1879,7 +1896,7 @@ sequenceDiagram
 | `DNSPropagationTimeout` | Route53 change not INSYNC in 60 s | Retry poll 5× at 15 s intervals; continue (DNS eventually consistent) |
 | `TLSIssuanceTimeout` | cert-manager ACME challenge > 3 min | Log warning; continue with HTTP-only live URL; alert ops |
 | `SpendApprovalRejected` | Founder clicks Reject | No AWS resources created; fatal_error + Slack |
-| `SpendApprovalTimeout` | No decision in 10 min | Slack + email alert; fatal_error; no provisioning |
+| `SpendApprovalTimeout` | No decision in 15 min | Slack + email alert; fatal_error; no provisioning |
 | `GitHubRateLimit` | 403 on workflow push | Wait 60 s; retry; if exhausted log warning and continue |
 | `SLABreach` | End-to-end > 10 min (excl. HITL) | Emit CloudWatch SLA metric; continue; alert ops |
 
@@ -1920,7 +1937,7 @@ async def error_handler(state: DevOpsState) -> dict:
     if rejection:
         reason = f"Founder rejected infrastructure spend: {state.approval_comment or 'no comment'}"
     elif timeout:
-        reason = "Infrastructure spend approval timed out after 10 minutes"
+        reason = "Infrastructure spend approval timed out after 15 minutes"
     elif failed_nodes:
         reason = "; ".join(f"{t.node}: {t.error}" for t in failed_nodes)
         if _infrastructure_partially_created(state):
@@ -1959,7 +1976,7 @@ async def _terraform_destroy_partial(state: DevOpsState) -> None:
     if state.elasticache_cluster is not None or state.rds_instance is not None:
         modules.append(("data-layer", f"infra/terraform/tenants/{state.organization_id}/data-layer"))
     if state.vpc_config is not None:
-        modules.append(("networking", f"infra/terraform/tenants/{state.organization_id}/networking"))
+        modules.append(("network_overlays", f"infra/terraform/tenants/{state.organization_id}/network_overlays"))
 
     for module_name, module_path in modules:
         logger.warning("Destroying partial infra module: %s", module_name)
@@ -2076,8 +2093,8 @@ from ..schema import DevOpsState, ApprovalStatus
 
 logger = logging.getLogger("devops.spend_gate")
 
-APPROVAL_POLL_INTERVAL_S = 30
-APPROVAL_TIMEOUT_S       = 600   # 10 minutes
+APPROVAL_POLL_INTERVAL_S = 60
+APPROVAL_TIMEOUT_S       = 900   # 15 minutes
 
 
 async def hitl_spend_gate(state: DevOpsState) -> dict:
@@ -2123,19 +2140,19 @@ import logging
 logger = logging.getLogger("devops.sla")
 
 NODE_SLA_SECONDS: dict[str, int] = {
-    "ingest_input":         15,
-    "provision_networking": 180,
-    "provision_compute":    240,
-    "provision_data_layer": 180,
-    "provision_secrets":    30,
-    "build_task_defs":      120,
-    "configure_codedeploy":  60,
-    "deploy_application":   180,
-    "configure_dns_ssl":    60,
-    "configure_monitoring": 60,
-    "configure_cicd":       60,
-    "smoke_test":           30,
-    "render_deploy_report": 60,
+    "ingest_input":               15,
+    "attach_foundation_network":  60,
+    "provision_compute":          240,
+    "provision_data_layer":       180,
+    "provision_secrets":          30,
+    "build_task_defs":            120,
+    "configure_codedeploy":       60,
+    "deploy_application":         180,
+    "configure_dns_ssl":          60,
+    "configure_monitoring":       60,
+    "configure_cicd":             60,
+    "smoke_test":                 30,
+    "render_deploy_report":       60,
 }
 
 TOTAL_SLA_SECONDS = 600   # 10 minutes (excludes async HITL gate)

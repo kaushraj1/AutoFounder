@@ -89,7 +89,7 @@ A `DevOpsOutput` (proto in `docs/architecture/Agents-Architecture/devops-agent.m
 |---|---|---|
 | `ingest_input` | < 15 s | Validate CoderOutput, normalise, compute cost estimate. |
 | `hitl_spend_gate` | async (15 min timeout) | LangGraph `interrupt_before`; founder approves AWS spend. |
-| `provision_networking` | < 3 min | Terraform: VPC, subnets, NAT, IGW, SGs. |
+| `attach_foundation_network` | < 1 min | Resolve the shared foundation VPC / subnet / NAT / IGW outputs from Asit's Terraform modules (AF-012–021) via a `terraform_remote_state` data source. DevOps does **not** create networking. It only creates product-tier overlays needed for this MVP: ECS task SG, RDS SG, Redis SG, ALB + ALB SG, target groups, VPC endpoints (if any). |
 | `provision_compute` | < 4 min | Terraform: **ECS Fargate** cluster + services (see §3). |
 | `provision_data_layer` | < 3 min | Terraform: **Amazon RDS for PostgreSQL** (private subnets, ECS-only SG, creds in Secrets Manager) + ElastiCache + S3 (see §3). |
 | `provision_secrets` | < 30 s | boto3 → AWS Secrets Manager, per-tenant prefixed names. |
@@ -112,12 +112,14 @@ A `DevOpsOutput` (proto in `docs/architecture/Agents-Architecture/devops-agent.m
   - READMEs and docstrings stay minimal — one line unless a non-obvious *why* justifies more.
   - **No emojis** anywhere: code, comments, READMEs, commit messages, PR descriptions, Slack/email templates, log lines.
 - **Tenant isolation**: every resource tagged `Tenant={organization_id}` `RunId={run_id}`; S3 paths and Secret names prefixed `{organization_id}/{run_id}/...`; per-tenant Terraform state in S3 with DynamoDB lock.
+- **Foundation networking reuse (MANDATORY)**: Networking is **not** a DevOps responsibility. Pillar 5 must consume the shared VPC / subnets / NAT / IGW from Asit's foundation Terraform modules (AF-012–021) via a `terraform_remote_state` data source. DevOps never creates a VPC, subnets, NAT, IGW, or route tables. It only authors product-tier overlays scoped to one MVP run: ECS task SG, RDS SG, Redis SG, ALB + ALB SG, target groups, and any VPC endpoints needed by this deployment. Reusing the foundation VPC is what prevents every MVP from minting its own VPC.
 - **No agent touches AWS or DB directly** — all state writes go through UDAL (`packages/db`); all infra calls go through the registered tools in `packages/agents/engineering/devops/tools.py`.
 - **Guardrails wrap every call**: input (validate CoderOutput), execution (tool allow-list + cost cap), output (no leaked secrets in report).
 - **HITL spend gate is mandatory** — never `terraform apply` before approval.
 - **Idempotency**: each node must be safe to re-run from a LangGraph checkpoint (no double-create on retry).
 - **Observability tags on every signal**: `organization_id · pillar=5 · agent_id=devops · model · run_id · env`.
 - **Zero-downtime**: production deploys are blue/green via CodeDeploy; rollback < 60 s.
+- **Image flow**: Dockerfiles are generated from the repo/stack templates, the CI/CD workflow builds images and pushes them to ECR, and ECS deploys by ECR URI. ECR stores images; it does not generate Dockerfiles.
 
 ### 2.5 Definition of done
 
@@ -149,7 +151,9 @@ The LLD was originally written against EKS + Helm + ArgoCD; `.claude/CLAUDE.md` 
 | `kubectl`, `helm` tools | **`aws ecs`, `aws codedeploy`** boto3 wrappers | follows runtime |
 | GitOps via ArgoCD sync | **GitHub Actions → ECR push → CodeDeploy** (AF-022) | platform CI/CD |
 
-The cluster topology (VPC, subnets, NAT, SGs, ALB, Route53, ACM, CloudWatch, Secrets Manager, S3) is unchanged. Keep ElastiCache Redis.
+Networking ownership is **out of scope** for the DevOps agent. The graph node is now `attach_foundation_network`: it reads the shared foundation VPC / subnet / NAT / IGW outputs from Asit's modules (AF-012–021) via `terraform_remote_state` and adds only the product-tier overlays a single MVP needs (ECS task SG, RDS SG, Redis SG, ALB + ALB SG, target groups, optional VPC endpoints). The foundation VPC is platform-owned; the DevOps agent never creates one.
+
+The image pipeline is: generate Dockerfile/templates from the repo and stack choice, build and push images to ECR, then deploy ECS services from the returned ECR URIs. Keep ElastiCache Redis.
 
 > The LLD is now in sync with this plan. If a future drift appears, the LLD wins.
 
@@ -170,7 +174,7 @@ packages/agents/engineering/devops/
 │   ├── __init__.py
 │   ├── ingest_input.py
 │   ├── hitl_spend_gate.py    # Redis poll (60 s interval), 15 min timeout (LLD §7.4)
-│   ├── provision_networking.py
+│   ├── attach_foundation_network.py  # read foundation VPC outputs via terraform_remote_state; create only product-tier SGs/ALB/target groups
 │   ├── provision_compute.py        # ECS Fargate cluster
 │   ├── provision_data_layer.py     # RDS PostgreSQL + ElastiCache + S3
 │   ├── provision_secrets.py
@@ -187,7 +191,7 @@ packages/agents/engineering/devops/
 │                             # aws_codedeploy_*, route53_upsert, acm_request,
 │                             # secrets_manager_create, http_health_check, github_upsert_file
 ├── prompts/                  # Jinja2 templates — register via AF-048 Prompt Registry
-│   ├── provision_networking.j2
+│   ├── attach_foundation_network.j2  # HCL for terraform_remote_state lookup + product-tier SG / ALB / target-group overlays
 │   ├── provision_compute.j2          # ECS Fargate variant
 │   ├── provision_data_layer.j2       # RDS + ElastiCache + S3 (Terraform HCL)
 │   ├── build_task_defs.j2            # ECS task definition JSON
@@ -201,7 +205,7 @@ packages/agents/engineering/devops/
 │   ├── cost.py               # estimated_monthly_cost_usd calculator
 │   └── tagging.py            # mandatory resource tags
 ├── terraform_templates/      # Reusable HCL modules (mirror infra/terraform/)
-│   ├── networking/
+│   ├── network_overlays/     # SGs, ALB, target groups, VPC endpoints — pulls foundation VPC via terraform_remote_state; never creates a VPC
 │   ├── ecs/
 │   ├── data-layer/
 │   ├── alb/
@@ -218,7 +222,7 @@ packages/agents/engineering/devops/
     │   ├── test_localstack_e2e.py
     │   └── test_isolation.py
     ├── golden/                  # Promptfoo + LangSmith golden sets
-    │   ├── provision_networking.yaml
+    │   ├── attach_foundation_network.yaml
     │   ├── build_task_defs.yaml
     │   ├── configure_codedeploy.yaml
     │   └── configure_cicd.yaml
@@ -242,9 +246,9 @@ You are 🟡 blocked on AF-036 `BaseAgent`, AF-027 UDAL, AF-048 Prompt Registry,
 
 ### Week 2 — Terraform templates + tool wrappers
 
-6. Write reusable HCL under `terraform_templates/` for networking, ECS Fargate, data-layer (RDS PostgreSQL + ElastiCache + S3), ALB. Each module has `main.tf`, `variables.tf`, `outputs.tf`, and the shared `backend.tf` from LLD §7.6.
+6. Write reusable HCL under `terraform_templates/`: `network_overlays/` (SGs, ALB, target groups, VPC endpoints), `ecs/`, `data-layer/` (RDS PostgreSQL + ElastiCache + S3), and `alb/`. The `network_overlays/` module **must** consume the foundation VPC / subnet IDs from Asit's modules via a `terraform_remote_state` data source — it must not contain an `aws_vpc`, `aws_subnet`, `aws_nat_gateway`, or `aws_internet_gateway` resource. Each module has `main.tf`, `variables.tf`, `outputs.tf`, and the shared `backend.tf` from LLD §7.6.
 7. `terraform plan` each module locally against your own AWS sandbox account (or LocalStack) to prove they compile.
-8. Implement `tools.py` wrappers — `terraform_run`, `aws_ecs_register_task_def`, `aws_ecs_create_service`, `codedeploy_create_application`, `codedeploy_create_deployment`, `route53_upsert`, `acm_request_certificate`, `secrets_manager_create`, `http_health_check`, `github_upsert_file`. Mock-friendly (inject a transport).
+8. Implement `tools.py` wrappers — `terraform_run`, `aws_ecr_login`, `aws_ecr_push`, `aws_ecs_register_task_def`, `aws_ecs_create_service`, `codedeploy_create_application`, `codedeploy_create_deployment`, `route53_upsert`, `acm_request_certificate`, `secrets_manager_create`, `http_health_check`, `github_upsert_file`. Mock-friendly (inject a transport).
 
 ### Week 3 — Nodes + routers + retry plumbing
 
@@ -281,10 +285,11 @@ Use this as the PR template for `feature/devops-agent`:
 - [ ] `DevOpsOutput` proto fields match LLD §8 (incl. `rds_db_instance_identifier`, `compute_target`).
 
 **Graph & routing**
-- [ ] 14 nodes + `error_handler` registered.
+- [ ] 14 nodes + `error_handler` registered (`attach_foundation_network` is the renamed networking node — no `provision_networking` left in the graph).
 - [ ] `interrupt_before=["hitl_spend_gate"]` set.
 - [ ] All parallel fan-outs join at the documented barriers (`infra_join`, `deploy_join`, `postdeploy_join`).
 - [ ] Every conditional edge can route to `error_handler`.
+- [ ] `attach_foundation_network` reads foundation VPC via `terraform_remote_state`; no `aws_vpc` / `aws_subnet` / `aws_nat_gateway` / `aws_internet_gateway` resources in any DevOps-owned HCL.
 
 **Prompts**
 - [ ] 8 templates, all use strict Jinja2 (no undefined variables).
@@ -329,7 +334,7 @@ Use this as the PR template for `feature/devops-agent`:
 | Need from | What | When |
 |---|---|---|
 | Asit | AF-027 UDAL, AF-028 FastAPI bootstrap, AF-033 `RunState`, AF-036 `BaseAgent` | Blocking — required before live integration. |
-| Asit (pair) | Share the **platform** Terraform modules (AF-012–021); reuse, don't fork. | Now — your *product* infra mirrors the *platform* infra. |
+| Asit (pair) | Share the **platform** Terraform modules and exported foundation-network outputs (AF-012–021); reuse, don't fork. | Now — your *product* infra attaches to the *platform* network rather than replacing it. |
 | Vishal (Pillar 4) | Stable shape of `CoderOutput` (already locked in `coder-agent.md`). | Reference only. |
 | Pallavi (Pillar 6) | Confirm the `DevOpsOutput` fields Marketing actually needs. | Before PR. |
 | Purnima | Register your 8 prompts in AF-048, register your task class in AF-049's router, plug your golden set into AF-050. | Before PR-merge. |
@@ -342,7 +347,7 @@ A realistic `CoderOutput` (post-Reviewer) is provided at:
 
 **`.claude/specs/pillar5-dummy-input.json`**
 
-Use it via `python run_local.py --input ../../.claude/specs/pillar5-dummy-input.json`. The file is shaped exactly to the proto in `docs/architecture/Agents-Architecture/coder-agent.md` (~L2095) and contains two services (`api-gateway`, `web`) with ECR URIs, all the IDs you need (`run_id`, `parent_run_id`, `grandparent_run_id`, `organization_id`), and the upstream artefact pointers (Architect's ERD + OpenAPI).
+Use it via `python run_local.py --input ../../.claude/specs/pillar5-dummy-input.json`. The file is shaped exactly to the proto in `docs/architecture/Agents-Architecture/coder-agent.md` (~L2095) and contains two services (`api-gateway`, `web`) with ECR URIs, all the IDs you need (`run_id`, `parent_run_id`, `grandparent_run_id`, `organization_id`), and the upstream artefact pointers (Architect's ERD + OpenAPI). The deploy path consumes those ECR image URIs; it does not derive a Dockerfile from ECR.
 
 Modify it freely while developing — keep the field names stable.
 

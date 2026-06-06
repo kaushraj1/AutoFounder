@@ -34,7 +34,8 @@
   "has_ai_services": true,
 
   "architecture_doc_s3_uri": "s3://autofounder-artefacts/tenant-acme-saas-a1b2c3d4/22222222-2222-4222-8222-222222222222/architecture.md",
-  "prisma_schema_s3_uri": "s3://autofounder-artefacts/tenant-acme-saas-a1b2c3d4/22222222-2222-4222-8222-222222222222/schema.prisma",
+  "sqlalchemy_models_s3_uri": "s3://autofounder-artefacts/tenant-acme-saas-a1b2c3d4/22222222-2222-4222-8222-222222222222/models.py",
+  "supabase_migration_s3_uri": "s3://autofounder-artefacts/tenant-acme-saas-a1b2c3d4/22222222-2222-4222-8222-222222222222/migrations/0001_init.sql",
   "openapi_yaml_s3_uri": "s3://autofounder-artefacts/tenant-acme-saas-a1b2c3d4/22222222-2222-4222-8222-222222222222/openapi.yaml",
 
   "completed_at_unix_ms": 1748952000000,
