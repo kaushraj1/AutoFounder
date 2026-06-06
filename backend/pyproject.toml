@@ -19,6 +19,7 @@ dependencies = [
   "pyjwt>=2.8.0",
   "redis[hiredis]>=5.0.0",
   "boto3>=1.34.0",
+  "prometheus-client>=0.21.0",
 ]
 
 [dependency-groups]
@@ -38,9 +39,9 @@ agents = ["google-generativeai>=0.8.0", "langgraph>=0.2.0"]
 data = ["supabase>=2.9.0", "pgvector>=0.3.0"]
 messaging = ["confluent-kafka>=2.6.0"]
 observability = [
-  "prometheus-client>=0.21.0",
   "opentelemetry-sdk>=1.28.0",
   "opentelemetry-exporter-otlp>=1.28.0",
+  "opentelemetry-instrumentation-fastapi>=0.48b0",
 ]
 
 [build-system]
