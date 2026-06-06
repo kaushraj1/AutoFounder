@@ -29,13 +29,6 @@ jobs:
             ./backend
           docker push ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:v${{ github.sha }}
 
-      - name: Tag as latest
-        run: |
-          docker tag \
-            ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:v${{ github.sha }} \
-            ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:latest
-          docker push ${{ secrets.ECR_REGISTRY }}/autofounderai/backend:latest
-
       - name: Download task definition
         run: |
           aws ecs describe-task-definition \
