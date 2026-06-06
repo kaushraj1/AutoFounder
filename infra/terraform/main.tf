@@ -35,8 +35,71 @@ module "iam" {
 
   name_prefix          = local.name_prefix
   project              = var.project
-  services             = var.services
-  ecr_repository_names = var.ecr_repository_names
+  services             = keys(var.services)
+  ecr_repository_names = keys(var.services)
   secret_arn_prefix    = module.secrets.secret_arn_prefix
   kms_key_arn          = module.secrets.kms_key_arn
+}
+
+# AF-018 — Application Load Balancer + WAF + per-service target groups.
+module "alb" {
+  source = "./modules/alb"
+
+  name_prefix       = local.name_prefix
+  environment       = var.environment
+  vpc_id            = module.networking.vpc_id
+  public_subnet_ids = module.networking.public_subnet_ids
+  default_service   = var.default_service
+  certificate_arn   = var.certificate_arn
+  enable_waf        = var.enable_waf
+
+  # Production fails closed without a cert (precondition in the alb module) and
+  # is protected from accidental deletion.
+  enable_deletion_protection = var.environment == "production"
+
+  services = {
+    for k, v in var.services : k => {
+      port              = v.port
+      health_check_path = v.health_check_path
+      host_header       = v.host_header
+      priority          = v.priority
+    }
+  }
+}
+
+# AF-013 — ECS Fargate cluster + services, wired to IAM roles, ECR images,
+# Secrets Manager, and the ALB target groups.
+module "ecs" {
+  source = "./modules/ecs"
+
+  name_prefix             = local.name_prefix
+  project                 = var.project
+  aws_region              = var.aws_region
+  vpc_id                  = module.networking.vpc_id
+  private_subnet_ids      = module.networking.private_subnet_ids
+  task_execution_role_arn = module.iam.task_execution_role_arn
+  task_role_arns          = module.iam.task_role_arns
+  alb_target_group_arns   = module.alb.target_group_arns
+  alb_security_group_id   = module.alb.alb_security_group_id
+  secret_arns             = module.secrets.secret_arns
+
+  # ECS services attach to ALB target groups, which must already be associated
+  # with a listener — force the whole ALB module to settle first.
+  depends_on = [module.alb]
+
+  services = {
+    for k, v in var.services : k => {
+      port                  = v.port
+      cpu                   = v.cpu
+      memory                = v.memory
+      desired_count         = v.desired_count
+      image_tag             = v.image_tag
+      container_environment = v.container_environment
+      secret_keys           = v.secret_keys
+      min_capacity          = v.min_capacity
+      max_capacity          = v.max_capacity
+      cpu_target            = v.cpu_target
+      memory_target         = v.memory_target
+    }
+  }
 }

@@ -56,13 +56,43 @@ variable "flow_logs_retention_days" {
 }
 
 variable "services" {
-  description = "ECS services that get a dedicated task role (AF-019)."
-  type        = list(string)
-  default     = ["backend", "web"]
+  description = "Single source of truth for app services. The map KEYS are the service names — they equal the ECR repo names (keep in sync with the global stack), the IAM task roles (AF-019), the ALB target groups (AF-018), and the ECS services (AF-013). Each service that is not the default_service MUST set a host_header so its ALB target group is routable."
+  type = map(object({
+    port                  = number
+    cpu                   = optional(number, 512)
+    memory                = optional(number, 1024)
+    desired_count         = optional(number, 2)
+    image_tag             = optional(string, "latest")
+    container_environment = optional(map(string), {})
+    secret_keys           = optional(list(string), [])
+    min_capacity          = optional(number, 2)
+    max_capacity          = optional(number, 10)
+    cpu_target            = optional(number, 70)
+    memory_target         = optional(number, 80)
+    health_check_path     = optional(string, "/")
+    host_header           = optional(string, "")
+    priority              = optional(number)
+  }))
+  default = {
+    backend = { port = 8000, health_check_path = "/health" }
+    web     = { port = 3000, host_header = "app.autofounder.ai", priority = 10 }
+  }
 }
 
-variable "ecr_repository_names" {
-  description = "Shared ECR repo service names the execution role may pull (must match the global stack's ecr_repository_names)."
-  type        = list(string)
-  default     = ["backend", "web"]
+variable "default_service" {
+  description = "Service that receives unmatched ALB traffic (must be a key in services)."
+  type        = string
+  default     = "backend"
+}
+
+variable "certificate_arn" {
+  description = "ACM certificate ARN for the ALB HTTPS listener. null = HTTP only (bring-up); supply a cert for production."
+  type        = string
+  default     = null
+}
+
+variable "enable_waf" {
+  description = "Attach WAFv2 AWS-managed rule groups to the ALB."
+  type        = bool
+  default     = true
 }

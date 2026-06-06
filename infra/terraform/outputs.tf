@@ -64,3 +64,32 @@ output "task_role_arns" {
   description = "Map of service name -> ECS task role ARN."
   value       = module.iam.task_role_arns
 }
+
+# --- ALB (AF-018) -----------------------------------------------------------
+
+output "alb_dns_name" {
+  description = "ALB DNS name — create Route 53 ALIAS records (api./app.) pointing here."
+  value       = module.alb.alb_dns_name
+}
+
+output "alb_zone_id" {
+  description = "ALB hosted zone ID (for Route 53 ALIAS records)."
+  value       = module.alb.alb_zone_id
+}
+
+output "web_acl_arn" {
+  description = "WAF web ACL ARN (null when WAF disabled)."
+  value       = module.alb.web_acl_arn
+}
+
+# --- ECS (AF-013) -----------------------------------------------------------
+
+output "ecs_cluster_name" {
+  description = "ECS cluster name (target for the deploy workflows)."
+  value       = module.ecs.cluster_name
+}
+
+output "ecs_service_names" {
+  description = "Map of service key -> ECS service name."
+  value       = module.ecs.service_names
+}
