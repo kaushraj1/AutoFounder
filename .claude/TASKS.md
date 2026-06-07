@@ -13,10 +13,10 @@
 | Phase 3 | Backend — FastAPI + Agents | 26 | 15 | 11 |
 | Phase 4 | Frontend — Next.js 14 | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | 9 | 0 | 9 |
-| Phase 6 | VS Code Extension | 7 | 0 | 7 |
-| **Total** | | **78** | **39** | **39** |
+| Phase 6 | VS Code Extension | 7 | 7 | 0 |
+| **Total** | | **78** | **46** | **32** |
 
-> Phase 2: **13/13 merged to `dev`** (PR #13). Phase 3: **15/26** done — AF-025–039 (foundation + orchestrator + BaseAgent + Pillar-1 agents); AF-040–050 pending. Documented Phase-2 follow-ups: AF-017 (Confluent), AF-018 (CloudFront/Shield), AF-022 (blue/green canary), AF-023 (FireLens sidecar), AF-024 (deployed Prometheus/Grafana + live LangSmith) — see footnotes.
+> Phase 2: **13/13 merged to `dev`** (PR #13). Phase 3: **15/26** done — AF-025–039 (foundation + orchestrator + BaseAgent + Pillar-1 agents); AF-040–050 pending. **Phase 6: 7/7** done (`feature/vscode-extension`) — full TypeScript VS Code extension (esbuild-bundled, `tsc`+ESLint+Prettier clean, 35 unit tests, `vsce package` verified); built against the AF-030/031/034 contract with graceful fallbacks where AF-031 Realtime / AF-041 Coder are still landing. Documented Phase-2 follow-ups: AF-017 (Confluent), AF-018 (CloudFront/Shield), AF-022 (blue/green canary), AF-023 (FireLens sidecar), AF-024 (deployed Prometheus/Grafana + live LangSmith) — see footnotes.
 
 ---
 
@@ -171,13 +171,13 @@
 
 | ID | Task | Branch | Status |
 |----|------|--------|--------|
-| AF-072 | Extension core — activation event, command palette scaffold, `vscode.ExtensionContext` lifecycle, Supabase Auth PKCE flow with token stored in `SecretStorage` | `feature/vscode-extension-core` | ❌ Pending |
-| AF-073 | Sidebar tree view — run list with status icons, pillar progress, live cost badge; refreshes via WebSocket subscription | `feature/vscode-sidebar` | ❌ Pending |
-| AF-074 | HITL gate notifications — VS Code notification banner on `gate.required` event; inline approve/reject action buttons | `feature/vscode-gate-notifications` | ❌ Pending |
-| AF-075 | Code generation commands — `AutoFounder: Generate Component`, `AutoFounder: Generate API Endpoint`; invokes Coder Agent, streams tokens into a new editor tab | `feature/vscode-code-gen` | ❌ Pending |
-| AF-076 | Live token streaming panel — `WebviewPanel` rendering agent step log stream in real time; follows active run | `feature/vscode-streaming-panel` | ❌ Pending |
-| AF-077 | Artifact quick-open — `AutoFounder: Open Lean Canvas`, `Open ERD`, `Open OpenAPI spec`; fetches from `GET /v1/runs/{id}/artifacts` and previews in editor | `feature/vscode-artifact-viewer` | ❌ Pending |
-| AF-078 | Extension marketplace packaging — `vsce package`, `vsce publish` pipeline in GitHub Actions; auto-bump version on merge to `main` | `feature/vscode-publish` | ❌ Pending |
+| AF-072 | Extension core — activation event, command palette scaffold, `vscode.ExtensionContext` lifecycle, Supabase Auth PKCE flow with token stored in `SecretStorage` | `feature/vscode-extension` | ✅ Completed |
+| AF-073 | Sidebar tree view — run list with status icons, pillar progress, live cost badge; refreshes via WebSocket subscription | `feature/vscode-extension` | ✅ Completed |
+| AF-074 | HITL gate notifications — VS Code notification banner on `gate.required` event; inline approve/reject action buttons | `feature/vscode-extension` | ✅ Completed |
+| AF-075 | Code generation commands — `AutoFounder: Generate Component`, `AutoFounder: Generate API Endpoint`; invokes Coder Agent, streams tokens into a new editor tab | `feature/vscode-extension` | ✅ Completed |
+| AF-076 | Live token streaming panel — `WebviewPanel` rendering agent step log stream in real time; follows active run | `feature/vscode-extension` | ✅ Completed |
+| AF-077 | Artifact quick-open — `AutoFounder: Open Lean Canvas`, `Open ERD`, `Open OpenAPI spec`; fetches from `GET /v1/runs/{id}/artifacts` and previews in editor | `feature/vscode-extension` | ✅ Completed |
+| AF-078 | Extension marketplace packaging — `vsce package`, `vsce publish` pipeline in GitHub Actions; auto-bump version on merge to `main` | `feature/vscode-extension` | ✅ Completed |
 
 ---
 
@@ -220,6 +220,7 @@ Phase 3 sub-phases: 3a (API + DB) → 3b (Orchestrator) → 3c (Agents) → 3d (
 
 | Date | Version | Author | Description |
 |------|---------|--------|-------------|
+| 2026-06-07 | 1.4.0 | Vishal | Mark Phase 6 AF-072 → AF-078 as ✅ Completed — full VS Code extension (core+PKCE auth, sidebar, gate notifications, code-gen, streaming panel, artifact quick-open, `vsce` publish workflow) on `feature/vscode-extension`; wired into pnpm workspace; tsc+ESLint+Prettier clean, 35 unit tests, `vsce package` verified. |
 | 2026-06-06 | 1.3.0 | Somesh | Mark AF-036 to AF-039 as ✅ Completed (BaseAgent, Strategy, Research, Product Planner agents shipped on somesh-feature) |
 | 2026-06-06 | 1.2.0 | Team | Mark AF-032 to AF-035 as ✅ Completed (delegated to Somesh) |
 | 2026-05-20 | 1.0.0 | Team | Initial TASKS.md — 74 tasks across 6 phases; Phase 1 marked complete from existing monorepo scaffold |

@@ -63,7 +63,7 @@ Think of the project like building a house. You can't paint a room (build your a
 | Phase 6 | VS Code Extension | **Asit** | 7 | 0 | 7 |
 | **Total** | | | **78** | **39** | **39** |
 
-**Per-person task count:** Asit **24** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 39 pending + 39 done = **78** (Phase 2 done by Vishal; Phase 3 = 15/26 via Somesh's agents).
+**Per-person task count:** Asit **24** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 32 pending + 46 done = **78** (Phase 2 done by Vishal; Phase 3 = 15/26 via Somesh's agents; Phase 6 = 7/7 built by Vishal).
 
 
 ---
@@ -197,19 +197,19 @@ Think of the project like building a house. You can't paint a room (build your a
 | AF-070 | Yogesh | LLMOps Summary screen — cost card, eval score card, last drift check; dark/light mode following system | `feature/mobile-llmops-summary` | AF-045 (data) | 🟡 | ❌ |
 | AF-071 | Yogesh | EAS Build + release — `eas.json` profiles (development, preview, production); App Store + Google Play submit via `eas submit` | `feature/eas-build-pipeline` | AF-063 | 🟢 | ❌ |
 
-## Phase 6 — VS Code Extension 🟢 (Owner: Asit — Depends on: Phase 3)
+## Phase 6 — VS Code Extension ✅ (Owner: Asit → built by Vishal — Depends on: Phase 3)
 
-> In-editor AI co-founder: run monitoring, HITL gate approvals, code-gen commands. **Owner: Asit** (reassigned 2026-06-04 from unassigned). AF-072 is 🟢 now; the rest depend on Phase 3. Plan: `developer-plans/12-asit-vscode-extension-plan.md`.
+> In-editor AI co-founder: run monitoring, HITL gate approvals, code-gen commands. Planned owner: Asit (reassigned 2026-06-04 from unassigned); **delivered 2026-06-07 by Vishal** on `feature/vscode-extension` (7/7). Plan: `developer-plans/12-asit-vscode-extension-plan.md`. Built against the AF-030/031/034 contract with the plan's intended fallbacks where AF-031 Realtime / AF-041 Coder are still landing.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-072 | Asit | Extension core — activation event, command palette scaffold, `ExtensionContext` lifecycle, Supabase Auth PKCE flow with token in `SecretStorage` | `feature/vscode-extension-core` | Phase 1 | 🟢 | ❌ |
-| AF-073 | Asit | Sidebar tree view — run list with status icons, pillar progress, live cost badge; refreshes via WebSocket | `feature/vscode-sidebar` | AF-030, AF-031 | 🔴 | ❌ |
-| AF-074 | Asit | HITL gate notifications — VS Code banner on `gate.required`; inline approve/reject buttons | `feature/vscode-gate-notifications` | AF-034 | 🔴 | ❌ |
-| AF-075 | Asit | Code-gen commands — `Generate Component`, `Generate API Endpoint`; invokes Coder Agent, streams tokens into editor tab | `feature/vscode-code-gen` | AF-041 | 🔴 | ❌ |
-| AF-076 | Asit | Live token streaming panel — `WebviewPanel` rendering agent step log stream in real time; follows active run | `feature/vscode-streaming-panel` | AF-031 | 🔴 | ❌ |
-| AF-077 | Asit | Artifact quick-open — `Open Lean Canvas`, `Open ERD`, `Open OpenAPI spec`; fetches `GET /v1/runs/{id}/artifacts`, previews in editor | `feature/vscode-artifact-viewer` | AF-030 | 🔴 | ❌ |
-| AF-078 | Asit | Marketplace packaging — `vsce package`, `vsce publish` in GitHub Actions; auto-bump version on merge to `main` | `feature/vscode-publish` | AF-072 | 🟡 | ❌ |
+| AF-072 | Asit → Vishal | Extension core — activation event, command palette scaffold, `ExtensionContext` lifecycle, Supabase Auth PKCE flow with token in `SecretStorage` | `feature/vscode-extension` | Phase 1 | 🟢 | ✅ |
+| AF-073 | Asit → Vishal | Sidebar tree view — run list with status icons, pillar progress, live cost badge; refreshes via WebSocket | `feature/vscode-extension` | AF-030, AF-031 | 🟢 | ✅ |
+| AF-074 | Asit → Vishal | HITL gate notifications — VS Code banner on `gate.required`; inline approve/reject buttons | `feature/vscode-extension` | AF-034 | 🟢 | ✅ |
+| AF-075 | Asit → Vishal | Code-gen commands — `Generate Component`, `Generate API Endpoint`; invokes Coder Agent, streams tokens into editor tab | `feature/vscode-extension` | AF-041 | 🟢 | ✅ |
+| AF-076 | Asit → Vishal | Live token streaming panel — `WebviewPanel` rendering agent step log stream in real time; follows active run | `feature/vscode-extension` | AF-031 | 🟢 | ✅ |
+| AF-077 | Asit → Vishal | Artifact quick-open — `Open Lean Canvas`, `Open ERD`, `Open OpenAPI spec`; fetches `GET /v1/runs/{id}/artifacts`, previews in editor | `feature/vscode-extension` | AF-030 | 🟢 | ✅ |
+| AF-078 | Asit → Vishal | Marketplace packaging — `vsce package`, `vsce publish` in GitHub Actions; auto-bump version on merge to `main` | `feature/vscode-extension` | AF-072 | 🟢 | ✅ |
 
 ---
 

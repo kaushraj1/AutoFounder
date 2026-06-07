@@ -154,3 +154,14 @@ Since the snapshot above was written:
 - Trackers synced: [`.claude/TASKS.md`](TASKS.md), [`.claude/task_assigned.md`](task_assigned.md).
 
 §0–§7 above reflect the pre-infra state and are kept for reference.
+
+---
+
+## 9. Update — 2026-06-07 (Phase 6 VS Code Extension complete)
+
+- **Phase 6 = 7/7 delivered** by Vishal on `feature/vscode-extension` (was scaffold-only per §2/§6). The `vscode-extension/` package is now a real, bundled TypeScript extension:
+  - `AF-072` core — activation/deactivate, command palette, activity-bar view, **Supabase Auth PKCE** sign-in with the JWT in **SecretStorage** (+ dev-token fallback); typed, envelope-aware REST client.
+  - `AF-073` sidebar tree (status icons, pillar progress, live cost badge) · `AF-074` HITL gate banners (approve/reject → `POST …/gates/…`) · `AF-075` `Generate Component`/`Generate API Endpoint` streaming into a new tab · `AF-076` `WebviewPanel` live stream (WebSocket `/v1/runs/{id}/stream` + polling fallback, strict CSP+nonce) · `AF-077` Lean Canvas/ERD/OpenAPI quick-open · `AF-078` `vsce` package/publish GitHub Actions with auto patch-bump.
+  - Wired into `pnpm-workspace.yaml` (it was missing); `.gitignore` updated for `*.vsix` + the extension's committed `.vscode/`.
+  - **Verified green:** `tsc --noEmit`, ESLint, Prettier, **35** `node:test` unit tests, esbuild bundle (`dist/extension.js`), and `vsce package` (clean 32 KB `.vsix`).
+- **Honest scope note:** built against the AF-030 REST + AF-031 Realtime + AF-034 HITL contract. Because AF-031 Realtime is scaffold-only and AF-041 Coder Agent isn't built, the extension uses the plan's **intended fallbacks** (REST polling instead of live WS; a labelled placeholder for code-gen) — these activate automatically once the backend lands, no client change needed.
