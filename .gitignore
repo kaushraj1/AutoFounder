@@ -151,6 +151,13 @@ web-build/
 # ─── VS Code Extension ────────────────────────────────────────────────────────
 *.vsix
 vscode-extension/out/
+vscode-extension/.vscode-test/
+
+# The extension ships its own debug config (.vscode/launch.json + tasks.json).
+# The IDE section's `.vscode/` rule ignores it and the root re-includes above are
+# path-anchored (root-only), so re-include the extension's .vscode explicitly.
+!vscode-extension/.vscode/
+!vscode-extension/.vscode/**
 
 # ─── Misc ─────────────────────────────────────────────────────────────────────
 *.zip

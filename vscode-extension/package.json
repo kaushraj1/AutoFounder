@@ -1,19 +1,235 @@
 {
-  "name": "@autofounder-ai/vscode-extension",
+  "name": "autofounder-ai",
+  "displayName": "AutoFounder AI",
+  "description": "Your in-IDE AI co-founder — monitor runs, approve HITL gates, generate code, and open artifacts without leaving VS Code.",
+  "version": "0.1.0",
   "private": true,
-  "version": "0.0.0",
+  "publisher": "euron-autofounder",
+  "license": "UNLICENSED",
   "engines": {
     "vscode": "^1.85.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/euron-sudh/PROJECT-1-AutoFounder-AI.git",
+    "directory": "vscode-extension"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "keywords": [
+    "autofounder",
+    "ai",
+    "agents",
+    "startup",
+    "llmops"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onUri"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "autofounder",
+          "title": "AutoFounder AI",
+          "icon": "media/sidebar.svg"
+        }
+      ]
+    },
+    "views": {
+      "autofounder": [
+        {
+          "id": "autofounder.runs",
+          "name": "Runs",
+          "contextualTitle": "AutoFounder AI"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "autofounder.runs",
+        "contents": "Sign in to your AutoFounder AI workspace to monitor runs.\n[Sign In](command:autofounder.signIn)\n[Sign In with Token (dev)](command:autofounder.signInWithToken)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "autofounder.signIn",
+        "title": "AutoFounder: Sign In",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "autofounder.signInWithToken",
+        "title": "AutoFounder: Sign In with Token (dev)"
+      },
+      {
+        "command": "autofounder.signOut",
+        "title": "AutoFounder: Sign Out",
+        "icon": "$(sign-out)"
+      },
+      {
+        "command": "autofounder.refreshRuns",
+        "title": "AutoFounder: Refresh Runs",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "autofounder.submitIdea",
+        "title": "AutoFounder: Submit New Idea",
+        "icon": "$(add)"
+      },
+      {
+        "command": "autofounder.openStream",
+        "title": "AutoFounder: Open Live Stream"
+      },
+      {
+        "command": "autofounder.decideGate",
+        "title": "AutoFounder: Approve / Reject Gate"
+      },
+      {
+        "command": "autofounder.cancelRun",
+        "title": "AutoFounder: Cancel Run",
+        "icon": "$(stop-circle)"
+      },
+      {
+        "command": "autofounder.generateComponent",
+        "title": "AutoFounder: Generate Component"
+      },
+      {
+        "command": "autofounder.generateApiEndpoint",
+        "title": "AutoFounder: Generate API Endpoint"
+      },
+      {
+        "command": "autofounder.openLeanCanvas",
+        "title": "AutoFounder: Open Lean Canvas"
+      },
+      {
+        "command": "autofounder.openErd",
+        "title": "AutoFounder: Open ERD"
+      },
+      {
+        "command": "autofounder.openOpenApiSpec",
+        "title": "AutoFounder: Open OpenAPI Spec"
+      },
+      {
+        "command": "autofounder.openArtifact",
+        "title": "AutoFounder: Open Artifact"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "autofounder.submitIdea",
+          "when": "view == autofounder.runs",
+          "group": "navigation@1"
+        },
+        {
+          "command": "autofounder.refreshRuns",
+          "when": "view == autofounder.runs",
+          "group": "navigation@2"
+        },
+        {
+          "command": "autofounder.signOut",
+          "when": "view == autofounder.runs && autofounder.authenticated",
+          "group": "overflow@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "autofounder.openStream",
+          "when": "view == autofounder.runs && viewItem == run",
+          "group": "inline@1"
+        },
+        {
+          "command": "autofounder.cancelRun",
+          "when": "view == autofounder.runs && viewItem == run",
+          "group": "inline@2"
+        },
+        {
+          "command": "autofounder.decideGate",
+          "when": "view == autofounder.runs && viewItem == gate",
+          "group": "inline@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "autofounder.openStream",
+          "when": "false"
+        },
+        {
+          "command": "autofounder.decideGate",
+          "when": "false"
+        },
+        {
+          "command": "autofounder.cancelRun",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AutoFounder AI",
+      "properties": {
+        "autofounder.apiBaseUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "markdownDescription": "Base URL of the AutoFounder AI backend (without the `/v1` suffix). Example: `https://api.autofounder.ai`."
+        },
+        "autofounder.supabaseUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Your Supabase project URL, used for the Auth PKCE sign-in flow. Example: `https://xxxx.supabase.co`."
+        },
+        "autofounder.supabaseAnonKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Supabase **anon** (public) key. This is a public client key — never paste a service-role key here. The signed-in JWT is stored separately in VS Code SecretStorage."
+        },
+        "autofounder.authProvider": {
+          "type": "string",
+          "default": "github",
+          "enum": [
+            "github",
+            "google",
+            "azure"
+          ],
+          "description": "OAuth provider to use for the Supabase Auth PKCE sign-in flow."
+        },
+        "autofounder.pollIntervalSeconds": {
+          "type": "number",
+          "default": 8,
+          "minimum": 3,
+          "maximum": 120,
+          "description": "Fallback polling interval (seconds) used for run/stream updates when the live WebSocket is unavailable."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "node esbuild.mjs --production",
+    "build": "node esbuild.mjs --production",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "build:tests": "node esbuild.mjs --tests",
+    "test": "node esbuild.mjs --tests && node --test dist/test/all.test.js",
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
+    "@types/node": "^18.19.0",
+    "@types/vscode": "^1.85.0",
+    "@types/ws": "^8.5.13",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.24.2",
     "eslint": "^9.19.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.22.0"
-  },
-  "scripts": {
-    "dev": "node -e \"console.log('vscode-extension: scaffold in Phase P10 — placeholder');\"",
-    "lint": "eslint .",
-    "format": "prettier --write ."
   }
 }
