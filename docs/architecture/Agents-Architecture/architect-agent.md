@@ -1,6 +1,6 @@
-# Low-Level Design — Architect Agent
+﻿# Low-Level Design â€” Architect Agent
 
-> **Phase**: Phase 1 — Validation Engine (Active) / Phase 2 — MVP Builder (Upcoming)
+> **Phase**: Phase 1 â€” Validation Engine (Active) / Phase 2 â€” MVP Builder (Upcoming)
 > **SLA**: < 45 minutes end-to-end (excluding async Founder Approval gate)
 > **Owner**: Auto-Founder AI Platform Team | product@euron.one
 
@@ -57,7 +57,7 @@ Ideas scored `reject` by the Strategist Agent are never forwarded here. Ideas sc
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# packages/agents/architect/schema.py
+# backend/app/agents/architect/schema.py
 
 from __future__ import annotations
 
@@ -253,14 +253,14 @@ class MicroserviceMap(BaseModel):
 class AWSServiceCost(BaseModel):
     service: str        # e.g. "ECS Fargate", "Supabase (PG + pgvector)", "ElastiCache Redis"
     monthly_usd: float
-    assumptions: str    # e.g. "2 × 0.25 vCPU / 0.5 GB Fargate tasks, Supabase Pro plan, 20GB storage"
+    assumptions: str    # e.g. "2 Ã— 0.25 vCPU / 0.5 GB Fargate tasks, Supabase Pro plan, 20GB storage"
 
 
 class AWSCostForecast(BaseModel):
     monthly_total_usd: float
     cogs_per_mvp_inr: float
     line_items: list[AWSServiceCost]
-    cost_within_target: bool         # COGS target: < ₹500/MVP per CLAUDE.md
+    cost_within_target: bool         # COGS target: < â‚¹500/MVP per CLAUDE.md
 
     @model_validator(mode="after")
     def check_cogs_target(self) -> AWSCostForecast:
@@ -281,7 +281,7 @@ class ScalingRule(BaseModel):
 
 
 class ScalingPlan(BaseModel):
-    baseline_pods: dict[str, int]    # service_name → initial pod count
+    baseline_pods: dict[str, int]    # service_name â†’ initial pod count
     max_pods: dict[str, int]
     rules: list[ScalingRule]
     load_test_target: str            = "Product Hunt spike (sudden burst 500 concurrent users)"
@@ -404,25 +404,25 @@ class ArchitectState(BaseModel):
 
 | Node ID | Type | Description | Model |
 |---|---|---|---|
-| `ingest_input` | Sequential | Deserialise + validate StrategistOutput from gRPC | — (validation only) |
+| `ingest_input` | Sequential | Deserialise + validate StrategistOutput from gRPC | â€” (validation only) |
 | `extract_requirements` | Sequential | Derive FRs + NFRs from idea + Lean Canvas | Claude Sonnet |
 | `design_db_schema` | Parallel branch | ERD + SQLAlchemy models + Supabase migration SQL | Claude Sonnet |
 | `design_api_contract` | Parallel branch | OpenAPI 3.1 YAML generation | Claude Sonnet |
 | `select_tech_stack` | Parallel branch | Stack recommendation with rationale | Claude Sonnet |
 | `plan_auth_strategy` | Parallel branch | Auth flows, RBAC, token policy | Claude Sonnet |
-| `parallel_join` | Barrier | Waits for all 4 parallel design nodes | — |
+| `parallel_join` | Barrier | Waits for all 4 parallel design nodes | â€” |
 | `define_microservice_boundaries` | Sequential | Service decomposition + dependency graph | Claude Sonnet |
 | `forecast_aws_costs` | Sequential | Per-service AWS Pricing API lookup + COGS calc | GPT-4o |
 | `plan_scaling` | Sequential | HPA rules, pod baseline, load-test target | GPT-4o |
-| `llm_judge_review` | Sequential | Second LLM scores all artefacts (0–100) | Claude Sonnet |
-| `founder_approval_gate` | HITL / Async | Blocks until Founder approves or 15 min timeout | — |
+| `llm_judge_review` | Sequential | Second LLM scores all artefacts (0â€“100) | Claude Sonnet |
+| `founder_approval_gate` | HITL / Async | Blocks until Founder approves or 15 min timeout | â€” |
 | `render_architecture_doc` | Sequential | Assembles final Markdown architecture document | GPT-4o |
-| `error_handler` | Error sink | Retries or escalates failed nodes | — |
+| `error_handler` | Error sink | Retries or escalates failed nodes | â€” |
 
 ### 3.2 Graph definition
 
 ```python
-# packages/agents/architect/graph.py
+# backend/app/agents/architect/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -477,7 +477,7 @@ def build_architect_graph(checkpointer: PostgresSaver) -> StateGraph:
     # -- Entry point --------------------------------------------------------
     graph.set_entry_point("ingest_input")
 
-    # -- Ingest → requirements (sequential) --------------------------------
+    # -- Ingest â†’ requirements (sequential) --------------------------------
     graph.add_conditional_edges(
         "ingest_input",
         route_after_ingest,
@@ -487,7 +487,7 @@ def build_architect_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- Requirements → fan-out to parallel design branches ----------------
+    # -- Requirements â†’ fan-out to parallel design branches ----------------
     graph.add_conditional_edges(
         "extract_requirements",
         route_after_requirements,
@@ -569,7 +569,7 @@ def build_architect_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# packages/agents/architect/routers.py
+# backend/app/agents/architect/routers.py
 
 def route_after_ingest(state: ArchitectState) -> str:
     if state.fatal_error:
@@ -649,7 +649,7 @@ flowchart TD
     plan_scaling --> llm_judge_review
 
     llm_judge_review -->|passed| founder_approval_gate
-    llm_judge_review -->|retry ≤ 2| llm_judge_review
+    llm_judge_review -->|retry â‰¤ 2| llm_judge_review
     llm_judge_review -->|retries exhausted| error_handler
 
     founder_approval_gate -->|approved| render_architecture_doc
@@ -675,7 +675,7 @@ flowchart TD
 ### 4.1 Tool definitions (LangChain-compatible)
 
 ```python
-# packages/agents/architect/tools.py
+# backend/app/agents/architect/tools.py
 
 import os
 import httpx
@@ -878,14 +878,14 @@ TOOL_REGISTRY: dict[str, list] = {
 
 All prompts use **Claude Sonnet** (architecture reasoning) or **GPT-4o** (structured data, cost math, doc assembly) per the model routing policy.
 
-### 5.1 `extract_requirements` — Requirements Extraction
+### 5.1 `extract_requirements` â€” Requirements Extraction
 
 ```jinja2
-{# packages/agents/architect/prompts/extract_requirements.j2 #}
+{# backend/app/agents/architect/prompts/extract_requirements.j2 #}
 
 SYSTEM:
 You are a senior software architect extracting requirements for a SaaS product.
-Derive requirements from the validated idea and Lean Canvas only — do not invent features.
+Derive requirements from the validated idea and Lean Canvas only â€” do not invent features.
 Use MoSCoW prioritisation (must_have / should_have / nice_to_have).
 
 Rules:
@@ -925,14 +925,14 @@ Return JSON with two keys:
   }
 }
 
-Produce 8–15 functional requirements covering: auth, core CRUD, reporting, integrations,
+Produce 8â€“15 functional requirements covering: auth, core CRUD, reporting, integrations,
 admin panel, billing, and any domain-specific features evident from the Lean Canvas.
 ```
 
-### 5.2 `design_db_schema` — Database Schema Design
+### 5.2 `design_db_schema` â€” Database Schema Design
 
 ```jinja2
-{# packages/agents/architect/prompts/design_db_schema.j2 #}
+{# backend/app/agents/architect/prompts/design_db_schema.j2 #}
 
 SYSTEM:
 You are a principal database engineer designing a production PostgreSQL schema.
@@ -943,8 +943,8 @@ Every foreign key must have an index. Use snake_case for all names.
 
 Rules:
 - Return ONLY valid JSON, no markdown fences.
-- Emit a complete SQLAlchemy 2.x models file (as a string) — declarative `DeclarativeBase`, typed `Mapped[...]` columns, explicit `__tablename__` per entity.
-- Emit a complete Supabase migration SQL file (as a string) — `CREATE TABLE` statements + `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` + `CREATE POLICY` per user-facing table (organization_id isolation).
+- Emit a complete SQLAlchemy 2.x models file (as a string) â€” declarative `DeclarativeBase`, typed `Mapped[...]` columns, explicit `__tablename__` per entity.
+- Emit a complete Supabase migration SQL file (as a string) â€” `CREATE TABLE` statements + `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` + `CREATE POLICY` per user-facing table (organization_id isolation).
 - Emit an ERD as a Mermaid erDiagram block (as a string).
 - Do NOT cross schemas in foreign keys (schema-per-tenant isolation).
 - Enable `pgvector` extension in the migration if any entity has an `embedding` column.
@@ -978,10 +978,10 @@ Design constraints:
 - Include an AuditLog entity for 7-year retention compliance.
 ```
 
-### 5.3 `design_api_contract` — OpenAPI 3.1 Specification
+### 5.3 `design_api_contract` â€” OpenAPI 3.1 Specification
 
 ```jinja2
-{# packages/agents/architect/prompts/design_api_contract.j2 #}
+{# backend/app/agents/architect/prompts/design_api_contract.j2 #}
 
 SYSTEM:
 You are a senior API designer. Generate a complete OpenAPI 3.1 specification for
@@ -1005,7 +1005,7 @@ Functional requirements:
 {{ functional_requirements | tojson }}
 DB entities: {{ db_schema.entities | map(attribute='name') | join(', ') }}
 
-Design 15–25 REST endpoints covering:
+Design 15â€“25 REST endpoints covering:
 - Auth: POST /auth/login, POST /auth/refresh, POST /auth/logout
 - Users: CRUD + role management
 - Core domain entities (derive from FRs and DB entities)
@@ -1021,10 +1021,10 @@ Return:
 }
 ```
 
-### 5.4 `select_tech_stack` — Technology Stack Selection
+### 5.4 `select_tech_stack` â€” Technology Stack Selection
 
 ```jinja2
-{# packages/agents/architect/prompts/select_tech_stack.j2 #}
+{# backend/app/agents/architect/prompts/select_tech_stack.j2 #}
 
 SYSTEM:
 You are a staff engineer selecting a production tech stack. Apply the model routing policy:
@@ -1041,8 +1041,8 @@ Mandatory constraints from platform architecture:
 - Object storage: Supabase Storage (app tier) + AWS S3 (data lake / 7-yr audit)
 - Auth: Supabase Auth (OAuth 2.0 + SAML 2.0 via SSO add-on)
 - Compute target: AWS ECS Fargate (multi-AZ, behind ALB)
-- CI/CD: GitHub Actions → AWS CodeDeploy (ECS blue/green)
-- These are fixed — do not propose alternatives for them.
+- CI/CD: GitHub Actions â†’ AWS CodeDeploy (ECS blue/green)
+- These are fixed â€” do not propose alternatives for them.
 
 USER:
 Idea: {{ idea_normalised }}
@@ -1071,10 +1071,10 @@ Return:
 }
 ```
 
-### 5.5 `plan_auth_strategy` — Authentication & Authorisation Strategy
+### 5.5 `plan_auth_strategy` â€” Authentication & Authorisation Strategy
 
 ```jinja2
-{# packages/agents/architect/prompts/plan_auth_strategy.j2 #}
+{# backend/app/agents/architect/prompts/plan_auth_strategy.j2 #}
 
 SYSTEM:
 You are a security architect designing the auth system for a multi-tenant SaaS platform.
@@ -1117,21 +1117,21 @@ Return:
 }
 ```
 
-### 5.6 `define_microservice_boundaries` — Service Decomposition
+### 5.6 `define_microservice_boundaries` â€” Service Decomposition
 
 ```jinja2
-{# packages/agents/architect/prompts/define_microservice_boundaries.j2 #}
+{# backend/app/agents/architect/prompts/define_microservice_boundaries.j2 #}
 
 SYSTEM:
 You are a distributed systems architect decomposing a SaaS app into services.
 Apply the overall_pattern selected by the tech stack node. If it is "modular_monolith",
-define logical modules within the FastAPI monolith — not separate deployments.
+define logical modules within the FastAPI monolith â€” not separate deployments.
 If "microservices", each service must have a single responsibility, own its data,
 and communicate via gRPC (sync) or Kafka events (async).
 
 Rules:
 - Each service must own at least one DB entity exclusively.
-- No direct DB access across service boundaries — use APIs or events.
+- No direct DB access across service boundaries â€” use APIs or events.
 - Emit a Mermaid graph showing service dependencies (left-to-right, TD layout).
 
 USER:
@@ -1161,15 +1161,15 @@ Return:
 }
 ```
 
-### 5.7 `forecast_aws_costs` — AWS Cost Forecasting
+### 5.7 `forecast_aws_costs` â€” AWS Cost Forecasting
 
 ```jinja2
-{# packages/agents/architect/prompts/forecast_aws_costs.j2 #}
+{# backend/app/agents/architect/prompts/forecast_aws_costs.j2 #}
 
 SYSTEM:
 You are a FinOps engineer estimating AWS costs for a seed-stage SaaS startup.
 Use the AWS Pricing API tool to look up real on-demand pricing. Assume ap-south-1 region.
-Apply the COGS target: < ₹500 per MVP build (≈ $6 USD at 1 USD = 83 INR).
+Apply the COGS target: < â‚¹500 per MVP build (â‰ˆ $6 USD at 1 USD = 83 INR).
 
 Cost assumptions for baseline (adjust per services count):
 - ECS Fargate: 2 services (web + api), each 0.25 vCPU / 0.5 GB, 2 tasks per service desired count
@@ -1194,7 +1194,7 @@ Use the aws_pricing tool to fetch real pricing for each major service, then:
 Return:
 {
   "monthly_total_usd": float,
-  "cogs_per_mvp_inr": float,    // assume 10 MVP builds/month → monthly_total / 10 * 83
+  "cogs_per_mvp_inr": float,    // assume 10 MVP builds/month â†’ monthly_total / 10 * 83
   "line_items": [
     {
       "service": string,
@@ -1208,10 +1208,10 @@ Return:
 If cost_within_target is false, append a "cost_optimisation_suggestions" key with 3 actionable cuts.
 ```
 
-### 5.8 `plan_scaling` — Scaling Plan
+### 5.8 `plan_scaling` â€” Scaling Plan
 
 ```jinja2
-{# packages/agents/architect/prompts/plan_scaling.j2 #}
+{# backend/app/agents/architect/prompts/plan_scaling.j2 #}
 
 SYSTEM:
 You are a platform engineer designing the auto-scaling configuration for a SaaS on AWS ECS Fargate.
@@ -1222,7 +1222,7 @@ P99 latency < 100 ms.
 Rules:
 - Baseline task count (`desiredCount`) should serve normal traffic (< 50 concurrent users) at minimum cost.
 - Max task count must absorb the spike without SLA breach.
-- Cooldown periods prevent flapping (scale-in cooldown ≥ 300 s, scale-out cooldown ≥ 60 s).
+- Cooldown periods prevent flapping (scale-in cooldown â‰¥ 300 s, scale-out cooldown â‰¥ 60 s).
 - Prefer FARGATE_SPOT capacity provider for non-critical services where tolerable.
 
 USER:
@@ -1249,28 +1249,28 @@ Return:
 }
 ```
 
-### 5.9 `llm_judge_review` — LLM-as-Judge Quality Gate
+### 5.9 `llm_judge_review` â€” LLM-as-Judge Quality Gate
 
 ```jinja2
-{# packages/agents/architect/prompts/llm_judge_review.j2 #}
+{# backend/app/agents/architect/prompts/llm_judge_review.j2 #}
 
 SYSTEM:
 You are an independent principal architect reviewing architecture artefacts for a SaaS platform.
-Your role is to identify gaps, inconsistencies, and security risks — NOT to be encouraging.
-Score each dimension 0–100. A score below 75 on ANY dimension is a blocking issue.
+Your role is to identify gaps, inconsistencies, and security risks â€” NOT to be encouraging.
+Score each dimension 0â€“100. A score below 75 on ANY dimension is a blocking issue.
 
 Scoring rubric:
-- readability (0–100): Are diagrams, schemas, and specs clear to a mid-level engineer?
-- maintainability (0–100): Can a new team member modify this without breaking other components?
-- security (0–100): Does the design follow OWASP, GDPR, SOC 2, and multi-tenancy isolation rules?
-- completeness (0–100): Does it cover all functional requirements? Any major gaps?
+- readability (0â€“100): Are diagrams, schemas, and specs clear to a mid-level engineer?
+- maintainability (0â€“100): Can a new team member modify this without breaking other components?
+- security (0â€“100): Does the design follow OWASP, GDPR, SOC 2, and multi-tenancy isolation rules?
+- completeness (0â€“100): Does it cover all functional requirements? Any major gaps?
 
 Deduct points for:
 - Missing organization_id isolation in DB schema (-20)
 - No audit log table (-15)
 - HTTP routes missing auth (-20 each)
 - Circular microservice dependencies (-10 each)
-- COGS exceeding ₹500/MVP target (-15)
+- COGS exceeding â‚¹500/MVP target (-15)
 - Soft-delete missing on user-facing entities (-10)
 
 USER:
@@ -1303,14 +1303,14 @@ Return:
 }
 ```
 
-### 5.10 `render_architecture_doc` — Architecture Document
+### 5.10 `render_architecture_doc` â€” Architecture Document
 
 ```jinja2
-{# packages/agents/architect/prompts/render_architecture_doc.j2 #}
+{# backend/app/agents/architect/prompts/render_architecture_doc.j2 #}
 
 SYSTEM:
 You are a technical writer assembling a complete architecture document in Markdown.
-Every claim must reference data already computed — do not add new design decisions here.
+Every claim must reference data already computed â€” do not add new design decisions here.
 Embed all Mermaid diagrams inline. Use H2 sections with clear anchors.
 Target audience: Coder Agent (automated) and Founder (human review).
 
@@ -1383,7 +1383,7 @@ End with a machine-readable JSON block for the Coder Agent:
 
 ## 6. Sequence Diagrams
 
-### 6.1 Happy-path — end-to-end flow
+### 6.1 Happy-path â€” end-to-end flow
 
 ```mermaid
 sequenceDiagram
@@ -1479,7 +1479,7 @@ sequenceDiagram
     API --)  Coder: emit(ArchitectOutput) via gRPC
 ```
 
-### 6.2 LLM judge failure — self-correction loop
+### 6.2 LLM judge failure â€” self-correction loop
 
 ```mermaid
 sequenceDiagram
@@ -1502,7 +1502,7 @@ sequenceDiagram
     Graph -->> State: llm_judge_score updated, proceed to founder_approval_gate
 ```
 
-### 6.3 Founder rejection — escalation flow
+### 6.3 Founder rejection â€” escalation flow
 
 ```mermaid
 sequenceDiagram
@@ -1516,12 +1516,12 @@ sequenceDiagram
     participant Slack as Slack Webhook
 
     Graph -->> API: SSE { status: "awaiting_approval" }
-    API -->> Founder: Dashboard — architecture preview
+    API -->> Founder: Dashboard â€” architecture preview
 
     Founder ->> API: POST /api/v1/runs/{run_id}/reject { comment: "DB schema missing billing tables" }
     API ->> Graph: resume(ArchitectState, approval_status=REJECTED)
 
-    Graph ->> Gate: route_after_approval → "error_handler"
+    Graph ->> Gate: route_after_approval â†’ "error_handler"
     Gate ->> EH: ApprovalRejected { comment }
     EH ->> Redis: publish("architect:rejected", { run_id, organization_id, comment })
     EH ->> Slack: POST { run_id, rejection_reason: comment }
@@ -1531,7 +1531,7 @@ sequenceDiagram
     API -->> Founder: 200 OK { status: "rejected", message: "Architecture requires revision. Our team has been notified." }
 ```
 
-### 6.4 Approval timeout — auto-escalation
+### 6.4 Approval timeout â€” auto-escalation
 
 ```mermaid
 sequenceDiagram
@@ -1550,9 +1550,9 @@ sequenceDiagram
         Redis -->> Gate: null (no decision yet)
     end
 
-    Note over Gate: 15 min elapsed — timeout
-    Gate ->> Slack: POST alert { run_id, organization_id, message: "Approval timed out — human review required" }
-    Gate -->> Graph: approval_status = TIMED_OUT → route to error_handler
+    Note over Gate: 15 min elapsed â€” timeout
+    Gate ->> Slack: POST alert { run_id, organization_id, message: "Approval timed out â€” human review required" }
+    Gate -->> Graph: approval_status = TIMED_OUT â†’ route to error_handler
 
     Graph -->> API: ArchitectState { fatal_error: "Founder approval timed out after 15 minutes" }
     API -->> Founder: Email/push notification: "Your architecture review requires attention"
@@ -1574,14 +1574,14 @@ sequenceDiagram
 | `JudgeFailure` | LLM judge score < 75 after 2 self-fix cycles | Escalate to human (Slack alert), block pipeline |
 | `ApprovalRejected` | Founder clicks Reject | Store rejection comment, escalate to Slack, end run |
 | `ApprovalTimeout` | No founder action in 15 min | Slack + email alert, mark `fatal_error` |
-| `FatalLLMError` | LLM API 5xx on any synthesis node | Retry 3× with 45 s gaps, then escalate |
+| `FatalLLMError` | LLM API 5xx on any synthesis node | Retry 3Ã— with 45 s gaps, then escalate |
 | `SLABreach` | Node exceeds its SLA target | Mark partial, continue, emit SLA metric to CloudWatch |
 | `COGSBreach` | `cogs_per_mvp_inr` >= 500 | Log warning, surface in UI, do NOT block pipeline |
 
 ### 7.2 Error handler node
 
 ```python
-# packages/agents/architect/nodes/error_handler.py
+# backend/app/agents/architect/nodes/error_handler.py
 
 import asyncio
 import logging
@@ -1617,7 +1617,7 @@ async def error_handler(state: ArchitectState) -> dict:
     elif failed_nodes:
         reason = "; ".join(f"{t.node}: {t.error}" for t in failed_nodes)
     else:
-        reason = state.fatal_error or "Unknown error — check node_traces"
+        reason = state.fatal_error or "Unknown error â€” check node_traces"
 
     logger.error("Architect agent fatal error [run=%s]: %s", state.run_id, reason)
     await _post_slack_alert(state, reason)
@@ -1654,7 +1654,7 @@ async def _post_slack_alert(state: ArchitectState, reason: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# packages/agents/architect/utils/retry.py
+# backend/app/agents/architect/utils/retry.py
 
 import asyncio
 import functools
@@ -1710,7 +1710,7 @@ def with_retry(node_name: str):
 ### 7.4 LLM parse-error self-correction
 
 ```python
-# packages/agents/architect/utils/llm_parse.py
+# backend/app/agents/architect/utils/llm_parse.py
 
 import json
 import logging
@@ -1757,7 +1757,7 @@ async def parse_with_correction(
 ### 7.5 Founder approval gate with timeout
 
 ```python
-# packages/agents/architect/nodes/founder_approval_gate.py
+# backend/app/agents/architect/nodes/founder_approval_gate.py
 
 import asyncio
 import logging
@@ -1777,7 +1777,7 @@ APPROVAL_TIMEOUT_S       = 900   # 15 minutes
 async def founder_approval_gate(state: ArchitectState) -> dict:
     """
     Polls Redis for founder approval decision. Times out after 15 minutes.
-    LangGraph interrupt_before fires before this node — the API resumes the graph
+    LangGraph interrupt_before fires before this node â€” the API resumes the graph
     by writing the approval decision to Redis and calling graph.invoke(resume=True).
     """
     redis_url   = os.environ["REDIS_URL"]
@@ -1805,7 +1805,7 @@ async def founder_approval_gate(state: ArchitectState) -> dict:
 ### 7.6 SLA breach monitoring
 
 ```python
-# packages/agents/architect/utils/sla.py
+# backend/app/agents/architect/utils/sla.py
 
 import asyncio
 import logging
@@ -1893,14 +1893,14 @@ message ArchitectOutput {
 }
 ```
 
-**S3 path convention**: All artefact paths use `s3://autofounder-artefacts/{organization_id}/{run_id}/` prefix — never share paths between tenants.
+**S3 path convention**: All artefact paths use `s3://autofounder-artefacts/{organization_id}/{run_id}/` prefix â€” never share paths between tenants.
 
 **Routing rules after output**:
-- `cost_within_target == false` → surface COGS warning in Coder Agent dashboard; do NOT block pipeline
-- `judge_overall_score < 80` → surface `judge_warnings` as a yellow banner in the Founder Portal
-- `overall_pattern == "microservices"` → Coder Agent generates separate service repos; if `"modular_monolith"`, generates a single FastAPI monorepo with logical module boundaries
-- `domain in ("FinTech", "HealthTech")` → Coder Agent must enable additional security scan profiles (Semgrep finance/health ruleset)
+- `cost_within_target == false` â†’ surface COGS warning in Coder Agent dashboard; do NOT block pipeline
+- `judge_overall_score < 80` â†’ surface `judge_warnings` as a yellow banner in the Founder Portal
+- `overall_pattern == "microservices"` â†’ Coder Agent generates separate service repos; if `"modular_monolith"`, generates a single FastAPI monorepo with logical module boundaries
+- `domain in ("FinTech", "HealthTech")` â†’ Coder Agent must enable additional security scan profiles (Semgrep finance/health ruleset)
 
 ---
 
-*Auto-Founder AI — Architect Agent LLD v1.0 | May 2026*
+*Auto-Founder AI â€” Architect Agent LLD v1.0 | May 2026*
