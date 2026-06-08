@@ -47,7 +47,7 @@
   "deploy_strategy": "blue_green",
   "domain_root": "euron.one",
   "subdomain": "acme-fitness",
-  "estimated_monthly_cost_usd": 64.50,
+  "estimated_monthly_cost_usd": 64.5,
 
   "services": [
     {
@@ -63,7 +63,7 @@
         "tenant-acme-saas-a1b2c3d4/11111111-1111-4111-8111-111111111111/stripe-secret"
       ],
       "resource_requests": { "cpu": "250m", "memory": "512Mi" },
-      "resource_limits":   { "cpu": "1000m", "memory": "2Gi" }
+      "resource_limits": { "cpu": "1000m", "memory": "2Gi" }
     },
     {
       "name": "web",
@@ -76,7 +76,7 @@
         "tenant-acme-saas-a1b2c3d4/11111111-1111-4111-8111-111111111111/stripe-publishable"
       ],
       "resource_requests": { "cpu": "250m", "memory": "512Mi" },
-      "resource_limits":   { "cpu": "1000m", "memory": "2Gi" }
+      "resource_limits": { "cpu": "1000m", "memory": "2Gi" }
     },
     {
       "name": "ai-services",
@@ -89,7 +89,7 @@
         "tenant-acme-saas-a1b2c3d4/11111111-1111-4111-8111-111111111111/db-url"
       ],
       "resource_requests": { "cpu": "500m", "memory": "1Gi" },
-      "resource_limits":   { "cpu": "2000m", "memory": "4Gi" }
+      "resource_limits": { "cpu": "2000m", "memory": "4Gi" }
     }
   ],
 
