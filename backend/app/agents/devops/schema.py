@@ -8,7 +8,6 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 # Enums --------------------------------------------------------------------
 
 class NodeStatus(StrEnum):
@@ -328,7 +327,8 @@ class DevOpsState(BaseModel):
     total_tool_calls: int = 0
     error_count: int = 0
 
-    # LangGraph message channel (Annotated[..., add_messages] reattached in graph.py once langgraph is on the path).
+    # LangGraph message channel (Annotated[..., add_messages] reattached in graph.py
+    # once langgraph is on the path).
     messages: list[Any] = Field(default_factory=list)
 
     # Terminal flags

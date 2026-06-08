@@ -24,7 +24,9 @@ def _build_state(payload: dict) -> DevOpsState:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the DevOps Agent locally against a CoderOutput JSON.")
+    parser = argparse.ArgumentParser(
+        description="Run the DevOps Agent locally against a CoderOutput JSON.",
+    )
     parser.add_argument("--input", type=Path, required=True, help="Path to the CoderOutput JSON.")
     args = parser.parse_args()
 
