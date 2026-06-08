@@ -52,6 +52,7 @@ The agent parallelises frontend, backend, DB layer, integrations, and admin pane
 | Jest + pytest test scaffolding | `generate_tests` | < 4 min |
 | Lint, format, auto-fix loop (max 3 cycles) | `lint_and_format` | < 3 min/cycle |
 | Commit all files + open GitHub PR | `push_to_github` | < 90 s |
+| Trigger `cd.yml`, wait for `docker build` + `docker push` to ECR, resolve `services[].image_uri` (Variant A — see §3.1) | `wait_for_image_push` | < 8 min |
 
 ---
 
@@ -143,6 +144,23 @@ class FileManifest(BaseModel):
     def compute_total(self) -> FileManifest:
         object.__setattr__(self, "total_size_bytes", sum(f.size_bytes for f in self.files))
         return self
+
+
+# ---------------------------------------------------------------------------
+# Sub-models: Service manifest (Coder -> DevOps handoff, Variant A)
+# ---------------------------------------------------------------------------
+
+class ServiceManifest(BaseModel):
+    """
+    One entry per deployable service. Populated by `wait_for_image_push`
+    after `cd.yml` finishes pushing to ECR. DevOps (Pillar 5) reads this
+    at `ingest_input` and fails fast with `ValidationError` if missing.
+    """
+    name: str                                            # logical service name
+    image_uri: str                                       # <acct>.dkr.ecr.<region>.amazonaws.com/<repo>:<sha>
+    port: int                                            # container listen port
+    health_check_path: str          = "/health"
+    env_secret_refs: list[str]      = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -292,6 +310,12 @@ class CoderState(BaseModel):
     commit: GitHubCommit | None      = None
     pull_request: GitHubPR | None    = None
 
+    # CI image-build output (populated by wait_for_image_push).
+    # One entry per deployable service; ECR URIs already resolved.
+    # This is the contract DevOps (Pillar 5) consumes at ingest_input.
+    services: list[ServiceManifest]  = Field(default_factory=list)
+    cd_workflow_run_id: int | None   = None   # GitHub Actions run that produced the images
+
     # Aggregate stats (computed after push)
     total_files_generated: int = 0
     total_lines_of_code: int   = 0
@@ -334,7 +358,8 @@ class CoderState(BaseModel):
 | `generate_ci_cd` | Sequential | Dockerfiles, docker-compose, GitHub Actions CI + deploy | Gemini 3.5 Flash |
 | `generate_tests` | Sequential | Jest unit tests, pytest stubs, coverage config | Gemini 3.5 Flash |
 | `lint_and_format` | Sequential + loop | ESLint/Prettier/Black/Ruff/tsc; LLM self-corrects on failure | Gemini 3.5 Flash |
-| `push_to_github` | Sequential | Git tree API batch push, commit, open PR | — (API only) |
+| `push_to_github` | Sequential | Git tree API batch push, commit, open PR; the push triggers `cd.yml` | — (API only) |
+| `wait_for_image_push` | Sequential + poll | Poll GitHub Actions API for the `cd.yml` run kicked off by the push; wait until `docker build` + `docker push` to ECR complete; download the `images.json` artifact the workflow uploads and populate `state.services[]` with the resolved ECR URIs (`<acct>.dkr.ecr.<region>.amazonaws.com/<repo>:<sha>`). Owns the **Coder ↔ DevOps contract** — no downstream agent runs `docker build`. (Variant A.) | — (GitHub API) |
 | `error_handler` | Error sink | Retries or escalates failed nodes | — |
 
 ### 3.2 Graph definition
@@ -359,6 +384,7 @@ from .nodes import (
     generate_tests,
     lint_and_format,
     push_to_github,
+    wait_for_image_push,
     error_handler,
 )
 from .routers import (
@@ -367,6 +393,7 @@ from .routers import (
     route_after_join,
     route_after_ci_cd,
     route_after_lint,
+    route_after_push,
     route_terminal,
 )
 
@@ -387,6 +414,7 @@ def build_coder_graph(checkpointer: PostgresSaver) -> StateGraph:
     graph.add_node("generate_tests",        generate_tests)
     graph.add_node("lint_and_format",       lint_and_format)
     graph.add_node("push_to_github",        push_to_github)
+    graph.add_node("wait_for_image_push",   wait_for_image_push)
     graph.add_node("error_handler",         error_handler)
 
     # -- Entry point --------------------------------------------------------
@@ -451,9 +479,19 @@ def build_coder_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- Terminal routing --------------------------------------------------
+    # -- Push → wait for CI image build/push (Variant A: Coder owns the first push)
     graph.add_conditional_edges(
         "push_to_github",
+        route_after_push,
+        {
+            "wait_for_image_push": "wait_for_image_push",
+            "error_handler":       "error_handler",
+        },
+    )
+
+    # -- Terminal routing (only emit CoderOutput once services[] is populated)
+    graph.add_conditional_edges(
+        "wait_for_image_push",
         route_terminal,
         {
             "end":           END,
@@ -511,8 +549,18 @@ def route_after_lint(state: CoderState) -> str:
     return "lint_and_format"   # self-healing re-entry
 
 
+def route_after_push(state: CoderState) -> str:
+    # PR + commit must exist; wait_for_image_push will poll cd.yml from here.
+    if state.fatal_error or state.pull_request is None or state.commit is None:
+        return "error_handler"
+    return "wait_for_image_push"
+
+
 def route_terminal(state: CoderState) -> str:
+    # Variant A: do not emit CoderOutput until every service has a resolved ECR image_uri.
     if state.fatal_error or state.pull_request is None:
+        return "error_handler"
+    if not state.services or any(not s.image_uri for s in state.services):
         return "error_handler"
     return "end"
 ```
@@ -547,16 +595,20 @@ flowchart TD
     lint_and_format -->|retry ≤ 3| lint_and_format
     lint_and_format -->|retries exhausted| error_handler
 
-    push_to_github -->|no PR| error_handler
-    push_to_github -->|ok| END([Reviewer Agent])
+    push_to_github -->|no PR / no commit| error_handler
+    push_to_github -->|ok — cd.yml triggered| wait_for_image_push
+
+    wait_for_image_push -->|services[] resolved| END([Reviewer Agent])
+    wait_for_image_push -->|timeout / push failed| error_handler
 
     error_handler --> END
 
-    style START           fill:#4f46e5,color:#fff
-    style END             fill:#16a34a,color:#fff
-    style error_handler   fill:#dc2626,color:#fff
-    style parallel_join   fill:#f59e0b,color:#000
-    style lint_and_format fill:#0891b2,color:#fff
+    style START               fill:#4f46e5,color:#fff
+    style END                 fill:#16a34a,color:#fff
+    style error_handler       fill:#dc2626,color:#fff
+    style parallel_join       fill:#f59e0b,color:#000
+    style lint_and_format     fill:#0891b2,color:#fff
+    style wait_for_image_push fill:#7c3aed,color:#fff
 ```
 
 ---
@@ -2128,6 +2180,20 @@ message CoderOutput {
 
   int64  completed_at_unix_ms      = 27;
   int32  total_llm_tokens_used     = 28;
+
+  // ---- Image-build output (Variant A — see §3.1 wait_for_image_push) ----
+  // Populated by wait_for_image_push after cd.yml finishes pushing to ECR.
+  // DevOps (Pillar 5) consumes this at ingest_input and fails fast if absent.
+  repeated ServiceManifest services = 29;
+  int64  cd_workflow_run_id        = 30;  // GitHub Actions run id
+}
+
+message ServiceManifest {
+  string name              = 1;   // logical service name, e.g. "backend", "frontend"
+  string image_uri         = 2;   // full ECR URI: <acct>.dkr.ecr.<region>.amazonaws.com/<repo>:<sha>
+  int32  port              = 3;   // container listen port
+  string health_check_path = 4;   // e.g. "/health"
+  repeated string env_secret_refs = 5;  // Secrets Manager names this service needs
 }
 ```
 

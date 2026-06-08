@@ -1,0 +1,110 @@
+{
+  "_comment": "Dummy CoderOutput consumed by the DevOps Agent (Pillar 5). Shape mirrors coder-agent.md §2102 (CoderOutput proto) plus the runtime fields DevOps actually needs (services[] with ECR URIs, domain, deploy_strategy). Use with run_local.py while platform foundation (AF-027/AF-036) is unavailable.",
+
+  "run_id": "11111111-1111-4111-8111-111111111111",
+  "parent_run_id": "22222222-2222-4222-8222-222222222222",
+  "grandparent_run_id": "33333333-3333-4333-8333-333333333333",
+  "organization_id": "tenant-acme-saas-a1b2c3d4",
+
+  "idea_normalised": "An AI-powered fitness coach SaaS for remote knowledge workers that personalises 20-minute desk workouts and tracks weekly mobility scores.",
+  "domain": "HealthTech",
+
+  "github_repo_full_name": "autofounder-org/acme-fitness-saas-a1b2c3d4",
+  "github_repo_html_url": "https://github.com/autofounder-org/acme-fitness-saas-a1b2c3d4",
+  "feature_branch": "feat/coder/a1b2c3d4",
+  "commit_sha": "9f1c2e3a4b5d6f7081929394a5b6c7d8e9f00112",
+  "pr_html_url": "https://github.com/autofounder-org/acme-fitness-saas-a1b2c3d4/pull/1",
+  "pr_number": 1,
+
+  "total_files_generated": 184,
+  "total_lines_of_code": 12480,
+  "total_size_bytes": 612345,
+
+  "lint_all_passed": true,
+  "lint_total_errors_fixed": 23,
+  "lint_retry_cycles": 2,
+  "lint_residual_warnings": [
+    "frontend/app/(marketing)/page.tsx: img element should use next/image (warn-only)"
+  ],
+
+  "overall_pattern": "modular_monolith",
+  "auth_provider": "Supabase",
+  "stripe_integrated": true,
+  "sendgrid_integrated": false,
+  "has_ai_services": true,
+
+  "architecture_doc_s3_uri": "s3://autofounder-artefacts/tenant-acme-saas-a1b2c3d4/22222222-2222-4222-8222-222222222222/architecture.md",
+  "sqlalchemy_models_s3_uri": "s3://autofounder-artefacts/tenant-acme-saas-a1b2c3d4/22222222-2222-4222-8222-222222222222/models.py",
+  "supabase_migration_s3_uri": "s3://autofounder-artefacts/tenant-acme-saas-a1b2c3d4/22222222-2222-4222-8222-222222222222/migrations/0001_init.sql",
+  "openapi_yaml_s3_uri": "s3://autofounder-artefacts/tenant-acme-saas-a1b2c3d4/22222222-2222-4222-8222-222222222222/openapi.yaml",
+
+  "completed_at_unix_ms": 1748952000000,
+  "total_llm_tokens_used": 184320,
+
+  "_devops_runtime_extras": "Fields below are not in the CoderOutput proto but are part of the DevOps subgraph's runtime input (added by the orchestrator from Architect + tenant config). Keep these populated for local runs.",
+
+  "aws_region": "ap-south-1",
+  "deploy_strategy": "blue_green",
+  "domain_root": "euron.one",
+  "subdomain": "acme-fitness",
+  "estimated_monthly_cost_usd": 64.5,
+
+  "services": [
+    {
+      "name": "api-gateway",
+      "image_uri": "123456789012.dkr.ecr.ap-south-1.amazonaws.com/tenant-acme-saas-a1b2c3d4/api-gateway:9f1c2e3a",
+      "port": 8000,
+      "replicas_baseline": 2,
+      "health_check_path": "/health",
+      "env_secret_refs": [
+        "tenant-acme-saas-a1b2c3d4/11111111-1111-4111-8111-111111111111/db-url",
+        "tenant-acme-saas-a1b2c3d4/11111111-1111-4111-8111-111111111111/redis-url",
+        "tenant-acme-saas-a1b2c3d4/11111111-1111-4111-8111-111111111111/supabase-jwt-secret",
+        "tenant-acme-saas-a1b2c3d4/11111111-1111-4111-8111-111111111111/stripe-secret"
+      ],
+      "resource_requests": { "cpu": "250m", "memory": "512Mi" },
+      "resource_limits": { "cpu": "1000m", "memory": "2Gi" }
+    },
+    {
+      "name": "web",
+      "image_uri": "123456789012.dkr.ecr.ap-south-1.amazonaws.com/tenant-acme-saas-a1b2c3d4/web:9f1c2e3a",
+      "port": 3000,
+      "replicas_baseline": 2,
+      "health_check_path": "/api/health",
+      "env_secret_refs": [
+        "tenant-acme-saas-a1b2c3d4/11111111-1111-4111-8111-111111111111/supabase-anon-key",
+        "tenant-acme-saas-a1b2c3d4/11111111-1111-4111-8111-111111111111/stripe-publishable"
+      ],
+      "resource_requests": { "cpu": "250m", "memory": "512Mi" },
+      "resource_limits": { "cpu": "1000m", "memory": "2Gi" }
+    },
+    {
+      "name": "ai-services",
+      "image_uri": "123456789012.dkr.ecr.ap-south-1.amazonaws.com/tenant-acme-saas-a1b2c3d4/ai-services:9f1c2e3a",
+      "port": 8001,
+      "replicas_baseline": 1,
+      "health_check_path": "/health",
+      "env_secret_refs": [
+        "tenant-acme-saas-a1b2c3d4/11111111-1111-4111-8111-111111111111/gemini-api-key",
+        "tenant-acme-saas-a1b2c3d4/11111111-1111-4111-8111-111111111111/db-url"
+      ],
+      "resource_requests": { "cpu": "500m", "memory": "1Gi" },
+      "resource_limits": { "cpu": "2000m", "memory": "4Gi" }
+    }
+  ],
+
+  "ecr_registry": "123456789012.dkr.ecr.ap-south-1.amazonaws.com",
+  "aws_account_id": "123456789012",
+
+  "reviewer_summary": {
+    "coverage_percent": 84.3,
+    "security_scans_passed": true,
+    "self_heal_cycles_used": 2,
+    "self_heal_max_cycles": 5,
+    "owasp_top10_clean": true,
+    "trivy_critical": 0,
+    "semgrep_high": 0,
+    "snyk_high": 0,
+    "verdict": "ready_to_deploy"
+  }
+}

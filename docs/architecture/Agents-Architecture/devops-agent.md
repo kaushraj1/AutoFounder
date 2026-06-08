@@ -1,6 +1,6 @@
-# Low-Level Design — DevOps Agent
+﻿# Low-Level Design â€” DevOps Agent
 
-> **Phase**: Phase 2 — MVP Builder (Upcoming) / Phase 4 — Enterprise Scale (Planned)
+> **Phase**: Phase 2 â€” MVP Builder (Upcoming) / Phase 4 â€” Enterprise Scale (Planned)
 > **SLA**: < 10 minutes end-to-end (excluding async HITL spend gate)
 > **Owner**: Auto-Founder AI Platform Team | product@euron.one
 
@@ -23,22 +23,24 @@
 
 The DevOps Agent is the fifth stage of the Auto-Founder AI pipeline. It receives a tested, containerised `CoderOutput` via gRPC and autonomously provisions, deploys, and monitors a live production environment. Its output is a **fully operational live URL** with SSL, DNS, CI/CD, and observability configured.
 
-The agent runs as a LangGraph stateful graph with a mandatory **Human-in-the-Loop (HITL) spend gate** before any AWS resource is created. All infrastructure is managed as code (Terraform); all deployments are blue/green via AWS CodeDeploy, triggered by GitHub Actions.
+The agent runs as a LangGraph stateful graph with a mandatory **Human-in-the-Loop (HITL) spend gate** before any AWS resource is created. All infrastructure is managed as code (Terraform); all deployments are driven by **AWS CodeDeploy blue/green to ECS Fargate** (per CLAUDE.md Â§17/Â§48 â€” Kubernetes/EKS/Helm/ArgoCD are not in scope for v1.0).
+
+> **Runtime target**: ECS Fargate. The Next.js frontend (port 3000) and FastAPI backend (port 8000) deploy as separate ECS services in the same cluster behind a shared ALB with host/path-based routing. Relational storage for deployed tenant MVPs uses **Amazon RDS for PostgreSQL** (multi-AZ-capable, provisioned per tenant in the private subnets). Supabase is reserved for the internal AutoFounder control-plane only and is never provisioned for tenant MVPs. A future stack-agnostic dispatcher keyed off `ArchitectOutput.stack.target` may add EKS / Lambda+APIGW / S3+CloudFront targets â€” for now only `ecs_fargate` is implemented.
 
 ### Sub-tasks executed (with target SLA)
 
 | Sub-task | Node | Target |
 |---|---|---|
 | Ingest + validate CoderOutput | `ingest_input` | < 15 s |
-| HITL infrastructure spend approval | `hitl_spend_gate` | async (10 min timeout) |
-| VPC + subnets + security groups | `provision_networking` | < 3 min |
-| ECS cluster + Fargate capacity providers | `provision_compute` | < 4 min |
-| Supabase + ElastiCache + S3 bucket | `provision_data_layer` | < 3 min |
+| HITL infrastructure spend approval | `hitl_spend_gate` | async (15 min timeout) |
+| Attach shared foundation VPC + create product-tier overlays (SGs, ALB, target groups) | `attach_foundation_network` | < 1 min |
+| ECS Fargate cluster + services (web + api) | `provision_compute` | < 4 min |
+| RDS PostgreSQL + ElastiCache + S3 bucket | `provision_data_layer` | < 3 min |
 | AWS Secrets Manager seeding | `provision_secrets` | < 30 s |
-| ECS task + service definition generation for all services | `build_task_defs` | < 2 min |
-| CodeDeploy app definitions + deployment groups | `configure_codedeploy` | < 1 min |
-| CodeDeploy blue/green → ECS rolling deploy | `deploy_application` | < 3 min |
-| Route53 A record + ACM TLS | `configure_dns_ssl` | < 1 min |
+| ECS task definitions + service manifests | `build_task_defs` | < 2 min |
+| CodeDeploy appspec + deployment group | `configure_codedeploy` | < 1 min |
+| CodeDeploy blue/green to ECS | `deploy_application` | < 3 min |
+| Route 53 alias â†’ ALB + ACM cert | `configure_dns_ssl` | < 1 min |
 | CloudWatch alarms + Prometheus + Grafana | `configure_monitoring` | < 1 min |
 | GitHub Actions deploy workflow update | `configure_cicd` | < 1 min |
 | Live health check smoke tests | `smoke_test` | < 30 s |
@@ -55,7 +57,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -113,7 +115,7 @@ class DeployStatus(StrEnum):
 # ---------------------------------------------------------------------------
 
 class ServiceManifest(BaseModel):
-    name: str                    # e.g. "backend", "frontend", "worker"
+    name: str                    # e.g. "api-gateway", "ai-services", "web"
     image_uri: str               # ECR URI: {account}.dkr.ecr.{region}.amazonaws.com/{repo}:{tag}
     port: int
     replicas_baseline: int = 2
@@ -141,51 +143,65 @@ class VPCConfig(BaseModel):
     internet_gateway_id: str | None = None
     security_group_ids: dict[str, str] = Field(
         default_factory=dict,
-        description="Role → SG ID: 'alb', 'ecs_tasks', 'supabase_egress', 'redis'"
+        description="Role â†’ SG ID: 'alb', 'ecs_tasks', 'redis', 'rds' (RDS Postgres SG allows 5432 inbound from ecs_tasks SG only)"
     )
+    alb_arn: str | None       = None
+    alb_dns_name: str | None  = None
 
 
 # ---------------------------------------------------------------------------
-# Sub-models: Compute (ECS on Fargate)
+# Sub-models: Compute (ECS Fargate)
 # ---------------------------------------------------------------------------
 
-class FargateTaskDef(BaseModel):
-    family: str                                  # task definition family, e.g. "backend"
-    cpu: str               = "512"               # Fargate CPU units (vCPU * 1024)
-    memory: str            = "1024"              # Fargate memory in MiB
-    network_mode: str      = "awsvpc"            # required for Fargate
-    requires_compatibilities: list[str] = Field(default_factory=lambda: ["FARGATE"])
-    execution_role_arn: str | None = None        # task execution role (ECR pull, logs)
-    task_role_arn: str | None      = None        # task role (app AWS permissions)
-    labels: dict[str, str] = Field(default_factory=dict)
+class ECSService(BaseModel):
+    service_name: str                       # e.g. "web", "api", "worker"
+    task_def_arn: str | None        = None
+    desired_count: int              = 2
+    cpu: int                        = 512           # Fargate CPU units (256 / 512 / 1024 / ...)
+    memory_mb: int                  = 1024
+    container_port: int                              # e.g. 3000 (Next.js) | 8000 (FastAPI)
+    target_group_arn: str | None    = None           # ALB target group
+    health_check_path: str          = "/health"
+    status: InfraStatus             = InfraStatus.NOT_STARTED
 
 
-class EcsCluster(BaseModel):
-    cluster_name: str | None  = None
-    cluster_arn: str | None   = None
-    platform_version: str     = "LATEST"         # Fargate platform version
-    region: str               = "ap-south-1"
-    capacity_providers: list[str] = Field(default_factory=lambda: ["FARGATE", "FARGATE_SPOT"])
-    enable_execute_command: bool  = True         # ECS Exec for debugging (replaces shell access)
-    task_defs: list[FargateTaskDef] = Field(default_factory=list)
-    status: InfraStatus       = InfraStatus.NOT_STARTED
+class ECSCluster(BaseModel):
+    cluster_name: str | None        = None
+    cluster_arn: str | None         = None
+    region: str                     = "ap-south-1"
+    capacity_providers: list[str]   = Field(default_factory=lambda: ["FARGATE", "FARGATE_SPOT"])
+    services: list[ECSService]      = Field(default_factory=list)
+    status: InfraStatus             = InfraStatus.NOT_STARTED
 
 
 # ---------------------------------------------------------------------------
-# Sub-models: Data Layer
+# Sub-models: Data Layer (RDS PostgreSQL + ElastiCache + S3)
 # ---------------------------------------------------------------------------
 
-class SupabaseProject(BaseModel):
-    project_ref: str | None = None             # Supabase project reference id
-    engine: str            = "postgres"
-    engine_version: str    = "16.2"
-    plan: str              = "pro"              # Supabase compute plan (cost-optimised for seed)
-    pgvector_enabled: bool = True               # pgvector extension for semantic memory / RAG
-    multi_az: bool         = True               # Supabase platform provides multi-AZ
-    db_name: str | None    = None
-    endpoint: str | None   = None               # Supabase Postgres connection host
-    port: int              = 5432
-    status: InfraStatus    = InfraStatus.NOT_STARTED
+class RDSInstance(BaseModel):
+    # v1.0 default for tenant MVPs. Supabase is NOT provisioned here â€” it is
+    # reserved for the AutoFounder internal control-plane only.
+    kind: Literal["rds"]            = "rds"
+    db_instance_identifier: str | None = None     # autofounder-{organization_id[:8]}-{run_id[:8]}
+    engine: str                     = "postgres"
+    engine_version: str             = "16.3"
+    instance_class: str             = "db.t4g.micro"
+    allocated_storage_gb: int       = 20
+    storage_type: str               = "gp3"
+    storage_encrypted: bool         = True
+    multi_az: bool                  = False              # flip to True for production tiers
+    publicly_accessible: bool       = False
+    db_subnet_group_name: str | None = None              # spans the VPC private subnets
+    vpc_security_group_id: str | None = None             # SG that allows 5432 from ecs_tasks SG only
+    endpoint: str | None            = None               # <id>.<hash>.<region>.rds.amazonaws.com
+    port: int                       = 5432
+    db_name: str                    = "app"
+    master_username: str            = "app_admin"
+    credentials_secret_name: str | None = None           # Secrets Manager: {organization_id}/{run_id}/rds (host, port, user, password, dbname)
+    credentials_secret_arn: str | None = None            # consumed by ECS task definitions via `secrets[]`
+    backup_retention_days: int      = 7
+    deletion_protection: bool       = False              # True for production tiers
+    status: InfraStatus             = InfraStatus.NOT_STARTED
 
 
 class ElastiCacheCluster(BaseModel):
@@ -218,25 +234,26 @@ class SecretRef(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Sub-models: ECS task/service definitions / CodeDeploy
+# Sub-models: ECS Task Definitions / CodeDeploy
 # ---------------------------------------------------------------------------
 
-class EcsService(BaseModel):
-    service_name: str
-    task_def_path: str      # relative path in the repo to the rendered task definition JSON
-    task_def_json: str      # rendered ECS task definition content (container defs)
-    desired_count: int      = 2
-    cluster: str            # ECS cluster name the service is deployed into
+class ECSTaskDef(BaseModel):
+    service_name: str                       # matches ECSService.service_name
+    family: str                             # task definition family (per-tenant prefixed)
+    task_def_json: str                      # rendered ECS task definition JSON
+    container_image: str                    # ECR URI from ServiceManifest.image_uri
+    log_group: str                          # /ecs/{organization_id}/{run_id}/{service_name}
+    execution_role_arn: str | None  = None
+    task_role_arn: str | None       = None
 
 
 class CodeDeployApp(BaseModel):
-    app_name: str
-    repo_url: str
-    target_revision: str    = "HEAD"
-    appspec_path: str       # path in repo to the CodeDeploy appspec.yaml
-    deployment_group: str
-    deployment_config: str  = "CodeDeployDefault.ECSAllAtOnce"  # blue/green traffic shift
-    health_status: str | None = None
+    app_name: str                           # CodeDeploy application name (per-tenant prefixed)
+    deployment_group: str                   # deployment group name
+    appspec_yaml: str                       # generated appspec.yaml content
+    deployment_config: str          = "CodeDeployDefault.ECSAllAtOnce"   # or .ECSLinear10PercentEvery3Minutes
+    compute_platform: str           = "ECS"
+    health_status: str | None       = None
 
 
 # ---------------------------------------------------------------------------
@@ -254,7 +271,7 @@ class DNSRecord(BaseModel):
 class TLSCertificate(BaseModel):
     domain: str
     cert_arn: str | None       = None   # ACM cert ARN
-    issuer: str                = "amazon-acm"
+    issuer: str                = "letsencrypt-prod"
     status: str | None         = None   # "Issued" | "Pending"
 
 
@@ -288,7 +305,7 @@ class MonitoringConfig(BaseModel):
 class CICDConfig(BaseModel):
     workflow_file_path: str     # e.g. ".github/workflows/deploy.yml"
     workflow_yaml: str          # generated workflow YAML content
-    codedeploy_app: str | None  = None
+    codedeploy_app_name: str | None = None
     ecr_registry: str | None    = None
 
 
@@ -338,7 +355,7 @@ class DevOpsState(BaseModel):
     run_id: UUID            = Field(default_factory=uuid4)
     parent_run_id: UUID     = Field(..., description="Coder Agent run_id")
     grandparent_run_id: UUID = Field(..., description="Architect Agent run_id")
-    organization_id: str    = Field(..., description="Validated from Supabase JWT claims")
+    organization_id: str          = Field(..., description="Validated from JWT claims")
 
     # Input from Coder Agent (deserialized from gRPC CoderOutput)
     idea_normalised: str
@@ -355,17 +372,21 @@ class DevOpsState(BaseModel):
     approval_comment: str | None             = None
     approval_timeout_at: datetime | None     = None
 
+    # Forward-compatible discriminator for future stack-agnostic dispatcher.
+    # Currently always "ecs_fargate"; will widen to {ecs_fargate, eks, lambda_apigw, s3_cloudfront}.
+    compute_target: str                      = "ecs_fargate"
+
     # Infrastructure outputs (populated by provision_* nodes)
     vpc_config: VPCConfig | None             = None
-    ecs_cluster: EcsCluster | None           = None
-    supabase_project: SupabaseProject | None = None
+    ecs_cluster: ECSCluster | None           = None
+    rds_instance: RDSInstance | None         = None
     elasticache_cluster: ElastiCacheCluster | None = None
     s3_bucket: S3Bucket | None               = None
     secrets: list[SecretRef]                 = Field(default_factory=list)
 
     # Deployment artefacts
-    ecs_services: list[EcsService]           = Field(default_factory=list)
-    codedeploy_apps: list[CodeDeployApp]     = Field(default_factory=list)
+    task_defs: list[ECSTaskDef]              = Field(default_factory=list)
+    codedeploy_app: CodeDeployApp | None     = None
     deploy_status: DeployStatus              = DeployStatus.NOT_STARTED
 
     # Post-deploy configuration
@@ -412,24 +433,24 @@ class DevOpsState(BaseModel):
 
 | Node ID | Type | Description | Model / Runtime |
 |---|---|---|---|
-| `ingest_input` | Sequential | Deserialise + validate CoderOutput from gRPC | — (validation only) |
-| `hitl_spend_gate` | HITL / Async | Block until Founder approves AWS spend | — |
-| `provision_networking` | Sequential | Terraform: VPC, subnets, SGs, NAT, IGW | Gemini 3.5 Flash (plan gen) |
-| `provision_compute` | Sequential | Terraform: ECS cluster + Fargate capacity providers | Gemini 3.5 Flash |
-| `provision_data_layer` | Parallel branch | Terraform: Supabase + ElastiCache + S3 | Gemini 3.5 Flash |
-| `infra_join` | Barrier | Waits for compute + data layer | — |
-| `provision_secrets` | Sequential | boto3: seed AWS Secrets Manager secrets | Gemini 3.5 Flash |
-| `build_task_defs` | Parallel branch | Generate ECS task + service definitions per service | Gemini 3.5 Flash |
-| `configure_codedeploy` | Parallel branch | Generate CodeDeploy appspec + deployment groups | Gemini 3.5 Flash |
-| `deploy_join` | Barrier | Waits for task defs + CodeDeploy config | — |
-| `deploy_application` | Sequential | CodeDeploy blue/green → ECS rolling deploy | — (API call) |
-| `configure_dns_ssl` | Sequential | Route53 A record + ACM TLS | Gemini 3.5 Flash |
-| `configure_monitoring` | Parallel branch | CloudWatch alarms + Prometheus scrape | Gemini 3.5 Flash |
-| `configure_cicd` | Parallel branch | GitHub Actions deploy workflow | Gemini 3.5 Flash |
-| `postdeploy_join` | Barrier | Waits for monitoring + CI/CD config | — |
-| `smoke_test` | Sequential | HTTP health checks on live URL | — (HTTP calls) |
-| `render_deploy_report` | Sequential | Assemble final Markdown deploy report | Gemini 3.5 Flash |
-| `error_handler` | Error sink | Classifies failure, tears down partial infra, alerts | — |
+| `ingest_input` | Sequential | Deserialise + validate CoderOutput from gRPC | â€” (validation only) |
+| `hitl_spend_gate` | HITL / Async | Block until Founder approves AWS spend | â€” |
+| `attach_foundation_network` | Sequential | Read shared foundation VPC / subnet / SG outputs from Asit's modules via `terraform_remote_state`; create only product-tier overlays for this MVP (ECS task SG, RDS SG, Redis SG, ALB + ALB SG, target groups, VPC endpoints). Does **not** create VPC / subnets / NAT / IGW. | Claude Sonnet (overlay HCL gen) |
+| `provision_compute` | Sequential | Terraform: ECS Fargate cluster + services (web + api) + ALB target groups | Claude Sonnet |
+| `provision_data_layer` | Parallel branch | Terraform: RDS PostgreSQL + ElastiCache + S3 | Claude Sonnet |
+| `infra_join` | Barrier | Waits for compute + data layer | â€” |
+| `provision_secrets` | Sequential | boto3: seed AWS Secrets Manager secrets | GPT-4o |
+| `build_task_defs` | Parallel branch | Generate ECS task definition JSON per service | GPT-4o |
+| `configure_codedeploy` | Parallel branch | Generate CodeDeploy appspec.yaml + deployment group | GPT-4o |
+| `deploy_join` | Barrier | Waits for task defs + CodeDeploy config | â€” |
+| `deploy_application` | Sequential | CodeDeploy blue/green to ECS Fargate | â€” (API call) |
+| `configure_dns_ssl` | Sequential | Route53 A record + cert-manager TLS | GPT-4o |
+| `configure_monitoring` | Parallel branch | CloudWatch alarms + Prometheus scrape | GPT-4o |
+| `configure_cicd` | Parallel branch | GitHub Actions deploy workflow | GPT-4o |
+| `postdeploy_join` | Barrier | Waits for monitoring + CI/CD config | â€” |
+| `smoke_test` | Sequential | HTTP health checks on live URL | â€” (HTTP calls) |
+| `render_deploy_report` | Sequential | Assemble final Markdown deploy report | GPT-4o |
+| `error_handler` | Error sink | Classifies failure, tears down partial infra, alerts | â€” |
 
 ### 3.2 Graph definition
 
@@ -443,7 +464,7 @@ from .schema import DevOpsState
 from .nodes import (
     ingest_input,
     hitl_spend_gate,
-    provision_networking,
+    attach_foundation_network,
     provision_compute,
     provision_data_layer,
     infra_join,
@@ -463,7 +484,7 @@ from .nodes import (
 from .routers import (
     route_after_ingest,
     route_after_approval,
-    route_after_networking,
+    route_after_network_attach,
     route_after_infra_join,
     route_after_secrets,
     route_after_deploy_join,
@@ -479,10 +500,10 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
     graph = StateGraph(DevOpsState)
 
     # -- Node registration --------------------------------------------------
-    graph.add_node("ingest_input",          ingest_input)
-    graph.add_node("hitl_spend_gate",       hitl_spend_gate)
-    graph.add_node("provision_networking",  provision_networking)
-    graph.add_node("provision_compute",     provision_compute)
+    graph.add_node("ingest_input",                ingest_input)
+    graph.add_node("hitl_spend_gate",             hitl_spend_gate)
+    graph.add_node("attach_foundation_network",   attach_foundation_network)
+    graph.add_node("provision_compute",           provision_compute)
     graph.add_node("provision_data_layer",  provision_data_layer)
     graph.add_node("infra_join",            infra_join)
     graph.add_node("provision_secrets",     provision_secrets)
@@ -501,7 +522,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
     # -- Entry point --------------------------------------------------------
     graph.set_entry_point("ingest_input")
 
-    # -- Ingest → HITL spend gate ------------------------------------------
+    # -- Ingest â†’ HITL spend gate ------------------------------------------
     graph.add_conditional_edges(
         "ingest_input",
         route_after_ingest,
@@ -511,20 +532,20 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- HITL spend gate → networking (sequential) -------------------------
+    # -- HITL spend gate â†’ attach foundation network (sequential) ---------
     graph.add_conditional_edges(
         "hitl_spend_gate",
         route_after_approval,
         {
-            "provision_networking": "provision_networking",
-            "error_handler":        "error_handler",  # rejected or timed out
+            "attach_foundation_network": "attach_foundation_network",
+            "error_handler":             "error_handler",  # rejected or timed out
         },
     )
 
-    # -- Networking → compute (sequential: compute depends on VPC) ---------
+    # -- Network attach â†’ compute + data layer (parallel) -----------------
     graph.add_conditional_edges(
-        "provision_networking",
-        route_after_networking,
+        "attach_foundation_network",
+        route_after_network_attach,
         {
             "parallel": ["provision_compute", "provision_data_layer"],
             "error_handler": "error_handler",
@@ -545,7 +566,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- Secrets → fan-out: ECS task defs + CodeDeploy config --------------
+    # -- Secrets â†’ fan-out: task defs + CodeDeploy config -------------------
     graph.add_conditional_edges(
         "provision_secrets",
         route_after_secrets,
@@ -558,7 +579,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
     graph.add_edge("build_task_defs",      "deploy_join")
     graph.add_edge("configure_codedeploy", "deploy_join")
 
-    # -- Deploy join → application deploy ----------------------------------
+    # -- Deploy join â†’ application deploy ----------------------------------
     graph.add_conditional_edges(
         "deploy_join",
         route_after_deploy_join,
@@ -568,7 +589,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- Deploy → DNS/SSL --------------------------------------------------
+    # -- Deploy â†’ DNS/SSL --------------------------------------------------
     graph.add_conditional_edges(
         "deploy_application",
         route_after_deploy,
@@ -578,7 +599,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- DNS/SSL → parallel post-deploy config -----------------------------
+    # -- DNS/SSL â†’ parallel post-deploy config -----------------------------
     graph.add_conditional_edges(
         "configure_dns_ssl",
         route_after_dns,
@@ -591,7 +612,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
     graph.add_edge("configure_monitoring", "postdeploy_join")
     graph.add_edge("configure_cicd",       "postdeploy_join")
 
-    # -- Post-deploy join → smoke tests ------------------------------------
+    # -- Post-deploy join â†’ smoke tests ------------------------------------
     graph.add_conditional_edges(
         "postdeploy_join",
         route_after_postdeploy_join,
@@ -601,7 +622,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- Smoke → report ----------------------------------------------------
+    # -- Smoke â†’ report ----------------------------------------------------
     graph.add_conditional_edges(
         "smoke_test",
         route_after_smoke,
@@ -646,11 +667,11 @@ def route_after_ingest(state: DevOpsState) -> str:
 
 def route_after_approval(state: DevOpsState) -> str:
     if state.approval_status == ApprovalStatus.APPROVED:
-        return "provision_networking"
+        return "attach_foundation_network"
     return "error_handler"
 
 
-def route_after_networking(state: DevOpsState) -> str | list[str]:
+def route_after_network_attach(state: DevOpsState) -> str | list[str]:
     if state.fatal_error or state.vpc_config is None:
         return "error_handler"
     return "parallel"
@@ -671,7 +692,7 @@ def route_after_secrets(state: DevOpsState) -> str | list[str]:
 
 
 def route_after_deploy_join(state: DevOpsState) -> str:
-    if not state.ecs_services or not state.codedeploy_apps:
+    if not state.task_defs or state.codedeploy_app is None:
         return "error_handler"
     return "deploy_application"
 
@@ -715,11 +736,11 @@ flowchart TD
     ingest_input -->|missing services| error_handler
     ingest_input -->|ok| hitl_spend_gate
 
-    hitl_spend_gate -->|approved| provision_networking
+    hitl_spend_gate -->|approved| attach_foundation_network
     hitl_spend_gate -->|rejected / timeout| error_handler
 
-    provision_networking -->|vpc nil| error_handler
-    provision_networking -->|ok| provision_compute & provision_data_layer
+    attach_foundation_network -->|vpc nil| error_handler
+    attach_foundation_network -->|ok| provision_compute & provision_data_layer
 
     provision_compute    --> infra_join
     provision_data_layer --> infra_join
@@ -733,7 +754,7 @@ flowchart TD
     build_task_defs      --> deploy_join
     configure_codedeploy --> deploy_join
 
-    deploy_join -->|task defs missing| error_handler
+    deploy_join -->|task defs / appspec missing| error_handler
     deploy_join -->|ok| deploy_application
 
     deploy_application -->|FAILED| error_handler
@@ -836,112 +857,117 @@ terraform_run = StructuredTool.from_function(
 
 
 # ---------------------------------------------------------------------------
-# AWS ECS CLI
+# ECS (Fargate)
 # ---------------------------------------------------------------------------
 
-class EcsCommandInput(BaseModel):
-    command: str  = Field(..., description="Full AWS ECS sub-command excluding the 'aws ecs' prefix, e.g. 'describe-services --cluster my-cluster --services backend'")
-    region: str | None = Field(None, description="AWS region override")
+class ECSRegisterTaskDefInput(BaseModel):
+    family: str           = Field(..., description="Task definition family name (per-tenant prefix)")
+    task_def_json: str    = Field(..., description="Full ECS task definition document as JSON string")
+    region: str           = "ap-south-1"
 
 
-def _aws_ecs(command: str, region: str | None = None) -> dict:
-    env = {**os.environ}
-    cmd = ["aws", "ecs"] + command.split()
-    if region:
-        cmd += ["--region", region]
-
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        timeout=60,
-        env=env,
-    )
-    return {
-        "returncode": result.returncode,
-        "stdout":     result.stdout[:3000],
-        "stderr":     result.stderr[:1000],
-        "success":    result.returncode == 0,
-    }
+def _ecs_register_task_def(family: str, task_def_json: str, region: str = "ap-south-1") -> dict:
+    client = boto3.client("ecs", region_name=region)
+    resp = client.register_task_definition(**json.loads(task_def_json))
+    td = resp["taskDefinition"]
+    return {"family": family, "task_def_arn": td["taskDefinitionArn"], "revision": td["revision"], "success": True}
 
 
-aws_ecs = StructuredTool.from_function(
-    func=_aws_ecs,
-    name="aws_ecs",
-    description="Run an AWS ECS CLI command (e.g. describe-services, update-service) against the provisioned ECS cluster.",
-    args_schema=EcsCommandInput,
+ecs_register_task_def = StructuredTool.from_function(
+    func=_ecs_register_task_def,
+    name="ecs_register_task_def",
+    description="Register a new ECS task definition revision from a JSON document.",
+    args_schema=ECSRegisterTaskDefInput,
+)
+
+
+class ECSUpdateServiceInput(BaseModel):
+    cluster: str          = Field(..., description="ECS cluster name or ARN")
+    service: str          = Field(..., description="ECS service name")
+    task_def_arn: str     = Field(..., description="Task definition ARN to roll out")
+    desired_count: int | None = None
+    region: str           = "ap-south-1"
+
+
+def _ecs_update_service(cluster: str, service: str, task_def_arn: str,
+                        desired_count: int | None = None,
+                        region: str = "ap-south-1") -> dict:
+    client = boto3.client("ecs", region_name=region)
+    kwargs: dict[str, Any] = {"cluster": cluster, "service": service, "taskDefinition": task_def_arn}
+    if desired_count is not None:
+        kwargs["desiredCount"] = desired_count
+    resp = client.update_service(**kwargs)
+    return {"service_arn": resp["service"]["serviceArn"], "status": resp["service"]["status"], "success": True}
+
+
+ecs_update_service = StructuredTool.from_function(
+    func=_ecs_update_service,
+    name="ecs_update_service",
+    description="Update an ECS service to roll out a new task definition revision.",
+    args_schema=ECSUpdateServiceInput,
 )
 
 
 # ---------------------------------------------------------------------------
-# ECS service deploy (register task def + update service)
+# CodeDeploy (ECS blue/green)
 # ---------------------------------------------------------------------------
 
-class EcsDeployInput(BaseModel):
-    command: str     = Field(..., description="AWS ECS deploy sub-command, e.g. 'update-service --cluster my-cluster --service backend --task-definition backend:12 --force-new-deployment'")
-    region: str | None = None
-
-
-def _ecs_deploy(command: str, region: str | None = None) -> dict:
-    env = {**os.environ}
-    cmd = ["aws", "ecs"] + command.split()
-    if region:
-        cmd += ["--region", region]
-
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        timeout=120,
-        env=env,
-    )
-    return {
-        "returncode": result.returncode,
-        "stdout":     result.stdout[:3000],
-        "stderr":     result.stderr[:1000],
-        "success":    result.returncode == 0,
-    }
-
-
-ecs_deploy = StructuredTool.from_function(
-    func=_ecs_deploy,
-    name="ecs_deploy",
-    description="Register a task definition or roll an ECS service (update-service, register-task-definition, rollback) on the ECS cluster.",
-    args_schema=EcsDeployInput,
-)
-
-
-# ---------------------------------------------------------------------------
-# AWS CodeDeploy REST API
-# ---------------------------------------------------------------------------
-
-class CodeDeployCreateInput(BaseModel):
-    app_name: str         = Field(..., description="CodeDeploy application name to deploy")
+class CodeDeployCreateDeploymentInput(BaseModel):
+    app_name: str         = Field(..., description="CodeDeploy application name")
     deployment_group: str = Field(..., description="CodeDeploy deployment group name")
-    appspec_s3_uri: str   = Field(..., description="S3 URI of the appspec/taskdef revision bundle")
-    region: str           = Field("ap-south-1")
+    appspec_yaml: str     = Field(..., description="Rendered appspec.yaml content")
+    region: str           = "ap-south-1"
 
 
-async def _codedeploy_create(app_name: str, deployment_group: str,
-                             appspec_s3_uri: str, region: str = "ap-south-1") -> dict:
+def _codedeploy_create_deployment(app_name: str, deployment_group: str,
+                                  appspec_yaml: str, region: str = "ap-south-1") -> dict:
     client = boto3.client("codedeploy", region_name=region)
-    bucket, _, key = appspec_s3_uri.removeprefix("s3://").partition("/")
     resp = client.create_deployment(
         applicationName=app_name,
         deploymentGroupName=deployment_group,
         revision={
-            "revisionType": "S3",
-            "s3Location": {"bucket": bucket, "key": key, "bundleType": "YAML"},
+            "revisionType": "AppSpecContent",
+            "appSpecContent": {"content": appspec_yaml},
         },
     )
-    return {"app_name": app_name, "deployment_id": resp["deploymentId"], "success": True}
+    return {"deployment_id": resp["deploymentId"], "success": True}
 
 
-codedeploy_create = StructuredTool.from_function(
-    coroutine=_codedeploy_create,
-    name="codedeploy_create",
-    description="Trigger an AWS CodeDeploy blue/green deployment for a named application and wait for health.",
-    args_schema=CodeDeployCreateInput,
+codedeploy_create_deployment = StructuredTool.from_function(
+    func=_codedeploy_create_deployment,
+    name="codedeploy_create_deployment",
+    description="Trigger an AWS CodeDeploy blue/green deployment to ECS Fargate.",
+    args_schema=CodeDeployCreateDeploymentInput,
+)
+
+
+# ---------------------------------------------------------------------------
+# ACM (TLS certificate)
+# ---------------------------------------------------------------------------
+
+class ACMRequestCertificateInput(BaseModel):
+    domain_name: str      = Field(..., description="Primary domain, e.g. 'myapp.tenant.example.com'")
+    subject_alternative_names: list[str] = Field(default_factory=list)
+    validation_method: str = "DNS"
+    region: str           = "us-east-1"          # CloudFront/ALB cert region (us-east-1 for CloudFront)
+
+
+def _acm_request_certificate(domain_name: str, subject_alternative_names: list[str],
+                             validation_method: str = "DNS",
+                             region: str = "us-east-1") -> dict:
+    client = boto3.client("acm", region_name=region)
+    kwargs: dict[str, Any] = {"DomainName": domain_name, "ValidationMethod": validation_method}
+    if subject_alternative_names:
+        kwargs["SubjectAlternativeNames"] = subject_alternative_names
+    resp = client.request_certificate(**kwargs)
+    return {"certificate_arn": resp["CertificateArn"], "success": True}
+
+
+acm_request_certificate = StructuredTool.from_function(
+    func=_acm_request_certificate,
+    name="acm_request_certificate",
+    description="Request an ACM TLS certificate (DNS validation) for the deployed application.",
+    args_schema=ACMRequestCertificateInput,
 )
 
 
@@ -997,7 +1023,7 @@ route53_upsert = StructuredTool.from_function(
 # ---------------------------------------------------------------------------
 
 class SecretsManagerCreateInput(BaseModel):
-    secret_name: str  = Field(..., description="Secret name, e.g. '{organization_id}/{run_id}/supabase-credentials'")
+    secret_name: str  = Field(..., description="Secret name, e.g. '{organization_id}/{run_id}/db-password'")
     secret_value: str = Field(..., description="JSON string of key-value pairs")
     region: str       = Field("ap-south-1")
 
@@ -1014,7 +1040,7 @@ def _secrets_manager_create(secret_name: str, secret_value: str, region: str = "
 secrets_manager_create = StructuredTool.from_function(
     func=_secrets_manager_create,
     name="secrets_manager_create",
-    description="Create or update an AWS Secrets Manager secret for an organization.",
+    description="Create or update an AWS Secrets Manager secret for a tenant.",
     args_schema=SecretsManagerCreateInput,
 )
 
@@ -1062,10 +1088,10 @@ http_health_check = StructuredTool.from_function(
 # ---------------------------------------------------------------------------
 
 class GitHubFileUpsertInput(BaseModel):
-    repo_full_name: str  = Field(..., description="Owner/repo, e.g. 'euron-ai/org-abc-app'")
+    repo_full_name: str  = Field(..., description="Owner/repo, e.g. 'euron-ai/tenant-abc-app'")
     file_path: str       = Field(..., description="File path in repo, e.g. '.github/workflows/deploy.yml'")
     content: str         = Field(..., description="File content (plaintext, will be base64-encoded)")
-    commit_message: str  = Field("ci: add CodeDeploy blue/green deploy workflow [AutoFounder AI]")
+    commit_message: str  = Field("ci: add CodeDeploy ECS deploy workflow [AutoFounder AI]")
     branch: str          = Field("main")
 
 
@@ -1106,20 +1132,20 @@ github_upsert_file = StructuredTool.from_function(
 # ---------------------------------------------------------------------------
 
 TOOL_REGISTRY: dict[str, list] = {
-    "ingest_input":         [],
-    "hitl_spend_gate":      [],
-    "provision_networking": [terraform_run],
-    "provision_compute":    [terraform_run],
-    "provision_data_layer": [terraform_run],
-    "provision_secrets":    [secrets_manager_create],
-    "build_task_defs":      [ecs_deploy],
-    "configure_codedeploy": [],                               # appspec/taskdef generation only
-    "deploy_application":   [codedeploy_create, aws_ecs],
-    "configure_dns_ssl":    [route53_upsert, aws_ecs],
-    "configure_monitoring": [],                               # CloudWatch via boto3 in node
-    "configure_cicd":       [github_upsert_file],
-    "smoke_test":           [http_health_check],
-    "render_deploy_report": [],
+    "ingest_input":                  [],
+    "hitl_spend_gate":               [],
+    "attach_foundation_network":     [terraform_run],   # only product-tier overlays; foundation VPC read via terraform_remote_state
+    "provision_compute":             [terraform_run],
+    "provision_data_layer":          [terraform_run],
+    "provision_secrets":             [secrets_manager_create],
+    "build_task_defs":               [],                               # task def JSON generation only
+    "configure_codedeploy":          [],                               # appspec generation only
+    "deploy_application":            [codedeploy_create_deployment, ecs_update_service],
+    "configure_dns_ssl":             [route53_upsert, acm_request_certificate],
+    "configure_monitoring":          [],                               # CloudWatch via boto3 in node
+    "configure_cicd":                [github_upsert_file],
+    "smoke_test":                    [http_health_check],
+    "render_deploy_report":          [],
 }
 ```
 
@@ -1128,166 +1154,300 @@ TOOL_REGISTRY: dict[str, list] = {
 | Tool | Timeout | Rate limit guard | Fallback |
 |---|---|---|---|
 | `terraform_run` | 600 s (apply) | Serialised per-tenant; no concurrent applies | Retry with fresh `plan` |
-| `aws_ecs` | 60 s | AWS CLI; AWS API default rate limit | Skip + log |
-| `ecs_deploy` | 120 s | AWS CLI; AWS API default rate limit | `aws ecs update-service` direct |
-| `codedeploy_create` | 120 s | 10 req/s via CodeDeploy API | `aws ecs update-service --force-new-deployment` fallback |
+| `ecs_register_task_def` | 30 s | AWS default (100 TPS) | Retry with exp. back-off |
+| `ecs_update_service` | 30 s | AWS default (100 TPS) | Retry; if still failing surface to error_handler |
+| `codedeploy_create_deployment` | 60 s | AWS default (50 TPS) | Re-register revision and retry once |
+| `acm_request_certificate` | 30 s | AWS default (5 TPS) | Retry; on quota error escalate |
 | `route53_upsert` | 10 s | AWS default (5 req/s) | Retry with exp. back-off |
 | `secrets_manager_create` | 10 s | AWS default (100 TPS) | Retry |
-| `http_health_check` | 10 s | 10 checks × 3 retries max | Mark failed, escalate |
+| `http_health_check` | 10 s | 10 checks Ã— 3 retries max | Mark failed, escalate |
 | `github_upsert_file` | 20 s | 5000 req/hr per token | Retry once |
 
 ---
 
 ## 5. Prompt Templates
 
-All prompts use **Gemini 3.5 Flash** (infrastructure reasoning, Terraform plan generation, task-definition generation, structured YAML output) via the LiteLLM router per the model routing policy. **Claude Sonnet** is configured only as a fallback model.
+All prompts use **Claude Sonnet** (infrastructure reasoning, Terraform plan generation) or **GPT-4o** (manifest generation, structured YAML output) per the model routing policy.
 
-### 5.1 `provision_networking` — Terraform VPC Plan
+### 5.1 `attach_foundation_network` â€” Terraform Foundation-VPC Attach + Product-Tier Overlays
+
+> **Scope rule**: Networking is **not** a DevOps responsibility. This node never creates a VPC, subnets, NAT, IGW, or route tables. It reads the shared foundation VPC outputs from Asit's modules (AF-012â€“021) via a `terraform_remote_state` data source and creates only the product-tier overlays a single MVP needs.
 
 ```jinja2
-{# backend/app/agents/devops/prompts/provision_networking.j2 #}
+{# backend/app/agents/devops/prompts/attach_foundation_network.j2 #}
 
 SYSTEM:
 You are a senior cloud infrastructure engineer generating Terraform for AWS.
-You will produce the VPC + networking Terraform module for a multi-tenant SaaS platform.
+You will produce the product-tier network overlay for ONE tenant MVP. The shared
+foundation VPC, subnets, NAT, and IGW have already been provisioned by the platform's
+foundation module (AF-012â€“021). DO NOT create VPC / subnet / NAT / IGW / route-table
+resources â€” read them from the foundation `terraform_remote_state` data source.
+
+Forbidden resources (build will fail if present):
+  aws_vpc, aws_subnet, aws_nat_gateway, aws_internet_gateway,
+  aws_route_table, aws_route_table_association, aws_eip (for NAT)
 
 Mandatory constraints:
 - Region: {{ aws_region }}
-- CIDR: 10.0.0.0/16
-- 2 public subnets (10.0.0.0/24, 10.0.1.0/24) and 2 private subnets (10.0.10.0/24, 10.0.11.0/24)
-  across 2 AZs: ap-south-1a and ap-south-1b
-- NAT Gateway in public subnet (cost-optimised: 1 NAT, not HA)
-- Internet Gateway for public subnets
-- Security groups: ALB (80, 443 inbound from 0.0.0.0/0), ECS tasks (all from ALB SG),
-  Supabase egress (5432 outbound to managed Postgres), Redis (6379 from ECS tasks SG only)
-- Tag all resources: Organization={{ organization_id }}, RunId={{ run_id }}, ManagedBy=terraform
+- Data source: `terraform_remote_state` "foundation":
+    backend = "s3"
+    config  = { bucket = "autofounder-tf-state", key = "foundation/network.tfstate", region = "{{ aws_region }}" }
+  Consume: vpc_id, public_subnet_ids, private_subnet_ids, availability_zones,
+           nat_gateway_id, internet_gateway_id.
+- Create only these product-tier overlays for this run:
+    * ALB security group (80, 443 inbound from 0.0.0.0/0)
+    * ECS tasks security group (container ports 3000 / 8000 from ALB SG only)
+    * Redis security group (6379 from ECS tasks SG only)
+    * RDS Postgres security group (5432 from ECS tasks SG only â€” no public ingress)
+    * Application Load Balancer in the foundation public subnets
+    * One target group per service
+    * VPC interface endpoints (only if this run requires them: ecr.api, ecr.dkr, logs, secretsmanager)
+- Tag all resources: Tenant={{ organization_id }}, RunId={{ run_id }}, ManagedBy=terraform
 
 Rules:
 - Return ONLY the Terraform HCL (no markdown fences, no explanation).
-- Use terraform-aws-modules/vpc/aws module (version ~> 5.0).
-- Output all resource IDs as Terraform outputs.
-- Store state in S3: bucket=autofounder-tf-state, key={{ organization_id }}/{{ run_id }}/networking.tfstate
+- Output (Terraform `output` blocks): vpc_id (passthrough), public_subnet_ids, private_subnet_ids,
+  security_group_ids (map: alb, ecs_tasks, redis, rds), alb_arn, alb_dns_name, target_group_arns (map).
+- State: autofounder-tf-state/{{ organization_id }}/{{ run_id }}/network_overlays.tfstate
 
 USER:
-Organization ID: {{ organization_id }}
+Tenant ID: {{ organization_id }}
 Run ID: {{ run_id }}
 Region: {{ aws_region }}
 Domain: {{ domain }}
+Services needing target groups: {{ services | map(attribute='name') | join(', ') }}
 
 Generate main.tf, variables.tf, and outputs.tf as a single HCL block with file headers as comments.
 ```
 
-### 5.2 `provision_compute` — Terraform ECS Fargate Plan
+### 5.2 `provision_compute` â€” Terraform ECS Fargate Plan
 
 ```jinja2
 {# backend/app/agents/devops/prompts/provision_compute.j2 #}
 
 SYSTEM:
-You are a cloud infrastructure engineer generating Terraform for Amazon ECS on Fargate.
+You are a cloud infrastructure engineer generating Terraform for AWS ECS Fargate.
 
 Mandatory constraints:
-- ECS cluster with Fargate + Fargate Spot capacity providers
-- Default capacity provider strategy: 1 base on FARGATE, remainder weighted to FARGATE_SPOT
-- All Fargate tasks run in private subnets (never public); ALB is the only public ingress
-- awsvpc network mode for every task definition (required by Fargate)
-- Enable ECS Exec (enable_execute_command) for debugging instead of node shell access
-- Task execution role for ECR image pull + CloudWatch Logs; task role for app AWS permissions
-- Enable Container Insights on the cluster for metrics
-- Tag: Organization={{ organization_id }}, RunId={{ run_id }}
+- ECS cluster (capacity providers: FARGATE primary, FARGATE_SPOT for non-prod)
+- One ECS service per item in `services` (e.g. "web" on port 3000, "api" on port 8000)
+- All tasks run in private subnets only; egress via NAT Gateway
+- ALB target group per service; ALB listener rules use host or path routing to fan out
+- Application Auto Scaling: min={{ service.replicas_baseline }}, max=10, target CPU 70%
+- Container insights enabled on the cluster (CloudWatch)
+- Task execution role: pulls from ECR + writes logs + reads Secrets Manager
+- Task role: scoped to S3 bucket {{ organization_id }} prefix only
+- Tag: Tenant={{ organization_id }}, RunId={{ run_id }}, ManagedBy=terraform
 
 Security rules:
-- No public IPs on Fargate tasks (assign_public_ip = false); egress via NAT Gateway only
-- Task security group: allow inbound only from the ALB security group
-- Encrypt task logs and ephemeral storage with AWS KMS
+- No public IP on tasks (`assign_public_ip = false`)
+- Container ports reachable only from the ALB security group
+- Enable encryption for ephemeral storage
 
 Rules:
-- Return ONLY Terraform HCL. Use terraform-aws-modules/ecs/aws (version ~> 5.0).
+- Return ONLY Terraform HCL. Use terraform-aws-modules/ecs/aws (version ~> 5.0)
+  and terraform-aws-modules/alb/aws (~> 9.0).
 - State bucket: autofounder-tf-state, key: {{ organization_id }}/{{ run_id }}/compute.tfstate
 - Reference networking outputs via terraform_remote_state data source.
 
 USER:
-Organization ID: {{ organization_id }}
+Tenant ID: {{ organization_id }}
 Run ID: {{ run_id }}
 Region: {{ aws_region }}
 VPC state key: {{ organization_id }}/{{ run_id }}/networking.tfstate
-Services to deploy: {{ services | map(attribute='name') | join(', ') }}
+Services: {{ services | map(attribute='name') | join(', ') }}
 
 Generate main.tf, variables.tf, and outputs.tf.
 ```
 
-### 5.3 `provision_data_layer` — Terraform Supabase + ElastiCache + S3
+### 5.3 `provision_data_layer` â€” Terraform RDS PostgreSQL + ElastiCache + S3
+
+> **Scope rule**: tenant MVPs always use **Amazon RDS for PostgreSQL** (`DataLayerSpec.kind = "rds"`). **Supabase is never provisioned by this node** â€” it is reserved for the AutoFounder internal control-plane.
+
+**Node pseudo-code** (idempotent, retry-safe â€” mirrors LLD Â§7.3 `with_retry`):
+
+```python
+# backend/app/agents/devops/nodes/provision_data_layer.py
+async def provision_data_layer(state: DevOpsState) -> dict:
+    organization_id, run_id = state.organization_id, state.run_id
+    vpc = state.vpc_config  # populated by attach_foundation_network (from foundation outputs)
+    assert vpc is not None, "attach_foundation_network must run first"
+
+    # 1. Generate per-tenant RDS master password and stash in Secrets Manager
+    #    BEFORE terraform apply (so the HCL references the secret ARN, not the
+    #    plaintext). Idempotent: if secret already exists for this run_id, reuse.
+    rds_secret_name = f"{organization_id}/{run_id}/rds"
+    rds_secret_arn  = await secrets_manager_create.ainvoke({
+        "name":        rds_secret_name,
+        "description": f"RDS master credentials for tenant {organization_id} run {run_id}",
+        "secret_dict": {
+            "username": "app_admin",
+            "password": _generate_strong_password(),
+            "dbname":   "app",
+            "port":     5432,
+            # host is patched in post-apply once the endpoint is known
+        },
+        "tags": tagging.mandatory_tags(organization_id, run_id),
+    })
+
+    # 2. Render + apply the data-layer Terraform module (RDS + ElastiCache + S3)
+    hcl = await llm.render_prompt(
+        "provision_data_layer.j2",
+        organization_id=organization_id,
+        run_id=run_id,
+        aws_region=state.aws_region,
+        vpc_id=vpc.vpc_id,
+        private_subnet_ids=vpc.private_subnet_ids,
+        ecs_tasks_sg_id=vpc.security_group_ids["ecs_tasks"],
+        rds_credentials_secret_arn=rds_secret_arn,
+        rds_instance_class="db.t4g.micro",
+        rds_engine_version="16.3",
+        rds_allocated_storage_gb=20,
+        rds_multi_az=False,
+    )
+    tf_outputs = await terraform_run.ainvoke({
+        "module_path":   f"infra/terraform/tenants/{organization_id}/data-layer",
+        "hcl":           hcl,
+        "state_key":     f"{organization_id}/{run_id}/data-layer.tfstate",
+        "action":        "apply",
+    })
+
+    # 3. Patch the secret with the resolved RDS endpoint (post-apply)
+    await secrets_manager_update.ainvoke({
+        "name":  rds_secret_name,
+        "patch": {"host": tf_outputs["rds_endpoint"]},
+    })
+
+    rds = RDSInstance(
+        kind="rds",
+        db_instance_identifier=tf_outputs["rds_db_instance_identifier"],
+        engine_version="16.3",
+        instance_class="db.t4g.micro",
+        allocated_storage_gb=20,
+        multi_az=False,
+        db_subnet_group_name=tf_outputs["rds_subnet_group_name"],
+        vpc_security_group_id=tf_outputs["rds_sg_id"],
+        endpoint=tf_outputs["rds_endpoint"],
+        port=5432,
+        db_name="app",
+        master_username="app_admin",
+        credentials_secret_name=rds_secret_name,
+        credentials_secret_arn=rds_secret_arn,
+        status=InfraStatus.READY,
+    )
+    return {
+        "rds_instance":        rds,
+        "elasticache_cluster": ElastiCacheCluster(**tf_outputs["elasticache"]),
+        "s3_bucket":           S3Bucket(**tf_outputs["s3_bucket"]),
+        "secrets":             state.secrets + [SecretRef(
+            secret_name=rds_secret_name, secret_arn=rds_secret_arn,
+            keys=["host", "port", "username", "password", "dbname"],
+        )],
+    }
+```
+
+**Jinja2 prompt** (Terraform HCL for the data-layer module):
 
 ```jinja2
 {# backend/app/agents/devops/prompts/provision_data_layer.j2 #}
 
 SYSTEM:
-You are a database and storage infrastructure engineer generating Terraform for AWS,
-using the Supabase Terraform provider for the managed relational + vector layer.
+You are a database and storage infrastructure engineer generating Terraform for AWS.
+The deployed tenant MVP uses AWS-native managed services only. DO NOT generate any
+Supabase / third-party DB resources â€” Supabase is reserved for the AutoFounder internal
+control-plane and is out of scope for this module.
 
-Provision all three resources in parallel within the same module:
+Provision exactly three resources in one module:
 
-1. Supabase project (managed PostgreSQL 16 + pgvector):
-   - Compute plan: pro (cost-optimised for seed stage); multi-AZ is provided by the Supabase platform
-   - Enable the pgvector extension for semantic memory / RAG
-   - DB name: {{ organization_id | replace('-', '_') }}_prod
-   - Store the Supabase connection string + service-role key in Secrets Manager:
-     {{ organization_id }}/{{ run_id }}/supabase-credentials
-   - Enable point-in-time recovery (7 days)
+1. Amazon RDS for PostgreSQL
+   - engine = "postgres", engine_version = "{{ rds_engine_version }}"
+   - instance_class = "{{ rds_instance_class }}"
+   - allocated_storage = {{ rds_allocated_storage_gb }}, storage_type = "gp3", storage_encrypted = true
+   - multi_az = {{ rds_multi_az | lower }}
+   - publicly_accessible = false, deletion_protection = false
+   - db_subnet_group across the VPC private subnets {{ private_subnet_ids | join(', ') }}
+   - new VPC security group: inbound 5432 from ecs_tasks SG ({{ ecs_tasks_sg_id }}) ONLY; no 0.0.0.0/0 ingress
+   - master credentials sourced from AWS Secrets Manager secret ARN: {{ rds_credentials_secret_arn }}
+     via aws_secretsmanager_secret_version â†’ jsondecode â†’ username / password
+   - db_name = "app", port = 5432, backup_retention_period = 7
+   - identifier = "autofounder-{{ organization_id[:8] }}-{{ run_id[:8] }}"
+   - apply_immediately = true; skip_final_snapshot = true (dev tier)
+   - performance_insights_enabled = true; monitoring_interval = 60
 
-2. ElastiCache Redis 7.1:
-   - cache.t3.micro, 1 node (no cluster mode for seed)
-   - Encryption at rest and in transit: true
-   - Automatic failover: false (single node)
+2. ElastiCache Redis 7.1 (cache.t3.micro, 1 node, encryption in transit + at rest)
+   - subnet group across private subnets, SG allowing 6379 from ecs_tasks SG only
 
-3. S3 bucket:
-   - Name: autofounder-{{ organization_id }}-{{ run_id[:8] }}
-   - Versioning: enabled
-   - Server-side encryption: AES256
-   - Block all public access: true
-   - Lifecycle: transition to IA after 30 days, Glacier after 90 days
+3. S3 bucket autofounder-{{ organization_id }}-{{ run_id[:8] }}
+   - versioning on, AES256 SSE, block all public access
+   - lifecycle: IA @ 30d â†’ Glacier @ 90d
+
+Mandatory tags on every resource: Tenant={{ organization_id }}, RunId={{ run_id }}, ManagedBy=terraform.
+
+Outputs (Terraform `output` blocks):
+- rds_db_instance_identifier, rds_endpoint, rds_sg_id, rds_subnet_group_name
+- elasticache (object: cluster_id, endpoint, port)
+- s3_bucket (object: bucket_name, region)
 
 Rules:
-- ElastiCache and S3 access live in private subnets only; Supabase is reached over its managed
-  TLS endpoint via the Supabase-egress security group
-- Security groups from provision_networking module outputs
+- Return ONLY the Terraform HCL (no markdown fences, no explanation).
 - State: autofounder-tf-state/{{ organization_id }}/{{ run_id }}/data-layer.tfstate
+- All three resources MUST live in the VPC private subnets {{ private_subnet_ids | join(', ') }}.
+- No raw passwords in HCL â€” only secret ARN references.
 
 USER:
-Organization ID: {{ organization_id }}
+Tenant ID: {{ organization_id }}
 Run ID: {{ run_id }}
 Region: {{ aws_region }}
-VPC state key: {{ organization_id }}/{{ run_id }}/networking.tfstate
-Domain: {{ domain }}
+VPC ID: {{ vpc_id }}
+Private subnets: {{ private_subnet_ids | join(', ') }}
+ECS tasks SG ID: {{ ecs_tasks_sg_id }}
+RDS credentials secret ARN: {{ rds_credentials_secret_arn }}
 
 Generate main.tf, variables.tf, and outputs.tf.
 ```
 
-### 5.4 `build_task_defs` — ECS Task & Service Definition Generation
+**Deployment-flow constraints for the data layer (enforced by downstream nodes):**
+
+- Ensure `migration.sql` (from the Architect S3 artefact `supabase_migration_s3_uri`) executes against the new RDS instance **before** ECS services start â€” run it from a one-shot Fargate "migration" task (or a CodeDeploy `BeforeAllowTraffic` hook) gated on RDS `available` status; `deploy_application` must not flip traffic until this task exits 0.
+- Inject DB credentials into every ECS task definition via `secrets[]` `valueFrom` against `{{ rds_credentials_secret_arn }}` only (see Â§5.4); never write `DB_PASSWORD` or any RDS field into `environment[]` or into the rendered deploy report.
+- Account for RDS warm-up (â‰ˆ 2â€“5 min from `creating` â†’ `available`): `provision_data_layer` must poll `DescribeDBInstances` until `DBInstanceStatus = "available"` (max 6 min, 15 s interval) before returning, and the migration task / `smoke_test` must not be scheduled until that poll succeeds.
+
+### 5.4 `build_task_defs` â€” ECS Task Definition Generation
 
 ```jinja2
 {# backend/app/agents/devops/prompts/build_task_defs.j2 #}
 
 SYSTEM:
-You are an ECS engineer generating Amazon ECS task definitions and service definitions for a
-SaaS application. Generate one task definition JSON and one ECS service definition per service,
-targeting Fargate launch type with awsvpc networking.
+You are an ECS engineer generating an ECS task definition JSON for each service.
 
-Rules:
-- requiresCompatibilities: ["FARGATE"]; networkMode: awsvpc
-- Task-level cpu / memory derived from the provided resource requests and limits
-- containerDefinitions: one container per service, image pulled from ECR (image_uri)
-- healthCheck: CMD-SHELL curl -f http://localhost:{{ service.port }}{{ service.health_check_path }} || exit 1,
-  interval=15s, timeout=5s, retries=3, startPeriod=30s
-- Secrets injected via the `secrets` block from AWS Secrets Manager ARNs (not plaintext environment)
-- Secret name prefix: {{ organization_id }}/{{ service.name }}
-- logConfiguration: awslogs driver → CloudWatch log group /autofounder/{{ organization_id }}/{{ run_id }}
-- ECS service: desiredCount={{ service.replicas_baseline }}, deploymentController=CODE_DEPLOY (blue/green),
-  registered behind the ALB target group on host {{ service.name }}.{{ live_url }}
-- Service Auto Scaling: target tracking on ECS CPU utilisation 70%, min={{ service.replicas_baseline }}, max=10
-- Spread tasks across availability zones via the default Fargate placement
-- Task role carries an IAM policy granting least-privilege S3 access
+Rules per service:
+- networkMode: "awsvpc"
+- requiresCompatibilities: ["FARGATE"]
+- cpu / memory: from ServiceManifest.resource_requests (translated to Fargate-valid pairs)
+- One container per task; image = ServiceManifest.image_uri (ECR URI with digest)
+- portMappings: containerPort = ServiceManifest.port
+- healthCheck: CMD-SHELL curl -fsS http://localhost:{{ service.port }}{{ service.health_check_path }} || exit 1
+- environment + secrets:
+    * Plain values â†’ environment[]
+    * Sensitive values â†’ secrets[] referencing Secrets Manager ARNs from ServiceManifest.env_secret_refs
+    * DB credentials (always present, from provision_data_layer): inject the following
+      `secrets[]` entries, each sourced from the RDS Secrets Manager secret ARN
+      `{{ rds_credentials_secret_arn }}` using the `valueFrom` JSON-key suffix syntax
+      (`<secret-arn>:<json-key>::`):
+        - name: DB_HOST     valueFrom: "{{ rds_credentials_secret_arn }}:host::"
+        - name: DB_PORT     valueFrom: "{{ rds_credentials_secret_arn }}:port::"
+        - name: DB_NAME     valueFrom: "{{ rds_credentials_secret_arn }}:dbname::"
+        - name: DB_USER     valueFrom: "{{ rds_credentials_secret_arn }}:username::"
+        - name: DB_PASSWORD valueFrom: "{{ rds_credentials_secret_arn }}:password::"
+      Do NOT inline DB credentials into environment[]. The ECS execution role must
+      already grant secretsmanager:GetSecretValue on this ARN (granted by the compute module).
+- logConfiguration: awslogs, group=/ecs/{{ organization_id }}/{{ run_id }}/{{ service.name }}, retention 90d
+- executionRoleArn and taskRoleArn from compute Terraform outputs (per-tenant, least-privilege)
+- family: "{{ organization_id }}-{{ service.name }}"
+- stopTimeout: 30
 
-Return ONLY valid JSON. One task definition + one service definition per service.
+Return ONLY a JSON object keyed by service name; each value is a complete ECS
+RegisterTaskDefinition request body.
 
 USER:
 {% for service in services %}
@@ -1301,76 +1461,89 @@ Resource limits: {{ service.resource_limits | tojson }}
 Secret refs: {{ service.env_secret_refs | join(', ') }}
 ---
 {% endfor %}
-Live URL base: {{ live_url }}
-ECS cluster: {{ ecs_cluster.cluster_name }}
+Tenant ID: {{ organization_id }}
+Run ID: {{ run_id }}
+Region: {{ aws_region }}
+Execution role ARN: {{ ecs_execution_role_arn }}
+Task role ARN: {{ ecs_task_role_arn }}
+RDS credentials secret ARN: {{ rds_credentials_secret_arn }}
 ```
 
-### 5.5 `configure_codedeploy` — CodeDeploy AppSpec & Deployment Group Manifests
+### 5.5 `configure_codedeploy` â€” CodeDeploy appspec + Deployment Group
 
 ```jinja2
 {# backend/app/agents/devops/prompts/configure_codedeploy.j2 #}
 
 SYSTEM:
-You are an AWS deployment engineer generating CodeDeploy artefacts for blue/green ECS deploys.
-For each service, generate:
-- An ECS-flavoured CodeDeploy appspec.yaml (version 0.0, Resources → TargetService → TaskDefinition
-  placeholder <TASK_DEFINITION>, LoadBalancerInfo with the container name + port)
-- A deployment group definition targeting the ECS service, with blue/green traffic shift
-  (deploymentConfig CodeDeployDefault.ECSAllAtOnce), auto-rollback on deployment failure or
-  alarm, and a 5-minute termination wait for the original (blue) task set
-- Lifecycle hooks: BeforeInstall, AfterInstall, AfterAllowTestTraffic, BeforeAllowTraffic,
-  AfterAllowTraffic (each a no-op stub the Coder Agent can later wire to a Lambda)
+You are an AWS deployment engineer generating an AWS CodeDeploy ECS blue/green
+configuration. Produce two artefacts as a JSON object:
 
-Ordering: data-layer-dependent services deploy first, API services next, frontend last.
+1. "deployment_group": Terraform HCL for an aws_codedeploy_app (compute_platform="ECS")
+   and an aws_codedeploy_deployment_group with:
+   - deployment_config_name: "CodeDeployDefault.ECSAllAtOnce" (web) /
+     "CodeDeployDefault.ECSLinear10PercentEvery3Minutes" (api)
+   - ecs_service block: cluster_name + service_name from compute outputs
+   - load_balancer_info: prod ALB target group + test target group per service
+   - blue_green_deployment_config: terminate blue tasks 10 minutes after success;
+     deployment_ready_option = CONTINUE_DEPLOYMENT (no manual approval at the AWS layer
+     â€” the HITL spend gate already approved earlier)
+   - auto_rollback_configuration: enabled on DEPLOYMENT_FAILURE + DEPLOYMENT_STOP_ON_ALARM
 
-Return ONLY valid YAML (one appspec document per service, separated by ---).
+2. "appspec_yaml": appspec.yaml content per service:
+   version: 0.0
+   Resources:
+     - TargetService:
+         Type: AWS::ECS::Service
+         Properties:
+           TaskDefinition: <REPLACED_AT_DEPLOY_TIME>
+           LoadBalancerInfo: { ContainerName: "{{ service.name }}", ContainerPort: {{ service.port }} }
+
+Return ONLY the JSON object (keys: deployment_group, appspec_yaml). No markdown fences.
 
 USER:
-CodeDeploy region: {{ aws_region }}
-Repo URL: {{ repo_url }}
-Target revision: HEAD
+Tenant ID: {{ organization_id }}
+Run ID: {{ run_id }}
+Region: {{ aws_region }}
 ECS cluster: {{ ecs_cluster.cluster_name }}
 Services:
 {% for service in services %}
 - name: {{ service.name }}
-  appspec_path: infra/codedeploy/{{ service.name }}/appspec.yaml
-  cluster: {{ ecs_cluster.cluster_name }}
+  port: {{ service.port }}
+  health_check_path: {{ service.health_check_path }}
 {% endfor %}
-Organization ID: {{ organization_id }}
-Run ID: {{ run_id }}
+ALB target groups (from compute outputs): {{ alb_target_group_arns | tojson }}
 ```
 
-### 5.6 `configure_monitoring` — CloudWatch + Prometheus Rules
+### 5.6 `configure_monitoring` â€” CloudWatch + Prometheus Rules
 
 ```jinja2
 {# backend/app/agents/devops/prompts/configure_monitoring.j2 #}
 
 SYSTEM:
-You are a site reliability engineer configuring observability for an ECS Fargate SaaS app.
+You are a site reliability engineer configuring observability for a Kubernetes SaaS app.
 Generate:
 1. A list of CloudWatch alarms (boto3 put_metric_alarm parameters as JSON)
 2. Prometheus scrape config additions (YAML)
 3. Grafana dashboard provisioning config (JSON)
 
 Mandatory alarms (CloudWatch):
-- ECS service CPUUtilization > 80% for 5 min → SNS alert
-- ECS service MemoryUtilization > 85% for 5 min → SNS alert
-- ECS RunningTaskCount < desiredCount for 5 min → SNS alert
-- Supabase Postgres CPU > 75% for 5 min → SNS alert (via Supabase metrics → CloudWatch)
-- Supabase Postgres free disk < 2 GB → SNS alert (Critical)
-- ALB 5XX rate > 1% for 2 min → SNS alert
-- ALB P99 latency > 1000ms for 2 min → SNS alert
-- ElastiCache cache hit rate < 80% for 10 min → SNS warning
+- ECS service CPU > 80% for 5 min â†’ SNS alert
+- ECS service memory > 85% for 5 min â†’ SNS alert
+- ECS RunningTaskCount < DesiredTaskCount for 5 min â†’ SNS alert (Critical)
+- ALB 5XX rate > 1% for 2 min â†’ SNS alert
+- ALB P99 latency > 1000ms for 2 min â†’ SNS alert
+- ElastiCache cache hit rate < 80% for 10 min â†’ SNS warning
+- RDS CPU > 75% for 10 min â†’ SNS warning; RDS FreeStorageSpace < 20% for 10 min â†’ SNS critical; RDS DatabaseConnections > 80% of max for 5 min â†’ SNS warning
 
-Prometheus scrape: add a scrape job for each app service's ECS task (port: metrics, path: /metrics),
-discovered via the ECS service-discovery namespace.
-CloudWatch log group: /autofounder/{{ organization_id }}/{{ run_id }}, retention: 90 days.
+Prometheus scrape: add a scrape_config for each ECS service (target via service discovery on
+the ALB target groups, path: /metrics).
+CloudWatch log group: /ecs/{{ organization_id }}/{{ run_id }}/<service>, retention: 90 days.
 
 Return JSON with keys: "cloudwatch_alarms" (list), "prometheus_scrape_yaml" (string),
-"log_group_name" (string), "grafana_dashboard_url" (null — will be set post-deploy).
+"log_group_name" (string), "grafana_dashboard_url" (null â€” will be set post-deploy).
 
 USER:
-Organization ID: {{ organization_id }}
+Tenant ID: {{ organization_id }}
 Run ID: {{ run_id }}
 Region: {{ aws_region }}
 Services: {{ services | map(attribute='name') | join(', ') }}
@@ -1378,7 +1551,7 @@ SNS topic ARN: {{ sns_topic_arn }}
 ECS cluster name: {{ ecs_cluster.cluster_name }}
 ```
 
-### 5.7 `configure_cicd` — GitHub Actions Workflow
+### 5.7 `configure_cicd` â€” GitHub Actions Workflow
 
 ```jinja2
 {# backend/app/agents/devops/prompts/configure_cicd.j2 #}
@@ -1387,47 +1560,48 @@ SYSTEM:
 You are a DevOps engineer generating a GitHub Actions workflow for continuous deployment.
 The workflow must:
 - Trigger on: push to main, and manual workflow_dispatch
-- Jobs: lint → test → build-and-push → deploy
+- Jobs: lint â†’ test â†’ build-and-push â†’ deploy
 - Build: docker buildx, push to ECR, tag with git SHA
-- ECR login via OIDC (no long-lived credentials — use aws-actions/configure-aws-credentials@v4)
-- Deploy: render the new image tag into the ECS task definition, register it with
-  aws ecs register-task-definition, then trigger an AWS CodeDeploy blue/green deployment
-  (aws deploy create-deployment) against the ECS service
+- ECR login via OIDC (no long-lived credentials â€” use aws-actions/configure-aws-credentials@v4)
+- Deploy: build & push new container image to ECR (tag = git SHA), then call
+  `aws deploy create-deployment` against the CodeDeploy application + deployment group
+  for each service (blue/green to ECS Fargate).
 - Notification: post to Slack on success and failure
 - Cache: use GitHub Actions cache for Docker layers and pnpm/pip dependencies
 
 Security requirements:
-- Never hardcode secrets — use GitHub Secrets and OIDC role assumption
+- Never hardcode secrets â€” use GitHub Secrets and OIDC role assumption
 - Required secrets: AWS_ACCOUNT_ID, ECR_REPOSITORY, SLACK_WEBHOOK_URL
 - IAM role: arn:aws:iam::{{ aws_account_id }}:role/autofounder-github-actions-{{ organization_id }}
 
 Return ONLY valid GitHub Actions YAML (no markdown fences).
 
 USER:
-Organization ID: {{ organization_id }}
+Tenant ID: {{ organization_id }}
 Run ID: {{ run_id }}
 AWS region: {{ aws_region }}
 AWS account ID: {{ aws_account_id }}
 ECR registry: {{ ecr_registry }}
 Services: {{ services | map(attribute='name') | join(', ') }}
-CodeDeploy application: {{ cicd_config.codedeploy_app }}
+CodeDeploy application: {{ codedeploy_app.app_name }}
+CodeDeploy deployment group: {{ codedeploy_app.deployment_group }}
 Repo URL: {{ repo_url }}
 Slack webhook secret name: SLACK_WEBHOOK_URL
 ```
 
-### 5.8 `render_deploy_report` — Deployment Report
+### 5.8 `render_deploy_report` â€” Deployment Report
 
 ```jinja2
 {# backend/app/agents/devops/prompts/render_deploy_report.j2 #}
 
 SYSTEM:
 You are a technical writer assembling a deployment completion report in Markdown.
-Every claim must reference actual data from the deployment state — do not invent values.
+Every claim must reference actual data from the deployment state â€” do not invent values.
 Embed all relevant URLs. Use H2 sections. Target audience: Founder (non-technical summary)
 and Marketer Agent (live URL + brand config for GTM).
 
 USER:
-Organization: {{ organization_id }}
+Tenant: {{ organization_id }}
 Run ID: {{ run_id }}
 Idea: {{ idea_normalised }}
 Domain: {{ domain }}
@@ -1437,20 +1611,21 @@ Live URL: {{ live_url }}
 TLS cert status: {{ tls_certificate.status }}
 
 Infrastructure:
-- ECS cluster: {{ ecs_cluster.cluster_name }} (Fargate platform {{ ecs_cluster.platform_version }})
-- Supabase project: {{ supabase_project.endpoint }}
+- ECS cluster: {{ ecs_cluster.cluster_name }} (region {{ ecs_cluster.region }})
+- RDS PostgreSQL: {{ rds_instance.db_instance_identifier }} ({{ rds_instance.engine }} {{ rds_instance.engine_version }}, {{ rds_instance.instance_class }}, multi_az={{ rds_instance.multi_az }})
 - ElastiCache endpoint: {{ elasticache_cluster.endpoint }}
 - S3 bucket: {{ s3_bucket.bucket_name }}
 - Region: {{ aws_region }}
 
 Services deployed:
-{% for app in codedeploy_apps %}
-- {{ app.app_name }}: {{ app.health_status }}
+{% for svc in ecs_cluster.services %}
+- {{ svc.service_name }}: desired={{ svc.desired_count }}, status={{ svc.status }}
 {% endfor %}
+CodeDeploy app: {{ codedeploy_app.app_name }} / group {{ codedeploy_app.deployment_group }} â€” {{ codedeploy_app.health_status }}
 
 Smoke tests:
 {% for t in smoke_test_results %}
-- {{ t.endpoint }}: HTTP {{ t.status_code }}, {{ t.latency_ms }}ms — {{ 'PASS' if t.passed else 'FAIL' }}
+- {{ t.endpoint }}: HTTP {{ t.status_code }}, {{ t.latency_ms }}ms â€” {{ 'PASS' if t.passed else 'FAIL' }}
 {% endfor %}
 
 Monitoring:
@@ -1487,26 +1662,26 @@ End with a machine-readable block for the Marketer Agent:
 
 ## 6. Sequence Diagrams
 
-### 6.1 Happy-path — end-to-end deploy flow
+### 6.1 Happy-path â€” end-to-end deploy flow
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Founder
-    participant API    as FastAPI API Gateway
+    participant API    as FastAPI Gateway
     participant Graph  as LangGraph Orchestrator
     participant Ingest as ingest_input
     participant Gate   as hitl_spend_gate
     participant Redis  as Redis (session)
     participant TF     as Terraform CLI
-    participant ECS    as AWS ECS (Fargate)
-    participant SB     as Supabase (Postgres)
+    participant ECS    as AWS ECS Fargate
+    participant RDS    as AWS RDS (PostgreSQL)
     participant Cache  as AWS ElastiCache
     participant SM     as AWS Secrets Manager
     participant ECR    as AWS ECR
-    participant TD     as ECS Task Defs
     participant CD     as AWS CodeDeploy
-    participant R53    as AWS Route53
+    participant ALB    as AWS ALB
+    participant R53    as AWS Route 53
     participant ACM    as AWS ACM
     participant CW     as AWS CloudWatch
     participant GH     as GitHub API
@@ -1523,66 +1698,66 @@ sequenceDiagram
     API -->> Founder: Dashboard shows cost estimate + Approve / Reject
 
     Founder ->> API: POST /api/v1/runs/{run_id}/approve-spend { comment }
-    API ->> Redis: HSET architect:approval:{run_id} status=approved
+    API ->> Redis: HSET devops:approval:{run_id} status=approved
     API ->> Graph: resume(DevOpsState)
 
-    Graph ->> TF: terraform apply (networking module)
-    TF ->> TF: create VPC, subnets, NAT, SGs
-    TF -->> Graph: vpc_config { vpc_id, subnet_ids, sg_ids }
+    Graph ->> TF: terraform apply (network_overlays module)
+    TF ->> TF: read foundation VPC outputs via terraform_remote_state; create product-tier SGs, ALB, target groups
+    TF -->> Graph: vpc_config { vpc_id (foundation), subnet_ids (foundation), sg_ids, alb_arn }
 
     par Parallel infrastructure provisioning
         Graph ->> TF: terraform apply (compute module)
-        TF ->> ECS: create cluster + Fargate capacity providers
-        ECS -->> TF: cluster_arn, endpoint, capacity_providers
+        TF ->> ECS: create Fargate cluster + services (web, api)
+        TF ->> ALB: create target groups per service + listener rules
+        ECS -->> TF: cluster_arn, service_arns[]
         TF -->> Graph: ecs_cluster (status=READY)
 
+        Graph ->> SM: create_secret({organization_id}/{run_id}/rds) [pre-apply, password generated]
         Graph ->> TF: terraform apply (data-layer module)
-        TF ->> SB: provision Supabase project (Postgres 16 + pgvector)
-        SB -->> TF: endpoint, port
+        TF ->> RDS: create db.t4g.micro PostgreSQL 16.3 in private subnets, SG=ecs_tasks-only
+        RDS -->> TF: endpoint, port, sg_id, subnet_group_name
         TF ->> Cache: create cache.t3.micro Redis 7.1
         Cache -->> TF: endpoint, port
         TF ->> TF: create S3 bucket with lifecycle policy
-        TF -->> Graph: supabase_project, elasticache_cluster, s3_bucket
+        TF -->> Graph: rds_instance, elasticache_cluster, s3_bucket
+        Graph ->> SM: update_secret({organization_id}/{run_id}/rds) patch host=rds_endpoint
     end
 
-    Graph ->> SM: create_secret({organization_id}/{run_id}/supabase-credentials)
     Graph ->> SM: create_secret({organization_id}/{run_id}/redis-url)
     SM -->> Graph: secret_arns[]
 
-    par Parallel: ECS task defs + CodeDeploy config
-        Graph ->> TD: register task definition for each service
-        TD -->> Graph: ecs_services[] (task defs validated)
+    par Parallel: task defs + CodeDeploy config
+        Graph ->> Graph: render ECS task definition JSON per service
+        Graph ->> ECS: RegisterTaskDefinition (each service)
+        ECS -->> Graph: task_def_arns[]
 
-        Graph ->> Graph: generate CodeDeploy appspec + deployment groups
-        Graph -->> Graph: codedeploy_apps[]
+        Graph ->> Graph: render appspec.yaml + Terraform for CodeDeploy app + deployment group
+        Graph ->> TF: terraform apply (codedeploy module)
+        TF -->> Graph: codedeploy_app { app_name, deployment_group }
     end
 
-    Graph ->> CD: create CodeDeploy application + deployment group (each app)
-    CD -->> Graph: apps registered
+    Graph ->> CD: CreateDeployment (revisionType=AppSpecContent) per service
+    CD ->> ECS: shift traffic blue â†’ green on ALB target groups
+    ECS -->> CD: green tasks healthy
+    CD -->> Graph: { deployment_id, status: Succeeded }
 
-    Graph ->> CD: create-deployment (blue/green)
-    CD ->> ECS: register-task-definition + update-service (green task set)
-    ECS -->> CD: tasks Running (target group healthy)
-    CD -->> Graph: { health_status: Healthy }
-
-    Graph ->> R53: upsert A alias → ALB DNS
+    Graph ->> ACM: RequestCertificate (DNS validation) for {{ live_url }}
+    ACM -->> Graph: certificate_arn (Pending validation)
+    Graph ->> R53: upsert CNAME (ACM validation) + A alias â†’ ALB DNS
     R53 -->> Graph: { change_id, status: INSYNC }
-
-    Graph ->> ACM: request public certificate (DNS validation via Route53)
-    ACM ->> ACM: DNS validation
-    ACM -->> Graph: TLS certificate Issued
+    ACM -->> Graph: certificate Issued
 
     Graph ->> Graph: live_url = "https://{{ record_name }}"
 
     par Parallel: monitoring + CI/CD
-        Graph ->> CW: put_metric_alarm × 7 alarms
+        Graph ->> CW: put_metric_alarm Ã— 7 alarms
         CW -->> Graph: alarms_created
 
         Graph ->> GH: PUT .github/workflows/deploy.yml
         GH -->> Graph: { sha, success: true }
     end
 
-    Graph ->> Smoke: GET {{ live_url }}/health × N services
+    Graph ->> Smoke: GET {{ live_url }}/health Ã— N services
     Smoke -->> Graph: smoke_test_results (all passed, P99 < 100ms)
 
     Graph ->> Graph: render_deploy_report
@@ -1591,7 +1766,7 @@ sequenceDiagram
     API --)  Mkt: emit(DevOpsOutput) via gRPC
 ```
 
-### 6.2 Terraform apply failure — rollback and retry
+### 6.2 Terraform apply failure â€” rollback and retry
 
 ```mermaid
 sequenceDiagram
@@ -1603,7 +1778,7 @@ sequenceDiagram
     participant Slack as Slack Webhook
 
     Graph ->> TF: terraform apply (compute module) [attempt 1]
-    TF -->> Graph: returncode=1, stderr="Error: timeout waiting for ECS service to stabilize"
+    TF -->> Graph: returncode=1, stderr="Error: timeout waiting for ECS service stable"
 
     Note over Graph: retry_count=1, sleep 30s
     Graph ->> TF: terraform apply (compute module) [attempt 2]
@@ -1614,10 +1789,10 @@ sequenceDiagram
     TF -->> Graph: returncode=0, stdout="Apply complete! Resources: 12 added"
 
     Graph ->> State: ecs_cluster.status = READY, retry_count logged
-    State -->> Graph: infra_join → provision_secrets (continue)
+    State -->> Graph: infra_join â†’ provision_secrets (continue)
 ```
 
-### 6.3 Smoke test failure — deploy rollback
+### 6.3 Smoke test failure â€” deploy rollback
 
 ```mermaid
 sequenceDiagram
@@ -1627,30 +1802,30 @@ sequenceDiagram
     participant CD    as AWS CodeDeploy
     participant EH    as error_handler
     participant Slack as Slack Webhook
-    participant API   as FastAPI API Gateway
+    participant API   as FastAPI Gateway
 
-    Graph ->> Smoke: GET /health (api-gateway service)
+    Graph ->> Smoke: GET /health (api service)
     Smoke -->> Graph: { status_code: 503, latency_ms: 8200, passed: false }
 
-    Graph ->> EH: smoke_tests_passed = false → error_handler
-    EH ->> CD: stop-deployment --auto-rollback-enabled (deployment id)
-    CD ->> CD: shift traffic back to original (blue) task set
-    CD -->> EH: rollback initiated
+    Graph ->> EH: smoke_tests_passed = false â†’ error_handler
+    EH ->> CD: StopDeployment (autoRollbackEnabled=true)
+    CD ->> CD: shift ALB traffic back to blue target group
+    CD -->> EH: rollback complete
 
     EH ->> Slack: POST alert { run_id, organization_id, failed_endpoint, status_code }
-    EH -->> Graph: fatal_error = "Smoke test failed: api-gateway returned 503"
+    EH -->> Graph: fatal_error = "Smoke test failed: api returned 503"
 
     Graph -->> API: DevOpsState { fatal_error, deploy_status: FAILED }
     API -->> API: emit "run.failed" SSE event
 ```
 
-### 6.4 HITL spend gate — rejection flow
+### 6.4 HITL spend gate â€” rejection flow
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Founder
-    participant API   as FastAPI API Gateway
+    participant API   as FastAPI Gateway
     participant Graph as LangGraph Orchestrator
     participant Gate  as hitl_spend_gate
     participant EH    as error_handler
@@ -1658,14 +1833,14 @@ sequenceDiagram
     participant Slack as Slack Webhook
 
     Graph -->> API: SSE { status: "awaiting_spend_approval", cost_usd: 42.50 }
-    API -->> Founder: Dashboard — infra cost preview
+    API -->> Founder: Dashboard â€” infra cost preview
 
     Founder ->> API: POST /api/v1/runs/{run_id}/reject-spend { comment: "Cost too high" }
     API ->> Redis: HSET devops:approval:{run_id} status=rejected comment="Cost too high"
     API ->> Graph: resume(DevOpsState)
 
-    Graph ->> Gate: poll → ApprovalStatus.REJECTED
-    Gate -->> Graph: route → error_handler
+    Graph ->> Gate: poll â†’ ApprovalStatus.REJECTED
+    Gate -->> Graph: route â†’ error_handler
 
     Graph ->> EH: ApprovalRejected
     EH ->> Slack: POST { run_id, rejection_reason: "Cost too high" }
@@ -1682,23 +1857,23 @@ sequenceDiagram
     autonumber
     participant Graph as LangGraph Orchestrator
     participant CD    as AWS CodeDeploy
-    participant ECS   as AWS ECS (Fargate)
+    participant ECS   as AWS ECS Fargate
     participant ALB   as AWS ALB (Target Groups)
     participant Smoke as smoke_test
 
     Note over Graph: deploy_strategy = blue_green
 
-    Graph ->> CD: create-deployment (deploys to "green" target group)
-    CD ->> ECS: create green task set (new task definition revision)
+    Graph ->> CD: CreateDeployment (revisionType=AppSpecContent)
+    CD ->> ECS: register green task set on green target group
     ECS -->> CD: green tasks Running
 
     Graph ->> Smoke: GET {{ live_url }}/health (green tasks via test listener)
     Smoke -->> Graph: { passed: true, latency_ms: 45 }
 
-    Graph ->> ALB: modify listener rule — shift 100% traffic to green target group
+    Graph ->> ALB: shift 100% production traffic to green target group (via CD)
     ALB -->> Graph: traffic shifted
 
-    Graph ->> ECS: terminate blue task set (old version)
+    Graph ->> ECS: terminate blue task set (after termination wait)
     ECS -->> Graph: cleanup complete
 
     Graph -->> Graph: deploy_status = HEALTHY
@@ -1714,14 +1889,14 @@ sequenceDiagram
 |---|---|---|
 | `ValidationError` | CoderOutput missing services[] | Reject with `fatal_error`, do not provision |
 | `TerraformPlanError` | Syntax error in generated HCL | LLM self-corrects HCL once; if still invalid, escalate |
-| `TerraformApplyError` | ECS cluster/service stabilization timeout, quota exceeded | Retry 3× with 30 s / 60 s back-off; destroy partial resources on final failure |
-| `TaskDefError` | Invalid ECS task definition JSON | LLM self-corrects the task definition; retry |
-| `CodeDeployFailed` | Image pull error, task OOM, target group unhealthy | CodeDeploy auto-rollback to original (blue) task set; Slack alert |
-| `SmokeTestFailed` | Service returns 5xx after deploy | CodeDeploy rollback; `fatal_error` set; no Marketer handoff |
-| `DNSPropagationTimeout` | Route53 change not INSYNC in 60 s | Retry poll 5× at 15 s intervals; continue (DNS eventually consistent) |
-| `TLSIssuanceTimeout` | ACM certificate DNS validation > 3 min | Log warning; continue with HTTP-only live URL; alert ops |
+| `TerraformApplyError` | ECS service stable timeout, quota exceeded | Retry 3Ã— with 30 s / 60 s back-off; destroy partial resources on final failure |
+| `TaskDefValidationError` | Invalid ECS task definition JSON | LLM self-corrects task def; retry |
+| `CodeDeployFailed` | Image pull error, task health check failed | CodeDeploy auto-rolls back to previous task set; Slack alert |
+| `SmokeTestFailed` | Service returns 5xx after deploy | CodeDeploy auto-rollback; `fatal_error` set; no Marketer handoff |
+| `DNSPropagationTimeout` | Route53 change not INSYNC in 60 s | Retry poll 5Ã— at 15 s intervals; continue (DNS eventually consistent) |
+| `TLSIssuanceTimeout` | cert-manager ACME challenge > 3 min | Log warning; continue with HTTP-only live URL; alert ops |
 | `SpendApprovalRejected` | Founder clicks Reject | No AWS resources created; fatal_error + Slack |
-| `SpendApprovalTimeout` | No decision in 10 min | Slack + email alert; fatal_error; no provisioning |
+| `SpendApprovalTimeout` | No decision in 15 min | Slack + email alert; fatal_error; no provisioning |
 | `GitHubRateLimit` | 403 on workflow push | Wait 60 s; retry; if exhausted log warning and continue |
 | `SLABreach` | End-to-end > 10 min (excl. HITL) | Emit CloudWatch SLA metric; continue; alert ops |
 
@@ -1762,15 +1937,15 @@ async def error_handler(state: DevOpsState) -> dict:
     if rejection:
         reason = f"Founder rejected infrastructure spend: {state.approval_comment or 'no comment'}"
     elif timeout:
-        reason = "Infrastructure spend approval timed out after 10 minutes"
+        reason = "Infrastructure spend approval timed out after 15 minutes"
     elif failed_nodes:
         reason = "; ".join(f"{t.node}: {t.error}" for t in failed_nodes)
         if _infrastructure_partially_created(state):
             await _terraform_destroy_partial(state)
     else:
-        reason = state.fatal_error or "Unknown error — check node_traces"
+        reason = state.fatal_error or "Unknown error â€” check node_traces"
 
-    logger.error("DevOps agent fatal error [run=%s org=%s]: %s",
+    logger.error("DevOps agent fatal error [run=%s tenant=%s]: %s",
                  state.run_id, state.organization_id, reason)
     await _post_slack_alert(state, reason)
 
@@ -1785,19 +1960,23 @@ def _infrastructure_partially_created(state: DevOpsState) -> bool:
     return (
         state.vpc_config is not None
         or state.ecs_cluster is not None
-        or state.supabase_project is not None
+        or state.rds_instance is not None
+        or state.elasticache_cluster is not None
+        or state.codedeploy_app is not None
     )
 
 
 async def _terraform_destroy_partial(state: DevOpsState) -> None:
     """Best-effort Terraform destroy for any provisioned modules."""
     modules = []
+    if state.codedeploy_app is not None:
+        modules.append(("codedeploy", f"infra/terraform/tenants/{state.organization_id}/codedeploy"))
     if state.ecs_cluster is not None:
-        modules.append(("compute", f"infra/terraform/organizations/{state.organization_id}/compute"))
-    if state.supabase_project is not None or state.elasticache_cluster is not None:
-        modules.append(("data-layer", f"infra/terraform/organizations/{state.organization_id}/data-layer"))
+        modules.append(("compute", f"infra/terraform/tenants/{state.organization_id}/compute"))
+    if state.elasticache_cluster is not None or state.rds_instance is not None:
+        modules.append(("data-layer", f"infra/terraform/tenants/{state.organization_id}/data-layer"))
     if state.vpc_config is not None:
-        modules.append(("networking", f"infra/terraform/organizations/{state.organization_id}/networking"))
+        modules.append(("network_overlays", f"infra/terraform/tenants/{state.organization_id}/network_overlays"))
 
     for module_name, module_path in modules:
         logger.warning("Destroying partial infra module: %s", module_name)
@@ -1817,7 +1996,7 @@ async def _terraform_destroy_partial(state: DevOpsState) -> None:
 async def _post_slack_alert(state: DevOpsState, reason: str) -> None:
     webhook_url = os.environ.get(SLACK_WEBHOOK)
     if not webhook_url:
-        logger.warning("Slack webhook not configured — skipping DevOps alert")
+        logger.warning("Slack webhook not configured â€” skipping DevOps alert")
         return
 
     payload = {
@@ -1825,7 +2004,7 @@ async def _post_slack_alert(state: DevOpsState, reason: str) -> None:
             f":rotating_light: *DevOps Agent Fatal Error*\n"
             f"*Run ID*: `{state.run_id}`\n"
             f"*Parent Run*: `{state.parent_run_id}`\n"
-            f"*Organization*: `{state.organization_id}`\n"
+            f"*Tenant*: `{state.organization_id}`\n"
             f"*Idea*: {state.idea_normalised[:80]}\n"
             f"*Reason*: {reason}\n"
             f"*Partial infra created*: {_infrastructure_partially_created(state)}\n"
@@ -1914,14 +2093,14 @@ from ..schema import DevOpsState, ApprovalStatus
 
 logger = logging.getLogger("devops.spend_gate")
 
-APPROVAL_POLL_INTERVAL_S = 30
-APPROVAL_TIMEOUT_S       = 600   # 10 minutes
+APPROVAL_POLL_INTERVAL_S = 60
+APPROVAL_TIMEOUT_S       = 900   # 15 minutes
 
 
 async def hitl_spend_gate(state: DevOpsState) -> dict:
     """
     Polls Redis for Founder approval of the infrastructure spend estimate.
-    The FastAPI API writes the decision to Redis when the Founder clicks
+    The FastAPI gateway writes the decision to Redis when the Founder clicks
     Approve or Reject in the dashboard. LangGraph interrupt_before fires
     before this node, surfacing the cost estimate in the UI.
     """
@@ -1961,19 +2140,19 @@ import logging
 logger = logging.getLogger("devops.sla")
 
 NODE_SLA_SECONDS: dict[str, int] = {
-    "ingest_input":         15,
-    "provision_networking": 180,
-    "provision_compute":    240,
-    "provision_data_layer": 180,
-    "provision_secrets":    30,
-    "build_task_defs":      120,
-    "configure_codedeploy": 60,
-    "deploy_application":   180,
-    "configure_dns_ssl":    60,
-    "configure_monitoring": 60,
-    "configure_cicd":       60,
-    "smoke_test":           30,
-    "render_deploy_report": 60,
+    "ingest_input":               15,
+    "attach_foundation_network":  60,
+    "provision_compute":          240,
+    "provision_data_layer":       180,
+    "provision_secrets":          30,
+    "build_task_defs":            120,
+    "configure_codedeploy":       60,
+    "deploy_application":         180,
+    "configure_dns_ssl":          60,
+    "configure_monitoring":       60,
+    "configure_cicd":             60,
+    "smoke_test":                 30,
+    "render_deploy_report":       60,
 }
 
 TOTAL_SLA_SECONDS = 600   # 10 minutes (excludes async HITL gate)
@@ -1985,16 +2164,16 @@ async def enforce_node_sla(node_name: str, coro):
     try:
         return await asyncio.wait_for(coro, timeout=sla)
     except asyncio.TimeoutError:
-        logger.error("SLA BREACH: node=%s exceeded %ds — returning partial state", node_name, sla)
+        logger.error("SLA BREACH: node=%s exceeded %ds â€” returning partial state", node_name, sla)
         return {"error_count": 1}
 ```
 
 ### 7.6 Terraform state safety
 
-All Terraform state files are stored in S3 with DynamoDB locking to prevent concurrent applies for the same organization:
+All Terraform state files are stored in S3 with DynamoDB locking to prevent concurrent applies for the same tenant:
 
 ```hcl
-# infra/terraform/organizations/_shared/backend.tf
+# infra/terraform/tenants/_shared/backend.tf
 
 terraform {
   backend "s3" {
@@ -2008,7 +2187,7 @@ terraform {
 }
 ```
 
-The DynamoDB lock prevents concurrent Terraform applies for the same organization — a necessary guard when multiple agent retries or concurrent runs could otherwise corrupt state.
+The DynamoDB lock prevents concurrent Terraform applies for the same tenant â€” a necessary guard when multiple agent retries or concurrent runs could otherwise corrupt state.
 
 ---
 
@@ -2025,7 +2204,7 @@ package autofounder.devops.v1;
 message DevOpsOutput {
   string run_id                  = 1;
   string parent_run_id           = 2;    // Coder Agent run_id
-  string organization_id         = 3;
+  string organization_id               = 3;
   string idea_normalised         = 4;
   string domain                  = 5;
 
@@ -2034,8 +2213,8 @@ message DevOpsOutput {
   string deploy_strategy         = 7;    // "rolling" | "blue_green" | "canary"
 
   // Infrastructure identifiers
-  string ecs_cluster_name        = 8;
-  string supabase_endpoint       = 9;
+  string ecs_cluster_arn         = 8;
+  string rds_db_instance_identifier = 9;   // Amazon RDS PostgreSQL instance id (was: supabase_project_ref)
   string aws_region              = 10;
   string s3_bucket_name          = 11;
 
@@ -2061,17 +2240,24 @@ message DevOpsOutput {
 
   int64  completed_at_unix_ms    = 22;
   int32  total_llm_tokens_used   = 23;
+
+  // CodeDeploy application (blue/green to ECS)
+  string codedeploy_app_name     = 24;
+
+  // Forward-compatible discriminator for future stack-agnostic dispatcher.
+  // Currently always "ecs_fargate"; will widen to {ecs_fargate, eks, lambda_apigw, s3_cloudfront}.
+  string compute_target          = 25;
 }
 ```
 
-**S3 artefact path convention**: `s3://autofounder-artefacts/{organization_id}/{run_id}/` — never shared between organizations.
+**S3 artefact path convention**: `s3://autofounder-artefacts/{organization_id}/{run_id}/` â€” never shared between tenants.
 
 **Routing rules after output**:
-- `tls_cert_status != "Issued"` → surface HTTP-only warning in Marketer Agent dashboard; do NOT block GTM
-- `smoke_tests_passed < smoke_tests_total` → this state is never reached (error_handler blocks it); included for defence in depth
-- `domain in ("FinTech", "HealthTech")` → Marketer Agent must cross-reference all generated copy against the compliance checklist before scheduling posts
-- On success → Marketer Agent receives `live_url` as the canonical landing page URL for all GTM assets
+- `tls_cert_status != "Issued"` â†’ surface HTTP-only warning in Marketer Agent dashboard; do NOT block GTM
+- `smoke_tests_passed < smoke_tests_total` â†’ this state is never reached (error_handler blocks it); included for defence in depth
+- `domain in ("FinTech", "HealthTech")` â†’ Marketer Agent must cross-reference all generated copy against the compliance checklist before scheduling posts
+- On success â†’ Marketer Agent receives `live_url` as the canonical landing page URL for all GTM assets
 
 ---
 
-*Auto-Founder AI — DevOps Agent LLD v1.0 | May 2026*
+*Auto-Founder AI â€” DevOps Agent LLD v1.0 | May 2026*
