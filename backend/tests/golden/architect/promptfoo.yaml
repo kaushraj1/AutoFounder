@@ -1,0 +1,154 @@
+# Promptfoo golden eval config — Architect Agent (AF-040)
+# Run: npx promptfoo eval --config tests/golden/architect/promptfoo.yaml
+#
+# Two eval suites:
+#   1. openapi  — generated OpenAPI 3.1 spec passes structural validation
+#   2. stack    — selected stack matches the default (Next.js + FastAPI + Supabase)
+
+description: "AF-040 Architect Agent — golden prompt evals"
+
+providers:
+  - id: google:gemini-1.5-flash
+    config:
+      temperature: 0.2
+      response_format: json_object
+
+prompts:
+  - id: openapi_prompt
+    label: "design_api_contract"
+    raw: |
+      You are a senior API architect at AutoFounder AI. Design a complete OpenAPI 3.1 REST contract.
+
+      Requirements:
+      - FR-001: Users can sign up with email/password (P0)
+      - FR-002: Users can create and manage projects (P0)
+      - FR-003: Users can store and read API keys per project (P0)
+      - NFR-001: API p99 latency < 150ms (P0)
+
+      ERD entities: USER, PROJECT, SECRET
+
+      Rules:
+      - Every endpoint: operationId, summary, responses (200, 400, 401)
+      - Auth: Bearer JWT in securitySchemes
+      - Version under /v1/
+      - Response envelope: { data, meta, error }
+
+      Return ONLY valid JSON (OpenAPI 3.1 object).
+
+  - id: stack_prompt
+    label: "select_stack"
+    raw: |
+      You are a senior solutions architect at AutoFounder AI.
+
+      Select the tech stack for this application.
+
+      NFRs:
+      - API p99 latency < 150ms under 500 concurrent users (P0)
+      - 99.9% uptime SLA (P0)
+      - Secrets encrypted at rest AES-256 (P0)
+
+      Default stack (use unless NFRs demand otherwise):
+      - Frontend: Next.js 14 + Tailwind CSS + shadcn/ui
+      - Backend: FastAPI (Python 3.12) + SQLAlchemy async
+      - Database: Supabase (PostgreSQL + pgvector + Auth + Realtime)
+      - Payments: Stripe
+      - Infra: AWS ECS Fargate + CloudFront
+
+      Return ONLY valid JSON with keys: stack, microservice_boundaries, rationale, deviations_from_default.
+
+tests:
+  # ---- OpenAPI eval -------------------------------------------------------
+  - description: "OpenAPI spec has required top-level keys"
+    prompt: openapi_prompt
+    assert:
+      - type: javascript
+        value: |
+          const spec = JSON.parse(output);
+          return spec.openapi && spec.info && spec.paths;
+
+  - description: "OpenAPI version is 3.x"
+    prompt: openapi_prompt
+    assert:
+      - type: javascript
+        value: |
+          const spec = JSON.parse(output);
+          return spec.openapi.startsWith('3.');
+
+  - description: "OpenAPI has at least 2 paths"
+    prompt: openapi_prompt
+    assert:
+      - type: javascript
+        value: |
+          const spec = JSON.parse(output);
+          return Object.keys(spec.paths || {}).length >= 2;
+
+  - description: "OpenAPI has BearerAuth security scheme"
+    prompt: openapi_prompt
+    assert:
+      - type: javascript
+        value: |
+          const spec = JSON.parse(output);
+          const schemes = spec?.components?.securitySchemes || {};
+          return 'BearerAuth' in schemes;
+
+  - description: "OpenAPI paths start with /"
+    prompt: openapi_prompt
+    assert:
+      - type: javascript
+        value: |
+          const spec = JSON.parse(output);
+          return Object.keys(spec.paths || {}).every(p => p.startsWith('/'));
+
+  # ---- Stack selection eval -----------------------------------------------
+  - description: "Stack output has required keys"
+    prompt: stack_prompt
+    assert:
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const stack = result.stack || {};
+          return stack.frontend && stack.backend && stack.database;
+
+  - description: "Default frontend stack is Next.js 14"
+    prompt: stack_prompt
+    assert:
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          return (result.stack?.frontend || '').toLowerCase().includes('next');
+
+  - description: "Default backend stack is FastAPI"
+    prompt: stack_prompt
+    assert:
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          return (result.stack?.backend || '').toLowerCase().includes('fastapi');
+
+  - description: "Default database is Supabase"
+    prompt: stack_prompt
+    assert:
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          return (result.stack?.database || '').toLowerCase().includes('supabase');
+
+  - description: "At least 2 microservice boundaries defined"
+    prompt: stack_prompt
+    assert:
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          return (result.microservice_boundaries || []).length >= 2;
+
+  - description: "Stack score >= 0.8 (LLM-as-judge)"
+    prompt: stack_prompt
+    assert:
+      - type: llm-rubric
+        value: >
+          The response should select a modern, production-ready tech stack appropriate
+          for a SaaS application with high availability requirements. It should default
+          to Next.js + FastAPI + Supabase unless there is a clear NFR reason to deviate.
+          Score 1.0 if the stack is appropriate and well-justified, 0 if it deviates
+          without justification.
+        threshold: 0.8

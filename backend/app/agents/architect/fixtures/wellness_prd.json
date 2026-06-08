@@ -1,0 +1,49 @@
+{
+  "_fixture": "wellness_prd",
+  "_domain": "health-wellness",
+  "_description": "A B2C wellness SaaS — habit tracking, guided meditations, sleep logging, and an AI coach that analyses patterns and gives weekly recommendations.",
+
+  "idea_normalised": "An AI-powered personal wellness app — daily habit tracking, sleep/mood logging, guided meditations, and a weekly AI coach report with personalised recommendations.",
+
+  "viability_band": "medium-high",
+
+  "lean_canvas": {
+    "problem": [
+      "People start wellness routines but quit within 2 weeks for lack of feedback",
+      "Generic meditation apps don't adapt to the user's actual sleep/mood data",
+      "Health data is siloed across Apple Health, Fitbit, and journal apps"
+    ],
+    "solution": "A unified wellness dashboard with AI-analysed habit + sleep + mood data, personalised weekly coach reports, and guided content that adapts to patterns",
+    "unique_value_proposition": "The first wellness app that actually reads your data and tells you what to change — not just what to track",
+    "unfair_advantage": "LLM-powered weekly coach report personalised to the user's own logged data",
+    "customer_segments": [
+      "Professionals aged 25–45 experiencing burnout",
+      "Users who tried and quit other wellness apps",
+      "Biohackers who want data-driven insights"
+    ],
+    "key_metrics": [
+      "Day-7 and Day-30 retention",
+      "Weekly coach reports generated",
+      "Habit completion rate",
+      "NPS"
+    ],
+    "channels": ["App Store / Google Play", "Instagram/TikTok content", "Wellness influencers", "Corporate HR partnerships"],
+    "cost_structure": ["AWS hosting", "OpenAI/Gemini API costs", "Content creation", "App Store fees"],
+    "revenue_streams": ["Free (7-day trial)", "Premium $9.99/mo", "Annual $79.99/yr", "Corporate wellness $5/seat/mo"],
+    "viability_score": 74,
+    "competitors": ["Headspace", "Calm", "Fabulous", "Oura Ring app", "Notion (DIY trackers)"]
+  },
+
+  "prd": "## Product Requirements Document — WellAI\n\n### Overview\nWellAI is a B2C mobile-first wellness application with a companion web dashboard. It combines habit tracking, sleep and mood logging, guided meditation content, and an AI coach that generates personalised weekly reports from the user's own data.\n\n### Target Users\n- Individual User: logs habits/sleep/mood, receives coaching\n- Admin (internal): manages content library, monitors platform health\n\n### Core Features\n1. **Habit Tracker**: Users create custom habits with daily/weekly targets; streak tracking; completion history\n2. **Sleep Log**: Manual entry or Apple Health import; sleep score calculation\n3. **Mood Journal**: Quick daily mood check-in (1–5 scale) with optional free-text note\n4. **Guided Meditations**: Content library (audio + text) with categories (sleep, focus, anxiety); progress tracking\n5. **AI Weekly Coach Report**: LLM-generated personalised report correlating sleep + mood + habit data; actionable recommendations; delivered every Monday\n6. **Streaks & Achievements**: Gamification layer — streak badges, milestone notifications\n7. **Subscription & Paywall**: Free tier (3 habits, no AI report); Premium unlocks all features via Stripe\n8. **Push Notifications**: Daily habit reminders, streak alerts, coach report ready\n\n### Non-Functional Requirements\n- Mobile-first (iOS + Android via React Native); web dashboard secondary\n- AI report generation SLA < 5 minutes per user\n- 99.5% uptime; graceful degradation if AI service unavailable (skip report, retry)\n- HIPAA-adjacent: no PHI stored; health data encrypted at rest\n- GDPR: users can export and delete all data\n- App loads < 2s on 4G\n\n### Out of Scope (MVP)\n- Wearable integrations beyond Apple Health\n- Live group coaching sessions\n- In-app purchases (non-subscription)",
+
+  "expected_stack": {
+    "frontend": "Next.js 14 + Tailwind CSS + shadcn/ui (web dashboard)",
+    "mobile": "Expo (React Native) + Expo Router",
+    "backend": "FastAPI (Python 3.12) + SQLAlchemy async",
+    "database": "Supabase (PostgreSQL + pgvector + Auth + Realtime)",
+    "cache": "Redis (AWS ElastiCache)",
+    "payments": "Stripe",
+    "infra": "AWS ECS Fargate + CloudFront",
+    "ai": "Gemini 3.5 Flash via LiteLLM"
+  }
+}
