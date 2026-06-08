@@ -1,8 +1,9 @@
 """CLI: load a CoderOutput JSON, build DevOpsState, print it.
 
-Run from repo root:
-  python -m packages.agents.engineering.devops.run_local \
-      --input .claude/specs/pillar5-dummy-input.json
+Run from the backend/ directory (so the `app` package resolves):
+  cd backend
+  .venv\\Scripts\\python.exe -m app.agents.devops.run_local \
+      --input ..\\.claude\\specs\\pillar5-dummy-input.json
 """
 from __future__ import annotations
 

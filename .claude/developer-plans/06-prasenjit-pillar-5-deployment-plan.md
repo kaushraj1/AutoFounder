@@ -6,7 +6,7 @@
 > **Date**: 2026-06-05 · **Version**: 1.1.0
 > **Depends on**: AF-036 (BaseAgent), AF-027 (UDAL), AF-012–021 (Asit foundation network), AF-042 (Reviewer green repo)
 > **SLA**: < 10 min code → live (excludes async HITL gate) · Uptime 99.9% · First-run deploy success ≥ 85%
-> **Ground truth (authoritative)**: [Pillar5-PLAN.md](../specs/Pillar5-PLAN.md) and [devops-agent.md](../../docs/architecture/Agents-Architecture/devops-agent.md). This file is the developer-facing implementation summary — if it drifts, those two win.
+> **Ground truth (authoritative)**: [devops-agent.md](../../docs/architecture/Agents-Architecture/devops-agent.md) (LLD) and [CLAUDE.md](../CLAUDE.md) §17, §18, §27, §40, §48. This file is the developer-facing implementation summary — if it drifts, those win.
 
 ---
 
@@ -701,7 +701,7 @@ message DevOpsOutput {
 | D5 | **Networking ownership** | **Foundation VPC reused from Asit's modules (AF-012–021) via `terraform_remote_state`** | One platform VPC for all MVPs; DevOps never creates a VPC |
 | D6 | Data layer for tenant MVPs | **Amazon RDS for PostgreSQL** (NOT Supabase) | Supabase is reserved for the AutoFounder internal control-plane |
 | D7 | Image pipeline | CI/CD generates Dockerfile (templated) → ECR push; DevOps deploys ECS services by ECR URI | ECR stores images; it does not generate Dockerfiles |
-| D8 | Node graph | **14 canonical nodes + 3 parallel-join barriers + `error_handler`** | Matches Pillar5-PLAN.md and devops-agent.md |
+| D8 | Node graph | **14 canonical nodes + 3 parallel-join barriers + `error_handler`** | Matches devops-agent.md (LLD §3, §7) |
 
 ## Appendix B: Risk Register
 
@@ -728,4 +728,5 @@ message DevOpsOutput {
 ---
 
 *Auto-Founder AI — Pillar 5: Deployment & Infrastructure Technical Plan v1.1.0 | June 2026*
-*Owner: Prasenjit Roy | Ground truth: [Pillar5-PLAN.md](../specs/Pillar5-PLAN.md) + [devops-agent.md](../../docs/architecture/Agents-Architecture/devops-agent.md) | Reviewed by: [Pending team review]*
+*Ground truth: [devops-agent.md](../../docs/architecture/Agents-Architecture/devops-agent.md) + CLAUDE.md*
+*Owner: Prasenjit Roy | Ground truth: [devops-agent.md](../../docs/architecture/Agents-Architecture/devops-agent.md) + [CLAUDE.md](../CLAUDE.md) | Reviewed by: [Pending team review]*

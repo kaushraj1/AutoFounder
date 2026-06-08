@@ -1,6 +1,6 @@
-# Low-Level Design — DevOps Agent
+﻿# Low-Level Design â€” DevOps Agent
 
-> **Phase**: Phase 2 — MVP Builder (Upcoming) / Phase 4 — Enterprise Scale (Planned)
+> **Phase**: Phase 2 â€” MVP Builder (Upcoming) / Phase 4 â€” Enterprise Scale (Planned)
 > **SLA**: < 10 minutes end-to-end (excluding async HITL spend gate)
 > **Owner**: Auto-Founder AI Platform Team | product@euron.one
 
@@ -23,9 +23,9 @@
 
 The DevOps Agent is the fifth stage of the Auto-Founder AI pipeline. It receives a tested, containerised `CoderOutput` via gRPC and autonomously provisions, deploys, and monitors a live production environment. Its output is a **fully operational live URL** with SSL, DNS, CI/CD, and observability configured.
 
-The agent runs as a LangGraph stateful graph with a mandatory **Human-in-the-Loop (HITL) spend gate** before any AWS resource is created. All infrastructure is managed as code (Terraform); all deployments are driven by **AWS CodeDeploy blue/green to ECS Fargate** (per CLAUDE.md §17/§48 — Kubernetes/EKS/Helm/ArgoCD are not in scope for v1.0).
+The agent runs as a LangGraph stateful graph with a mandatory **Human-in-the-Loop (HITL) spend gate** before any AWS resource is created. All infrastructure is managed as code (Terraform); all deployments are driven by **AWS CodeDeploy blue/green to ECS Fargate** (per CLAUDE.md Â§17/Â§48 â€” Kubernetes/EKS/Helm/ArgoCD are not in scope for v1.0).
 
-> **Runtime target**: ECS Fargate. The Next.js frontend (port 3000) and FastAPI backend (port 8000) deploy as separate ECS services in the same cluster behind a shared ALB with host/path-based routing. Relational storage for deployed tenant MVPs uses **Amazon RDS for PostgreSQL** (multi-AZ-capable, provisioned per tenant in the private subnets). Supabase is reserved for the internal AutoFounder control-plane only and is never provisioned for tenant MVPs. A future stack-agnostic dispatcher keyed off `ArchitectOutput.stack.target` may add EKS / Lambda+APIGW / S3+CloudFront targets — for now only `ecs_fargate` is implemented.
+> **Runtime target**: ECS Fargate. The Next.js frontend (port 3000) and FastAPI backend (port 8000) deploy as separate ECS services in the same cluster behind a shared ALB with host/path-based routing. Relational storage for deployed tenant MVPs uses **Amazon RDS for PostgreSQL** (multi-AZ-capable, provisioned per tenant in the private subnets). Supabase is reserved for the internal AutoFounder control-plane only and is never provisioned for tenant MVPs. A future stack-agnostic dispatcher keyed off `ArchitectOutput.stack.target` may add EKS / Lambda+APIGW / S3+CloudFront targets â€” for now only `ecs_fargate` is implemented.
 
 ### Sub-tasks executed (with target SLA)
 
@@ -40,7 +40,7 @@ The agent runs as a LangGraph stateful graph with a mandatory **Human-in-the-Loo
 | ECS task definitions + service manifests | `build_task_defs` | < 2 min |
 | CodeDeploy appspec + deployment group | `configure_codedeploy` | < 1 min |
 | CodeDeploy blue/green to ECS | `deploy_application` | < 3 min |
-| Route 53 alias → ALB + ACM cert | `configure_dns_ssl` | < 1 min |
+| Route 53 alias â†’ ALB + ACM cert | `configure_dns_ssl` | < 1 min |
 | CloudWatch alarms + Prometheus + Grafana | `configure_monitoring` | < 1 min |
 | GitHub Actions deploy workflow update | `configure_cicd` | < 1 min |
 | Live health check smoke tests | `smoke_test` | < 30 s |
@@ -51,7 +51,7 @@ The agent runs as a LangGraph stateful graph with a mandatory **Human-in-the-Loo
 ## 2. LangGraph State Schema (Pydantic V2)
 
 ```python
-# packages/agents/devops/schema.py
+# backend/app/agents/devops/schema.py
 
 from __future__ import annotations
 
@@ -143,7 +143,7 @@ class VPCConfig(BaseModel):
     internet_gateway_id: str | None = None
     security_group_ids: dict[str, str] = Field(
         default_factory=dict,
-        description="Role → SG ID: 'alb', 'ecs_tasks', 'redis', 'rds' (RDS Postgres SG allows 5432 inbound from ecs_tasks SG only)"
+        description="Role â†’ SG ID: 'alb', 'ecs_tasks', 'redis', 'rds' (RDS Postgres SG allows 5432 inbound from ecs_tasks SG only)"
     )
     alb_arn: str | None       = None
     alb_dns_name: str | None  = None
@@ -179,7 +179,7 @@ class ECSCluster(BaseModel):
 # ---------------------------------------------------------------------------
 
 class RDSInstance(BaseModel):
-    # v1.0 default for tenant MVPs. Supabase is NOT provisioned here — it is
+    # v1.0 default for tenant MVPs. Supabase is NOT provisioned here â€” it is
     # reserved for the AutoFounder internal control-plane only.
     kind: Literal["rds"]            = "rds"
     db_instance_identifier: str | None = None     # autofounder-{organization_id[:8]}-{run_id[:8]}
@@ -433,29 +433,29 @@ class DevOpsState(BaseModel):
 
 | Node ID | Type | Description | Model / Runtime |
 |---|---|---|---|
-| `ingest_input` | Sequential | Deserialise + validate CoderOutput from gRPC | — (validation only) |
-| `hitl_spend_gate` | HITL / Async | Block until Founder approves AWS spend | — |
+| `ingest_input` | Sequential | Deserialise + validate CoderOutput from gRPC | â€” (validation only) |
+| `hitl_spend_gate` | HITL / Async | Block until Founder approves AWS spend | â€” |
 | `attach_foundation_network` | Sequential | Read shared foundation VPC / subnet / SG outputs from Asit's modules via `terraform_remote_state`; create only product-tier overlays for this MVP (ECS task SG, RDS SG, Redis SG, ALB + ALB SG, target groups, VPC endpoints). Does **not** create VPC / subnets / NAT / IGW. | Claude Sonnet (overlay HCL gen) |
 | `provision_compute` | Sequential | Terraform: ECS Fargate cluster + services (web + api) + ALB target groups | Claude Sonnet |
 | `provision_data_layer` | Parallel branch | Terraform: RDS PostgreSQL + ElastiCache + S3 | Claude Sonnet |
-| `infra_join` | Barrier | Waits for compute + data layer | — |
+| `infra_join` | Barrier | Waits for compute + data layer | â€” |
 | `provision_secrets` | Sequential | boto3: seed AWS Secrets Manager secrets | GPT-4o |
 | `build_task_defs` | Parallel branch | Generate ECS task definition JSON per service | GPT-4o |
 | `configure_codedeploy` | Parallel branch | Generate CodeDeploy appspec.yaml + deployment group | GPT-4o |
-| `deploy_join` | Barrier | Waits for task defs + CodeDeploy config | — |
-| `deploy_application` | Sequential | CodeDeploy blue/green to ECS Fargate | — (API call) |
+| `deploy_join` | Barrier | Waits for task defs + CodeDeploy config | â€” |
+| `deploy_application` | Sequential | CodeDeploy blue/green to ECS Fargate | â€” (API call) |
 | `configure_dns_ssl` | Sequential | Route53 A record + cert-manager TLS | GPT-4o |
 | `configure_monitoring` | Parallel branch | CloudWatch alarms + Prometheus scrape | GPT-4o |
 | `configure_cicd` | Parallel branch | GitHub Actions deploy workflow | GPT-4o |
-| `postdeploy_join` | Barrier | Waits for monitoring + CI/CD config | — |
-| `smoke_test` | Sequential | HTTP health checks on live URL | — (HTTP calls) |
+| `postdeploy_join` | Barrier | Waits for monitoring + CI/CD config | â€” |
+| `smoke_test` | Sequential | HTTP health checks on live URL | â€” (HTTP calls) |
 | `render_deploy_report` | Sequential | Assemble final Markdown deploy report | GPT-4o |
-| `error_handler` | Error sink | Classifies failure, tears down partial infra, alerts | — |
+| `error_handler` | Error sink | Classifies failure, tears down partial infra, alerts | â€” |
 
 ### 3.2 Graph definition
 
 ```python
-# packages/agents/devops/graph.py
+# backend/app/agents/devops/graph.py
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -522,7 +522,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
     # -- Entry point --------------------------------------------------------
     graph.set_entry_point("ingest_input")
 
-    # -- Ingest → HITL spend gate ------------------------------------------
+    # -- Ingest â†’ HITL spend gate ------------------------------------------
     graph.add_conditional_edges(
         "ingest_input",
         route_after_ingest,
@@ -532,7 +532,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- HITL spend gate → attach foundation network (sequential) ---------
+    # -- HITL spend gate â†’ attach foundation network (sequential) ---------
     graph.add_conditional_edges(
         "hitl_spend_gate",
         route_after_approval,
@@ -542,7 +542,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- Network attach → compute + data layer (parallel) -----------------
+    # -- Network attach â†’ compute + data layer (parallel) -----------------
     graph.add_conditional_edges(
         "attach_foundation_network",
         route_after_network_attach,
@@ -566,7 +566,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- Secrets → fan-out: task defs + CodeDeploy config -------------------
+    # -- Secrets â†’ fan-out: task defs + CodeDeploy config -------------------
     graph.add_conditional_edges(
         "provision_secrets",
         route_after_secrets,
@@ -579,7 +579,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
     graph.add_edge("build_task_defs",      "deploy_join")
     graph.add_edge("configure_codedeploy", "deploy_join")
 
-    # -- Deploy join → application deploy ----------------------------------
+    # -- Deploy join â†’ application deploy ----------------------------------
     graph.add_conditional_edges(
         "deploy_join",
         route_after_deploy_join,
@@ -589,7 +589,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- Deploy → DNS/SSL --------------------------------------------------
+    # -- Deploy â†’ DNS/SSL --------------------------------------------------
     graph.add_conditional_edges(
         "deploy_application",
         route_after_deploy,
@@ -599,7 +599,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- DNS/SSL → parallel post-deploy config -----------------------------
+    # -- DNS/SSL â†’ parallel post-deploy config -----------------------------
     graph.add_conditional_edges(
         "configure_dns_ssl",
         route_after_dns,
@@ -612,7 +612,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
     graph.add_edge("configure_monitoring", "postdeploy_join")
     graph.add_edge("configure_cicd",       "postdeploy_join")
 
-    # -- Post-deploy join → smoke tests ------------------------------------
+    # -- Post-deploy join â†’ smoke tests ------------------------------------
     graph.add_conditional_edges(
         "postdeploy_join",
         route_after_postdeploy_join,
@@ -622,7 +622,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
         },
     )
 
-    # -- Smoke → report ----------------------------------------------------
+    # -- Smoke â†’ report ----------------------------------------------------
     graph.add_conditional_edges(
         "smoke_test",
         route_after_smoke,
@@ -654,7 +654,7 @@ def build_devops_graph(checkpointer: PostgresSaver) -> StateGraph:
 # Router implementations
 # ---------------------------------------------------------------------------
 
-# packages/agents/devops/routers.py
+# backend/app/agents/devops/routers.py
 
 from .schema import DevOpsState, ApprovalStatus, DeployStatus, InfraStatus
 
@@ -793,7 +793,7 @@ flowchart TD
 ### 4.1 Tool definitions (LangChain-compatible)
 
 ```python
-# packages/agents/devops/tools.py
+# backend/app/agents/devops/tools.py
 
 import os
 import json
@@ -1160,7 +1160,7 @@ TOOL_REGISTRY: dict[str, list] = {
 | `acm_request_certificate` | 30 s | AWS default (5 TPS) | Retry; on quota error escalate |
 | `route53_upsert` | 10 s | AWS default (5 req/s) | Retry with exp. back-off |
 | `secrets_manager_create` | 10 s | AWS default (100 TPS) | Retry |
-| `http_health_check` | 10 s | 10 checks × 3 retries max | Mark failed, escalate |
+| `http_health_check` | 10 s | 10 checks Ã— 3 retries max | Mark failed, escalate |
 | `github_upsert_file` | 20 s | 5000 req/hr per token | Retry once |
 
 ---
@@ -1169,19 +1169,19 @@ TOOL_REGISTRY: dict[str, list] = {
 
 All prompts use **Claude Sonnet** (infrastructure reasoning, Terraform plan generation) or **GPT-4o** (manifest generation, structured YAML output) per the model routing policy.
 
-### 5.1 `attach_foundation_network` — Terraform Foundation-VPC Attach + Product-Tier Overlays
+### 5.1 `attach_foundation_network` â€” Terraform Foundation-VPC Attach + Product-Tier Overlays
 
-> **Scope rule**: Networking is **not** a DevOps responsibility. This node never creates a VPC, subnets, NAT, IGW, or route tables. It reads the shared foundation VPC outputs from Asit's modules (AF-012–021) via a `terraform_remote_state` data source and creates only the product-tier overlays a single MVP needs.
+> **Scope rule**: Networking is **not** a DevOps responsibility. This node never creates a VPC, subnets, NAT, IGW, or route tables. It reads the shared foundation VPC outputs from Asit's modules (AF-012â€“021) via a `terraform_remote_state` data source and creates only the product-tier overlays a single MVP needs.
 
 ```jinja2
-{# packages/agents/devops/prompts/attach_foundation_network.j2 #}
+{# backend/app/agents/devops/prompts/attach_foundation_network.j2 #}
 
 SYSTEM:
 You are a senior cloud infrastructure engineer generating Terraform for AWS.
 You will produce the product-tier network overlay for ONE tenant MVP. The shared
 foundation VPC, subnets, NAT, and IGW have already been provisioned by the platform's
-foundation module (AF-012–021). DO NOT create VPC / subnet / NAT / IGW / route-table
-resources — read them from the foundation `terraform_remote_state` data source.
+foundation module (AF-012â€“021). DO NOT create VPC / subnet / NAT / IGW / route-table
+resources â€” read them from the foundation `terraform_remote_state` data source.
 
 Forbidden resources (build will fail if present):
   aws_vpc, aws_subnet, aws_nat_gateway, aws_internet_gateway,
@@ -1198,7 +1198,7 @@ Mandatory constraints:
     * ALB security group (80, 443 inbound from 0.0.0.0/0)
     * ECS tasks security group (container ports 3000 / 8000 from ALB SG only)
     * Redis security group (6379 from ECS tasks SG only)
-    * RDS Postgres security group (5432 from ECS tasks SG only — no public ingress)
+    * RDS Postgres security group (5432 from ECS tasks SG only â€” no public ingress)
     * Application Load Balancer in the foundation public subnets
     * One target group per service
     * VPC interface endpoints (only if this run requires them: ecr.api, ecr.dkr, logs, secretsmanager)
@@ -1220,10 +1220,10 @@ Services needing target groups: {{ services | map(attribute='name') | join(', ')
 Generate main.tf, variables.tf, and outputs.tf as a single HCL block with file headers as comments.
 ```
 
-### 5.2 `provision_compute` — Terraform ECS Fargate Plan
+### 5.2 `provision_compute` â€” Terraform ECS Fargate Plan
 
 ```jinja2
-{# packages/agents/devops/prompts/provision_compute.j2 #}
+{# backend/app/agents/devops/prompts/provision_compute.j2 #}
 
 SYSTEM:
 You are a cloud infrastructure engineer generating Terraform for AWS ECS Fargate.
@@ -1260,14 +1260,14 @@ Services: {{ services | map(attribute='name') | join(', ') }}
 Generate main.tf, variables.tf, and outputs.tf.
 ```
 
-### 5.3 `provision_data_layer` — Terraform RDS PostgreSQL + ElastiCache + S3
+### 5.3 `provision_data_layer` â€” Terraform RDS PostgreSQL + ElastiCache + S3
 
-> **Scope rule**: tenant MVPs always use **Amazon RDS for PostgreSQL** (`DataLayerSpec.kind = "rds"`). **Supabase is never provisioned by this node** — it is reserved for the AutoFounder internal control-plane.
+> **Scope rule**: tenant MVPs always use **Amazon RDS for PostgreSQL** (`DataLayerSpec.kind = "rds"`). **Supabase is never provisioned by this node** â€” it is reserved for the AutoFounder internal control-plane.
 
-**Node pseudo-code** (idempotent, retry-safe — mirrors LLD §7.3 `with_retry`):
+**Node pseudo-code** (idempotent, retry-safe â€” mirrors LLD Â§7.3 `with_retry`):
 
 ```python
-# packages/agents/engineering/devops/nodes/provision_data_layer.py
+# backend/app/agents/devops/nodes/provision_data_layer.py
 async def provision_data_layer(state: DevOpsState) -> dict:
     organization_id, run_id = state.organization_id, state.run_id
     vpc = state.vpc_config  # populated by attach_foundation_network (from foundation outputs)
@@ -1349,12 +1349,12 @@ async def provision_data_layer(state: DevOpsState) -> dict:
 **Jinja2 prompt** (Terraform HCL for the data-layer module):
 
 ```jinja2
-{# packages/agents/devops/prompts/provision_data_layer.j2 #}
+{# backend/app/agents/devops/prompts/provision_data_layer.j2 #}
 
 SYSTEM:
 You are a database and storage infrastructure engineer generating Terraform for AWS.
 The deployed tenant MVP uses AWS-native managed services only. DO NOT generate any
-Supabase / third-party DB resources — Supabase is reserved for the AutoFounder internal
+Supabase / third-party DB resources â€” Supabase is reserved for the AutoFounder internal
 control-plane and is out of scope for this module.
 
 Provision exactly three resources in one module:
@@ -1368,7 +1368,7 @@ Provision exactly three resources in one module:
    - db_subnet_group across the VPC private subnets {{ private_subnet_ids | join(', ') }}
    - new VPC security group: inbound 5432 from ecs_tasks SG ({{ ecs_tasks_sg_id }}) ONLY; no 0.0.0.0/0 ingress
    - master credentials sourced from AWS Secrets Manager secret ARN: {{ rds_credentials_secret_arn }}
-     via aws_secretsmanager_secret_version → jsondecode → username / password
+     via aws_secretsmanager_secret_version â†’ jsondecode â†’ username / password
    - db_name = "app", port = 5432, backup_retention_period = 7
    - identifier = "autofounder-{{ organization_id[:8] }}-{{ run_id[:8] }}"
    - apply_immediately = true; skip_final_snapshot = true (dev tier)
@@ -1379,7 +1379,7 @@ Provision exactly three resources in one module:
 
 3. S3 bucket autofounder-{{ organization_id }}-{{ run_id[:8] }}
    - versioning on, AES256 SSE, block all public access
-   - lifecycle: IA @ 30d → Glacier @ 90d
+   - lifecycle: IA @ 30d â†’ Glacier @ 90d
 
 Mandatory tags on every resource: Tenant={{ organization_id }}, RunId={{ run_id }}, ManagedBy=terraform.
 
@@ -1392,7 +1392,7 @@ Rules:
 - Return ONLY the Terraform HCL (no markdown fences, no explanation).
 - State: autofounder-tf-state/{{ organization_id }}/{{ run_id }}/data-layer.tfstate
 - All three resources MUST live in the VPC private subnets {{ private_subnet_ids | join(', ') }}.
-- No raw passwords in HCL — only secret ARN references.
+- No raw passwords in HCL â€” only secret ARN references.
 
 USER:
 Tenant ID: {{ organization_id }}
@@ -1408,14 +1408,14 @@ Generate main.tf, variables.tf, and outputs.tf.
 
 **Deployment-flow constraints for the data layer (enforced by downstream nodes):**
 
-- Ensure `migration.sql` (from the Architect S3 artefact `supabase_migration_s3_uri`) executes against the new RDS instance **before** ECS services start — run it from a one-shot Fargate "migration" task (or a CodeDeploy `BeforeAllowTraffic` hook) gated on RDS `available` status; `deploy_application` must not flip traffic until this task exits 0.
-- Inject DB credentials into every ECS task definition via `secrets[]` `valueFrom` against `{{ rds_credentials_secret_arn }}` only (see §5.4); never write `DB_PASSWORD` or any RDS field into `environment[]` or into the rendered deploy report.
-- Account for RDS warm-up (≈ 2–5 min from `creating` → `available`): `provision_data_layer` must poll `DescribeDBInstances` until `DBInstanceStatus = "available"` (max 6 min, 15 s interval) before returning, and the migration task / `smoke_test` must not be scheduled until that poll succeeds.
+- Ensure `migration.sql` (from the Architect S3 artefact `supabase_migration_s3_uri`) executes against the new RDS instance **before** ECS services start â€” run it from a one-shot Fargate "migration" task (or a CodeDeploy `BeforeAllowTraffic` hook) gated on RDS `available` status; `deploy_application` must not flip traffic until this task exits 0.
+- Inject DB credentials into every ECS task definition via `secrets[]` `valueFrom` against `{{ rds_credentials_secret_arn }}` only (see Â§5.4); never write `DB_PASSWORD` or any RDS field into `environment[]` or into the rendered deploy report.
+- Account for RDS warm-up (â‰ˆ 2â€“5 min from `creating` â†’ `available`): `provision_data_layer` must poll `DescribeDBInstances` until `DBInstanceStatus = "available"` (max 6 min, 15 s interval) before returning, and the migration task / `smoke_test` must not be scheduled until that poll succeeds.
 
-### 5.4 `build_task_defs` — ECS Task Definition Generation
+### 5.4 `build_task_defs` â€” ECS Task Definition Generation
 
 ```jinja2
-{# packages/agents/devops/prompts/build_task_defs.j2 #}
+{# backend/app/agents/devops/prompts/build_task_defs.j2 #}
 
 SYSTEM:
 You are an ECS engineer generating an ECS task definition JSON for each service.
@@ -1428,8 +1428,8 @@ Rules per service:
 - portMappings: containerPort = ServiceManifest.port
 - healthCheck: CMD-SHELL curl -fsS http://localhost:{{ service.port }}{{ service.health_check_path }} || exit 1
 - environment + secrets:
-    * Plain values → environment[]
-    * Sensitive values → secrets[] referencing Secrets Manager ARNs from ServiceManifest.env_secret_refs
+    * Plain values â†’ environment[]
+    * Sensitive values â†’ secrets[] referencing Secrets Manager ARNs from ServiceManifest.env_secret_refs
     * DB credentials (always present, from provision_data_layer): inject the following
       `secrets[]` entries, each sourced from the RDS Secrets Manager secret ARN
       `{{ rds_credentials_secret_arn }}` using the `valueFrom` JSON-key suffix syntax
@@ -1469,10 +1469,10 @@ Task role ARN: {{ ecs_task_role_arn }}
 RDS credentials secret ARN: {{ rds_credentials_secret_arn }}
 ```
 
-### 5.5 `configure_codedeploy` — CodeDeploy appspec + Deployment Group
+### 5.5 `configure_codedeploy` â€” CodeDeploy appspec + Deployment Group
 
 ```jinja2
-{# packages/agents/devops/prompts/configure_codedeploy.j2 #}
+{# backend/app/agents/devops/prompts/configure_codedeploy.j2 #}
 
 SYSTEM:
 You are an AWS deployment engineer generating an AWS CodeDeploy ECS blue/green
@@ -1486,7 +1486,7 @@ configuration. Produce two artefacts as a JSON object:
    - load_balancer_info: prod ALB target group + test target group per service
    - blue_green_deployment_config: terminate blue tasks 10 minutes after success;
      deployment_ready_option = CONTINUE_DEPLOYMENT (no manual approval at the AWS layer
-     — the HITL spend gate already approved earlier)
+     â€” the HITL spend gate already approved earlier)
    - auto_rollback_configuration: enabled on DEPLOYMENT_FAILURE + DEPLOYMENT_STOP_ON_ALARM
 
 2. "appspec_yaml": appspec.yaml content per service:
@@ -1514,10 +1514,10 @@ Services:
 ALB target groups (from compute outputs): {{ alb_target_group_arns | tojson }}
 ```
 
-### 5.6 `configure_monitoring` — CloudWatch + Prometheus Rules
+### 5.6 `configure_monitoring` â€” CloudWatch + Prometheus Rules
 
 ```jinja2
-{# packages/agents/devops/prompts/configure_monitoring.j2 #}
+{# backend/app/agents/devops/prompts/configure_monitoring.j2 #}
 
 SYSTEM:
 You are a site reliability engineer configuring observability for a Kubernetes SaaS app.
@@ -1527,20 +1527,20 @@ Generate:
 3. Grafana dashboard provisioning config (JSON)
 
 Mandatory alarms (CloudWatch):
-- ECS service CPU > 80% for 5 min → SNS alert
-- ECS service memory > 85% for 5 min → SNS alert
-- ECS RunningTaskCount < DesiredTaskCount for 5 min → SNS alert (Critical)
-- ALB 5XX rate > 1% for 2 min → SNS alert
-- ALB P99 latency > 1000ms for 2 min → SNS alert
-- ElastiCache cache hit rate < 80% for 10 min → SNS warning
-- RDS CPU > 75% for 10 min → SNS warning; RDS FreeStorageSpace < 20% for 10 min → SNS critical; RDS DatabaseConnections > 80% of max for 5 min → SNS warning
+- ECS service CPU > 80% for 5 min â†’ SNS alert
+- ECS service memory > 85% for 5 min â†’ SNS alert
+- ECS RunningTaskCount < DesiredTaskCount for 5 min â†’ SNS alert (Critical)
+- ALB 5XX rate > 1% for 2 min â†’ SNS alert
+- ALB P99 latency > 1000ms for 2 min â†’ SNS alert
+- ElastiCache cache hit rate < 80% for 10 min â†’ SNS warning
+- RDS CPU > 75% for 10 min â†’ SNS warning; RDS FreeStorageSpace < 20% for 10 min â†’ SNS critical; RDS DatabaseConnections > 80% of max for 5 min â†’ SNS warning
 
 Prometheus scrape: add a scrape_config for each ECS service (target via service discovery on
 the ALB target groups, path: /metrics).
 CloudWatch log group: /ecs/{{ organization_id }}/{{ run_id }}/<service>, retention: 90 days.
 
 Return JSON with keys: "cloudwatch_alarms" (list), "prometheus_scrape_yaml" (string),
-"log_group_name" (string), "grafana_dashboard_url" (null — will be set post-deploy).
+"log_group_name" (string), "grafana_dashboard_url" (null â€” will be set post-deploy).
 
 USER:
 Tenant ID: {{ organization_id }}
@@ -1551,18 +1551,18 @@ SNS topic ARN: {{ sns_topic_arn }}
 ECS cluster name: {{ ecs_cluster.cluster_name }}
 ```
 
-### 5.7 `configure_cicd` — GitHub Actions Workflow
+### 5.7 `configure_cicd` â€” GitHub Actions Workflow
 
 ```jinja2
-{# packages/agents/devops/prompts/configure_cicd.j2 #}
+{# backend/app/agents/devops/prompts/configure_cicd.j2 #}
 
 SYSTEM:
 You are a DevOps engineer generating a GitHub Actions workflow for continuous deployment.
 The workflow must:
 - Trigger on: push to main, and manual workflow_dispatch
-- Jobs: lint → test → build-and-push → deploy
+- Jobs: lint â†’ test â†’ build-and-push â†’ deploy
 - Build: docker buildx, push to ECR, tag with git SHA
-- ECR login via OIDC (no long-lived credentials — use aws-actions/configure-aws-credentials@v4)
+- ECR login via OIDC (no long-lived credentials â€” use aws-actions/configure-aws-credentials@v4)
 - Deploy: build & push new container image to ECR (tag = git SHA), then call
   `aws deploy create-deployment` against the CodeDeploy application + deployment group
   for each service (blue/green to ECS Fargate).
@@ -1570,7 +1570,7 @@ The workflow must:
 - Cache: use GitHub Actions cache for Docker layers and pnpm/pip dependencies
 
 Security requirements:
-- Never hardcode secrets — use GitHub Secrets and OIDC role assumption
+- Never hardcode secrets â€” use GitHub Secrets and OIDC role assumption
 - Required secrets: AWS_ACCOUNT_ID, ECR_REPOSITORY, SLACK_WEBHOOK_URL
 - IAM role: arn:aws:iam::{{ aws_account_id }}:role/autofounder-github-actions-{{ organization_id }}
 
@@ -1589,14 +1589,14 @@ Repo URL: {{ repo_url }}
 Slack webhook secret name: SLACK_WEBHOOK_URL
 ```
 
-### 5.8 `render_deploy_report` — Deployment Report
+### 5.8 `render_deploy_report` â€” Deployment Report
 
 ```jinja2
-{# packages/agents/devops/prompts/render_deploy_report.j2 #}
+{# backend/app/agents/devops/prompts/render_deploy_report.j2 #}
 
 SYSTEM:
 You are a technical writer assembling a deployment completion report in Markdown.
-Every claim must reference actual data from the deployment state — do not invent values.
+Every claim must reference actual data from the deployment state â€” do not invent values.
 Embed all relevant URLs. Use H2 sections. Target audience: Founder (non-technical summary)
 and Marketer Agent (live URL + brand config for GTM).
 
@@ -1621,11 +1621,11 @@ Services deployed:
 {% for svc in ecs_cluster.services %}
 - {{ svc.service_name }}: desired={{ svc.desired_count }}, status={{ svc.status }}
 {% endfor %}
-CodeDeploy app: {{ codedeploy_app.app_name }} / group {{ codedeploy_app.deployment_group }} — {{ codedeploy_app.health_status }}
+CodeDeploy app: {{ codedeploy_app.app_name }} / group {{ codedeploy_app.deployment_group }} â€” {{ codedeploy_app.health_status }}
 
 Smoke tests:
 {% for t in smoke_test_results %}
-- {{ t.endpoint }}: HTTP {{ t.status_code }}, {{ t.latency_ms }}ms — {{ 'PASS' if t.passed else 'FAIL' }}
+- {{ t.endpoint }}: HTTP {{ t.status_code }}, {{ t.latency_ms }}ms â€” {{ 'PASS' if t.passed else 'FAIL' }}
 {% endfor %}
 
 Monitoring:
@@ -1662,7 +1662,7 @@ End with a machine-readable block for the Marketer Agent:
 
 ## 6. Sequence Diagrams
 
-### 6.1 Happy-path — end-to-end deploy flow
+### 6.1 Happy-path â€” end-to-end deploy flow
 
 ```mermaid
 sequenceDiagram
@@ -1737,27 +1737,27 @@ sequenceDiagram
     end
 
     Graph ->> CD: CreateDeployment (revisionType=AppSpecContent) per service
-    CD ->> ECS: shift traffic blue → green on ALB target groups
+    CD ->> ECS: shift traffic blue â†’ green on ALB target groups
     ECS -->> CD: green tasks healthy
     CD -->> Graph: { deployment_id, status: Succeeded }
 
     Graph ->> ACM: RequestCertificate (DNS validation) for {{ live_url }}
     ACM -->> Graph: certificate_arn (Pending validation)
-    Graph ->> R53: upsert CNAME (ACM validation) + A alias → ALB DNS
+    Graph ->> R53: upsert CNAME (ACM validation) + A alias â†’ ALB DNS
     R53 -->> Graph: { change_id, status: INSYNC }
     ACM -->> Graph: certificate Issued
 
     Graph ->> Graph: live_url = "https://{{ record_name }}"
 
     par Parallel: monitoring + CI/CD
-        Graph ->> CW: put_metric_alarm × 7 alarms
+        Graph ->> CW: put_metric_alarm Ã— 7 alarms
         CW -->> Graph: alarms_created
 
         Graph ->> GH: PUT .github/workflows/deploy.yml
         GH -->> Graph: { sha, success: true }
     end
 
-    Graph ->> Smoke: GET {{ live_url }}/health × N services
+    Graph ->> Smoke: GET {{ live_url }}/health Ã— N services
     Smoke -->> Graph: smoke_test_results (all passed, P99 < 100ms)
 
     Graph ->> Graph: render_deploy_report
@@ -1766,7 +1766,7 @@ sequenceDiagram
     API --)  Mkt: emit(DevOpsOutput) via gRPC
 ```
 
-### 6.2 Terraform apply failure — rollback and retry
+### 6.2 Terraform apply failure â€” rollback and retry
 
 ```mermaid
 sequenceDiagram
@@ -1789,10 +1789,10 @@ sequenceDiagram
     TF -->> Graph: returncode=0, stdout="Apply complete! Resources: 12 added"
 
     Graph ->> State: ecs_cluster.status = READY, retry_count logged
-    State -->> Graph: infra_join → provision_secrets (continue)
+    State -->> Graph: infra_join â†’ provision_secrets (continue)
 ```
 
-### 6.3 Smoke test failure — deploy rollback
+### 6.3 Smoke test failure â€” deploy rollback
 
 ```mermaid
 sequenceDiagram
@@ -1807,7 +1807,7 @@ sequenceDiagram
     Graph ->> Smoke: GET /health (api service)
     Smoke -->> Graph: { status_code: 503, latency_ms: 8200, passed: false }
 
-    Graph ->> EH: smoke_tests_passed = false → error_handler
+    Graph ->> EH: smoke_tests_passed = false â†’ error_handler
     EH ->> CD: StopDeployment (autoRollbackEnabled=true)
     CD ->> CD: shift ALB traffic back to blue target group
     CD -->> EH: rollback complete
@@ -1819,7 +1819,7 @@ sequenceDiagram
     API -->> API: emit "run.failed" SSE event
 ```
 
-### 6.4 HITL spend gate — rejection flow
+### 6.4 HITL spend gate â€” rejection flow
 
 ```mermaid
 sequenceDiagram
@@ -1833,14 +1833,14 @@ sequenceDiagram
     participant Slack as Slack Webhook
 
     Graph -->> API: SSE { status: "awaiting_spend_approval", cost_usd: 42.50 }
-    API -->> Founder: Dashboard — infra cost preview
+    API -->> Founder: Dashboard â€” infra cost preview
 
     Founder ->> API: POST /api/v1/runs/{run_id}/reject-spend { comment: "Cost too high" }
     API ->> Redis: HSET devops:approval:{run_id} status=rejected comment="Cost too high"
     API ->> Graph: resume(DevOpsState)
 
-    Graph ->> Gate: poll → ApprovalStatus.REJECTED
-    Gate -->> Graph: route → error_handler
+    Graph ->> Gate: poll â†’ ApprovalStatus.REJECTED
+    Gate -->> Graph: route â†’ error_handler
 
     Graph ->> EH: ApprovalRejected
     EH ->> Slack: POST { run_id, rejection_reason: "Cost too high" }
@@ -1889,11 +1889,11 @@ sequenceDiagram
 |---|---|---|
 | `ValidationError` | CoderOutput missing services[] | Reject with `fatal_error`, do not provision |
 | `TerraformPlanError` | Syntax error in generated HCL | LLM self-corrects HCL once; if still invalid, escalate |
-| `TerraformApplyError` | ECS service stable timeout, quota exceeded | Retry 3× with 30 s / 60 s back-off; destroy partial resources on final failure |
+| `TerraformApplyError` | ECS service stable timeout, quota exceeded | Retry 3Ã— with 30 s / 60 s back-off; destroy partial resources on final failure |
 | `TaskDefValidationError` | Invalid ECS task definition JSON | LLM self-corrects task def; retry |
 | `CodeDeployFailed` | Image pull error, task health check failed | CodeDeploy auto-rolls back to previous task set; Slack alert |
 | `SmokeTestFailed` | Service returns 5xx after deploy | CodeDeploy auto-rollback; `fatal_error` set; no Marketer handoff |
-| `DNSPropagationTimeout` | Route53 change not INSYNC in 60 s | Retry poll 5× at 15 s intervals; continue (DNS eventually consistent) |
+| `DNSPropagationTimeout` | Route53 change not INSYNC in 60 s | Retry poll 5Ã— at 15 s intervals; continue (DNS eventually consistent) |
 | `TLSIssuanceTimeout` | cert-manager ACME challenge > 3 min | Log warning; continue with HTTP-only live URL; alert ops |
 | `SpendApprovalRejected` | Founder clicks Reject | No AWS resources created; fatal_error + Slack |
 | `SpendApprovalTimeout` | No decision in 15 min | Slack + email alert; fatal_error; no provisioning |
@@ -1903,7 +1903,7 @@ sequenceDiagram
 ### 7.2 Error handler node
 
 ```python
-# packages/agents/devops/nodes/error_handler.py
+# backend/app/agents/devops/nodes/error_handler.py
 
 import asyncio
 import logging
@@ -1943,7 +1943,7 @@ async def error_handler(state: DevOpsState) -> dict:
         if _infrastructure_partially_created(state):
             await _terraform_destroy_partial(state)
     else:
-        reason = state.fatal_error or "Unknown error — check node_traces"
+        reason = state.fatal_error or "Unknown error â€” check node_traces"
 
     logger.error("DevOps agent fatal error [run=%s tenant=%s]: %s",
                  state.run_id, state.organization_id, reason)
@@ -1996,7 +1996,7 @@ async def _terraform_destroy_partial(state: DevOpsState) -> None:
 async def _post_slack_alert(state: DevOpsState, reason: str) -> None:
     webhook_url = os.environ.get(SLACK_WEBHOOK)
     if not webhook_url:
-        logger.warning("Slack webhook not configured — skipping DevOps alert")
+        logger.warning("Slack webhook not configured â€” skipping DevOps alert")
         return
 
     payload = {
@@ -2021,7 +2021,7 @@ async def _post_slack_alert(state: DevOpsState, reason: str) -> None:
 ### 7.3 Node wrapper with retry logic
 
 ```python
-# packages/agents/devops/utils/retry.py
+# backend/app/agents/devops/utils/retry.py
 
 import asyncio
 import functools
@@ -2080,7 +2080,7 @@ def with_retry(node_name: str):
 ### 7.4 HITL spend gate with timeout
 
 ```python
-# packages/agents/devops/nodes/hitl_spend_gate.py
+# backend/app/agents/devops/nodes/hitl_spend_gate.py
 
 import asyncio
 import logging
@@ -2132,7 +2132,7 @@ async def hitl_spend_gate(state: DevOpsState) -> dict:
 ### 7.5 SLA breach monitoring
 
 ```python
-# packages/agents/devops/utils/sla.py
+# backend/app/agents/devops/utils/sla.py
 
 import asyncio
 import logging
@@ -2164,7 +2164,7 @@ async def enforce_node_sla(node_name: str, coro):
     try:
         return await asyncio.wait_for(coro, timeout=sla)
     except asyncio.TimeoutError:
-        logger.error("SLA BREACH: node=%s exceeded %ds — returning partial state", node_name, sla)
+        logger.error("SLA BREACH: node=%s exceeded %ds â€” returning partial state", node_name, sla)
         return {"error_count": 1}
 ```
 
@@ -2187,7 +2187,7 @@ terraform {
 }
 ```
 
-The DynamoDB lock prevents concurrent Terraform applies for the same tenant — a necessary guard when multiple agent retries or concurrent runs could otherwise corrupt state.
+The DynamoDB lock prevents concurrent Terraform applies for the same tenant â€” a necessary guard when multiple agent retries or concurrent runs could otherwise corrupt state.
 
 ---
 
@@ -2250,14 +2250,14 @@ message DevOpsOutput {
 }
 ```
 
-**S3 artefact path convention**: `s3://autofounder-artefacts/{organization_id}/{run_id}/` — never shared between tenants.
+**S3 artefact path convention**: `s3://autofounder-artefacts/{organization_id}/{run_id}/` â€” never shared between tenants.
 
 **Routing rules after output**:
-- `tls_cert_status != "Issued"` → surface HTTP-only warning in Marketer Agent dashboard; do NOT block GTM
-- `smoke_tests_passed < smoke_tests_total` → this state is never reached (error_handler blocks it); included for defence in depth
-- `domain in ("FinTech", "HealthTech")` → Marketer Agent must cross-reference all generated copy against the compliance checklist before scheduling posts
-- On success → Marketer Agent receives `live_url` as the canonical landing page URL for all GTM assets
+- `tls_cert_status != "Issued"` â†’ surface HTTP-only warning in Marketer Agent dashboard; do NOT block GTM
+- `smoke_tests_passed < smoke_tests_total` â†’ this state is never reached (error_handler blocks it); included for defence in depth
+- `domain in ("FinTech", "HealthTech")` â†’ Marketer Agent must cross-reference all generated copy against the compliance checklist before scheduling posts
+- On success â†’ Marketer Agent receives `live_url` as the canonical landing page URL for all GTM assets
 
 ---
 
-*Auto-Founder AI — DevOps Agent LLD v1.0 | May 2026*
+*Auto-Founder AI â€” DevOps Agent LLD v1.0 | May 2026*
