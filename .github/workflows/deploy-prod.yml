@@ -1,0 +1,66 @@
+name: Deploy to Production
+
+# Production deploy. Default path is a rolling ECS deploy with circuit-breaker
+# rollback (AF-013). To switch to CodeDeploy blue/green (canary): apply the infra
+# with enable_blue_green=true (creates the CodeDeploy app + green target group),
+# then set the codedeploy-* inputs on amazon-ecs-deploy-task-definition using
+# infra/codedeploy/appspec.yaml. Names match the Terraform-created resources.
+
+on:
+  push:
+    branches: [main]
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: autofounder-ai/backend
+  ECS_CLUSTER: autofounder-ai-production-cluster
+  ECS_SERVICE: backend
+  TASK_FAMILY: autofounder-ai-production-backend
+  CONTAINER_NAME: backend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image (immutable sha + prod-latest)
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          docker build --platform linux/amd64 \
+            -t "$REGISTRY/$ECR_REPOSITORY:sha-${{ github.sha }}" \
+            -t "$REGISTRY/$ECR_REPOSITORY:prod-latest" \
+            ./backend
+          docker push "$REGISTRY/$ECR_REPOSITORY:sha-${{ github.sha }}"
+          docker push "$REGISTRY/$ECR_REPOSITORY:prod-latest"
+
+      - name: Render task definition with new image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition-family: ${{ env.TASK_FAMILY }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
+
+      - name: Deploy (rolling, circuit-breaker rollback)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

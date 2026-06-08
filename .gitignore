@@ -56,7 +56,6 @@ htmlcov/
 *.log
 
 # ─── Environment & Secrets ────────────────────────────────────────────────────
-.env
 *.local
 *.pem
 *.key
@@ -80,6 +79,18 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# The Terraform 'secrets' MODULE is infra-as-code (KMS + Secrets Manager resource
+# DEFINITIONS, never secret values) — re-include it despite the broad `secrets/`
+# ignore in the Environment & Secrets section above.
+!infra/terraform/modules/secrets/
+!infra/terraform/modules/secrets/**
+
+# Re-include the Terraform per-environment inputs (CIDRs, node types, service
+# config, backend bucket/key — NO secret values). The broad `env/`/`ENV/` venv
+# ignore above otherwise swallows infra/terraform/env/.
+!infra/terraform/env/
+!infra/terraform/env/**
 
 # ─── IDE & Editor ─────────────────────────────────────────────────────────────
 .vscode/
@@ -140,6 +151,13 @@ web-build/
 # ─── VS Code Extension ────────────────────────────────────────────────────────
 *.vsix
 vscode-extension/out/
+vscode-extension/.vscode-test/
+
+# The extension ships its own debug config (.vscode/launch.json + tasks.json).
+# The IDE section's `.vscode/` rule ignores it and the root re-includes above are
+# path-anchored (root-only), so re-include the extension's .vscode explicitly.
+!vscode-extension/.vscode/
+!vscode-extension/.vscode/**
 
 # ─── Misc ─────────────────────────────────────────────────────────────────────
 *.zip

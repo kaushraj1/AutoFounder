@@ -1,0 +1,119 @@
+name: vscode-extension
+
+# AF-078 — package + publish the AutoFounder AI VS Code extension.
+#
+# On every PR / push touching the extension: typecheck, lint, test, build, and
+# package the .vsix (uploaded as a build artifact).
+#
+# On push to `main` (or manual dispatch), IF a `VSCE_PAT` secret is configured:
+# auto-bump the patch version, publish to the VS Code Marketplace, commit the bump
+# back to `main` ([skip ci] to avoid a loop), and cut a component-scoped GitHub
+# Release. Without the secret the job still builds + packages, so it stays green
+# before the marketplace publisher exists.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "vscode-extension/**"
+      - ".github/workflows/vscode-publish.yml"
+  pull_request:
+    paths:
+      - "vscode-extension/**"
+      - ".github/workflows/vscode-publish.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --filter autofounder-ai run typecheck
+
+      - name: Lint
+        run: pnpm --filter autofounder-ai run lint
+
+      - name: Unit tests
+        run: pnpm --filter autofounder-ai run test
+
+      - name: Resolve release gating
+        id: gate
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "$VSCE_PAT" ]; then
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump patch version
+        if: steps.gate.outputs.is_release == 'true' && steps.gate.outputs.has_token == 'true'
+        working-directory: vscode-extension
+        run: |
+          npm version patch --no-git-tag-version
+          echo "EXT_VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+
+      # Commit + push the bump BEFORE publishing, so git is the source of truth.
+      # If the marketplace publish later fails, git already records the version;
+      # a re-run bumps to the next patch instead of re-publishing a duplicate.
+      - name: Commit version bump and tag
+        if: steps.gate.outputs.is_release == 'true' && steps.gate.outputs.has_token == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vscode-extension/package.json
+          git commit -m "chore(release): autofounder-ai v${EXT_VERSION} [skip ci]"
+          git tag "vscode-extension-v${EXT_VERSION}"
+          git push origin HEAD:main --follow-tags
+
+      - name: Package extension (.vsix)
+        run: pnpm --filter autofounder-ai run package
+
+      - name: Upload .vsix artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: autofounder-ai-vsix
+          path: vscode-extension/*.vsix
+          if-no-files-found: error
+
+      - name: Publish to VS Code Marketplace
+        if: steps.gate.outputs.is_release == 'true' && steps.gate.outputs.has_token == 'true'
+        working-directory: vscode-extension
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: pnpm exec vsce publish --no-dependencies
+
+      - name: Create GitHub Release
+        if: steps.gate.outputs.is_release == 'true' && steps.gate.outputs.has_token == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: vscode-extension-v${{ env.EXT_VERSION }}
+          name: AutoFounder AI VS Code Extension v${{ env.EXT_VERSION }}
+          files: vscode-extension/*.vsix
+          generate_release_notes: true

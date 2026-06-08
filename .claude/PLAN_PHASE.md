@@ -93,12 +93,12 @@ This is the thinnest *end-to-end vertical slice* that proves the platform: real 
 ## 5. Critical Path & Wiring Order
 
 ```
-Asit: AF-027 UDAL → AF-036 BaseAgent → AF-028 FastAPI → AF-030 REST contracts
+Somesh/Asit: ~~AF-027 UDAL~~ ✅ → ~~AF-036 BaseAgent~~ ✅ → ~~AF-028 FastAPI~~ ✅ → ~~AF-030 REST contracts~~ ✅
         │                                   └─ Raunak swaps mock data → real API client (AF-052)
         ▼
 Purnima: AF-048 Prompt Registry + AF-049 LLM Router  (+ AF-046 guardrails)
         ▼
-Somesh: wire AF-038 Research → AF-037 Strategy → AF-039 Product Planner (subclass BaseAgent, read/write via UDAL)
+Somesh: ~~AF-038 Research~~ ✅ → ~~AF-037 Strategy~~ ✅ → ~~AF-039 Product Planner~~ ✅ (subclass BaseAgent, read/write via UDAL)
         ▼
 Orchestrator (AF-033) runs the DAG: Research → Strategy → [HITL gate] → Product Planner
 ```
@@ -139,11 +139,11 @@ Orchestrator (AF-033) runs the DAG: Research → Strategy → [HITL gate] → Pr
 
 ## 8. Current Status & Next Action
 
-**Status**: Build Phase 1 (monorepo) ✅ done. Foundation not started.
+**Status**: Build Phase 1 (monorepo) ✅ done. Foundation: UDAL, FastAPI app, auth middleware, REST endpoints, migrations, Supabase Realtime, Redis integration, and the LangGraph orchestrator loop (AF-025–035) ✅ completed by Somesh.
 
 **Next action (unblocks the most people):**
-1. Asit: stand up Terraform networking + ECS + Supabase (AF-012–014), apply migrations (AF-025/026), build **UDAL (AF-027)** and **BaseAgent (AF-036)**.
-2. Asit: publish Pillar-1 Pydantic I/O schemas + OpenAPI spec so Somesh / Raunak / Purnima build against a frozen contract.
+1. Asit: stand up Terraform networking + ECS + Supabase (AF-012–014), build **BaseAgent (AF-036)**.
+2. Purnima: build Prompt Registry (AF-048), LiteLLM Router + RAG (AF-049), and Eval harness (AF-050).
 3. Everyone else: start the offline work listed in `§5 Do-now-in-parallel` immediately — do not idle waiting on the foundation.
 
 ---
@@ -152,4 +152,6 @@ Orchestrator (AF-033) runs the DAG: Research → Strategy → [HITL gate] → Pr
 
 | Date | Version | Description |
 |------|---------|-------------|
+| 2026-06-06 | 1.2.0 | Mark AF-036 to AF-039 as ✅ Completed. BaseAgent, Strategy, Research, Product Planner agents shipped on somesh-feature branch. |
+| 2026-06-06 | 1.1.0 | Mark AF-032 to AF-035 as completed and assigned to Somesh. |
 | 2026-06-03 | 1.0.0 | Initial P1 (Validation Engine) phase plan — goal, scope, AF-task vertical slice, 6-week sprint plan, critical-path wiring, exit criteria, risks, next actions. Grounded in CLAUDE.md §45 + TASKS.md + task_assigned.md. |

@@ -1,0 +1,22 @@
+SYSTEM:
+You are an SEO strategist. Use SerpAPI and Google Trends data to identify high-value
+keywords for this idea. Prioritise keywords with commercial or transactional intent.
+
+USER:
+Idea: {{ idea_normalised }}
+Domain: {{ domain }}
+
+Tool results:
+{{ tool_results | tojson }}
+
+Return a JSON array of keyword objects (aim for 10-20):
+[
+  {
+    "term": "string",
+    "monthly_search_volume": int or null,
+    "keyword_difficulty": int or null,  // 0–100
+    "cpc_usd": float or null,
+    "intent": "informational" or "commercial" or "transactional" or null
+  },
+  ...
+]

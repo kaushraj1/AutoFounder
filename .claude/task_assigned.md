@@ -37,8 +37,8 @@ Think of the project like building a house. You can't paint a room (build your a
 
 | # | Member | Area | Owns (AF-IDs) |
 |---|--------|------|---------------|
-| 1 | **Asit Piri** (Lead) | Platform foundation: PRD, Architecture, GitHub, CI/CD, DB, APIs, AWS, Code Review, Integration & Merging · **+ Guardrails · VS Code Extension · Finance & Ops/Risk** | AF-012 → AF-036, AF-046, AF-047, AF-072 → AF-078 |
-| 2 | **Somesh Chitranshi** | Pillar 1 — Idea Validation & Market Research | AF-037, AF-038, AF-039 |
+| 1 | **Asit Piri** (Lead) | Platform foundation: PRD, Architecture, GitHub, CI/CD, DB, APIs, AWS, Code Review, Integration & Merging · **+ Guardrails · VS Code Extension · Finance & Ops/Risk** | AF-012 → AF-031, AF-036, AF-046, AF-047, AF-072 → AF-078 |
+| 2 | **Somesh Chitranshi** | Pillar 1 — Idea Validation & Market Research | AF-025 → AF-035, AF-037 → AF-039 |
 | 3 | **Kaushlendra Kumar Gupta** | Pillar 2 — Architecture & Tech Stack Design | AF-040 |
 | 4 | **Kartik Mogalapalli** | Pillar 3 — Autonomous Code Generation | AF-041 |
 | 5 | **Vishal Prasad** | Pillar 4 — Testing & Self-Healing | AF-042 |
@@ -56,14 +56,15 @@ Think of the project like building a house. You can't paint a room (build your a
 | Phase | Description | Lead Owner(s) | Total | ✅ Done | ❌ Pending |
 |-------|-------------|---------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | Team | 11 | 11 | 0 |
-| Phase 2 | Infrastructure & Cloud | Asit | 13 | 0 | 13 |
-| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 0 | 26 |
+| Phase 2 | Infrastructure & Cloud | Asit (Vishal exec) | 13 | 13 | 0 |
+| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 15 | 11 |
 | Phase 4 | Frontend — Next.js 14 | Raunak | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | Yogesh | 9 | 0 | 9 |
 | Phase 6 | VS Code Extension | **Asit** | 7 | 0 | 7 |
-| **Total** | | | **78** | **11** | **67** |
+| **Total** | | | **78** | **39** | **39** |
 
-**Per-person task count:** Asit **34** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 67 pending + 11 done = **78**.
+**Per-person task count:** Asit **24** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 32 pending + 46 done = **78** (Phase 2 done by Vishal; Phase 3 = 15/26 via Somesh's agents; Phase 6 = 7/7 built by Vishal).
+
 
 ---
 
@@ -92,22 +93,24 @@ Think of the project like building a house. You can't paint a room (build your a
 ## Phase 2 — Infrastructure & Cloud 🟢 (Owner: Asit — can start now)
 
 > AWS networking, ECS services, managed databases, messaging, CI/CD pipeline, and observability baseline. **Depends on: Phase 1 (done) → unblocked.**
+>
+> **Progress (2026-06-06, Vishal):** ✅ **Phase 2 = 13/13 delivered** on branch `feat/infra/terraform-networking` (pending PR → `dev`). Terraform AF-012–021 `validate`-clean; backend observability (AF-023/024) `pytest`/`ruff`/`mypy`-clean; CD workflows (AF-022) reconciled to the real `autofounder-ai-*` resources. ECR is in the account-global stack `infra/terraform/global/`. **`*` = documented follow-ups (not regressions):** AF-017 Confluent Kafka, AF-018 CloudFront/Shield, AF-022 CodeDeploy blue/green canary (rolling CD active now) + CD-OIDC, AF-023 FireLens sidecar into the task def, AF-024 deployed Prometheus/Grafana + live LangSmith. 🔴 **Unrelated SEV-1 found:** `.env.example` had real secrets committed — scrubbed in the working tree; rotation + git-history purge still required.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-012 | Asit | Terraform module `networking` — VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints for S3/ECR/Secrets | `feature/terraform-networking` | Phase 1 | 🟢 | ❌ |
-| AF-013 | Asit | Terraform module `ecs` — ECS Fargate cluster, task definitions per service, auto-scaling target-tracking policies | `feature/terraform-ecs` | AF-012 | 🟢 | ❌ |
-| AF-014 | Asit | Supabase project setup — `supabase link`, RLS policies, pgvector extension, schema-per-tenant migrations (hosted; no RDS) | `feature/supabase-setup` | Phase 1 | 🟢 | ❌ |
-| AF-015 | Asit | Terraform module `elasticache` — Redis 7 cluster (Multi-AZ), subnet groups, auth token | `feature/terraform-elasticache` | AF-012 | 🟢 | ❌ |
-| AF-016 | Asit | Terraform module `s3` — artifacts bucket, RLHF data lake, prompt-templates bucket; S3 Object Lock on audit bucket (7 yr) | `feature/terraform-s3` | AF-012 | 🟢 | ❌ |
-| AF-017 | Asit | Terraform module `messaging` — Confluent Kafka (primary bus + LLMOps telemetry), EventBridge bus + rules, per-pillar SQS queues + DLQs, SNS topic | `feature/terraform-messaging` | AF-012 | 🟢 | ❌ |
-| AF-018 | Asit | Terraform module `alb` — Application Load Balancer (L7), HTTPS listener, target groups per ECS service; CloudFront + WAF + Shield | `feature/terraform-alb` | AF-013 | 🟡 | ❌ |
-| AF-019 | Asit | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | AF-012 | 🟢 | ❌ |
-| AF-020 | Asit | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ❌ |
-| AF-021 | Asit | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ❌ |
-| AF-022 | Asit | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ❌ |
-| AF-023 | Asit (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ❌ |
-| AF-024 | Asit (← Purnima support) | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ❌ |
+| AF-012 | Asit→Vishal | Terraform module `networking` — VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints for S3/ECR/Secrets | `feature/terraform-networking` | Phase 1 | 🟢 | ✅ |
+| AF-013 | Asit→Vishal | Terraform module `ecs` — ECS Fargate cluster, task definitions per service, auto-scaling target-tracking policies | `feature/terraform-ecs` | AF-012 | 🟢 | ✅ |
+| AF-014 | Asit→Vishal | Supabase project setup — `supabase link`, RLS policies, pgvector extension, schema-per-tenant migrations (hosted; no RDS) | `feature/supabase-setup` | Phase 1 | 🟢 | ✅ |
+| AF-015 | Asit→Vishal | Terraform module `elasticache` — Redis 7 cluster (Multi-AZ), subnet groups, auth token | `feature/terraform-elasticache` | AF-012 | 🟢 | ✅ |
+| AF-016 | Asit→Vishal | Terraform module `s3` — artifacts bucket, RLHF data lake, prompt-templates bucket; S3 Object Lock on audit bucket (7 yr) | `feature/terraform-s3` | AF-012 | 🟢 | ✅ |
+| AF-017 | Asit→Vishal | Terraform module `messaging` — Confluent Kafka (primary bus + LLMOps telemetry), EventBridge bus + rules, per-pillar SQS queues + DLQs, SNS topic | `feature/terraform-messaging` | AF-012 | 🟢 | ✅* |
+| AF-018 | Asit→Vishal | Terraform module `alb` — Application Load Balancer (L7), HTTPS listener, target groups per ECS service; CloudFront + WAF + Shield | `feature/terraform-alb` | AF-013 | 🟡 | ✅* |
+| AF-019 | Asit→Vishal | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | AF-012 | 🟢 | ✅ |
+| AF-020 | Asit→Vishal | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ✅ |
+| AF-021 | Asit→Vishal | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ✅ |
+| AF-022 | Asit→Vishal | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ✅* |
+| AF-023 | Vishal (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ✅* |
+| AF-024 | Vishal (← Purnima support) | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ✅* |
 
 ## Phase 3 — Backend (FastAPI + LangGraph + Agents)
 
@@ -117,31 +120,31 @@ Think of the project like building a house. You can't paint a room (build your a
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-025 | Asit | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟡 | ❌ |
-| AF-026 | Asit | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟡 | ❌ |
-| AF-027 | Asit | **⭐ UDAL** — `backend/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ❌ |
-| AF-028 | Asit | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ❌ |
-| AF-029 | Asit | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🔴 | ❌ |
-| AF-030 | Asit | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🔴 | ❌ |
-| AF-031 | Asit | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ❌ |
-| AF-032 | Asit | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🔴 | ❌ |
+| AF-025 | Somesh | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟢 | ✅ |
+| AF-026 | Somesh | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟢 | ✅ |
+| AF-027 | Somesh | **⭐ UDAL** — `backend/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟢 | ✅ |
+| AF-028 | Somesh | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ✅ |
+| AF-029 | Somesh | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🟢 | ✅ |
+| AF-030 | Somesh | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🟢 | ✅ |
+| AF-031 | Somesh | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ✅ |
+| AF-032 | Somesh | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🟢 | ✅ |
 
-### 3b — LangGraph Orchestration 🔴 (Owner: Asit — ⚠️ consider delegating, see Part D)
+### 3b — LangGraph Orchestration 🟢 (Owner: Somesh)
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-033 | Asit | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🔴 | ❌ |
-| AF-034 | Asit | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🔴 | ❌ |
-| AF-035 | Asit | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🔴 | ❌ |
+| AF-033 | Somesh | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🟢 | ✅ |
+| AF-034 | Somesh | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🟢 | ✅ |
+| AF-035 | Somesh | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🟢 | ✅ |
 
 ### 3c — AI Agents (Owners: Pillar leads)
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-036 | **Asit / ⚪ shared** | **⭐ `BaseAgent` ABC** — `understand()`, `plan()`, `execute()`, `verify()`, `learn()`; typed error hierarchy; circuit breakers on LLM + tool calls. **Blocks ALL agents below.** | `feature/base-agent` | AF-027 | 🔴 | ❌ |
-| AF-037 | **Somesh** | Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability 0–100, bias audit, 3 pivots; SLA < 30 min | `feature/strategy-agent` | AF-036, AF-048, AF-049 | 🟡 | ❌ |
-| AF-038 | **Somesh** | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb fan-out, synthesis, citation groundedness check | `feature/research-agent` | AF-036, AF-047 | 🟡 | ❌ |
-| AF-039 | **Somesh** | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | AF-037 | 🟡 | ❌ |
+| AF-036 | **Asit / ⚪ shared** | **⭐ `BaseAgent` ABC** — `understand()`, `plan()`, `execute()`, `verify()`, `learn()`; typed error hierarchy; circuit breakers on LLM + tool calls. **Blocks ALL agents below.** | `feature/base-agent` | AF-027 | 🟢 | ✅ |
+| AF-037 | **Somesh** | Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability 0–100, bias audit, 3 pivots; SLA < 30 min | `feature/strategy-agent` | AF-036, AF-048, AF-049 | 🟢 | ✅ |
+| AF-038 | **Somesh** | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb fan-out, synthesis, citation groundedness check | `feature/research-agent` | AF-036, AF-047 | 🟢 | ✅ |
+| AF-039 | **Somesh** | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | AF-037 | 🟢 | ✅ |
 | AF-040 | **Kaushlendra** | Architect Agent (Pillar 2) — FR/NFR extraction, ERD, OpenAPI contract, stack selection, microservice boundaries, cost forecast; HITL approval gate | `feature/architect-agent` | AF-036, AF-039 | 🟡 | ❌ |
 | AF-041 | **Kartik** | Coder Agent (Pillar 3) — Frontend Specialist (Next.js 14 + Tailwind + shadcn/ui) ∥ Backend Specialist (FastAPI + SQLAlchemy + Supabase Auth + Stripe); Alembic migrations; zero lint errors; CI/CD scaffold | `feature/coder-agent` | AF-036, AF-040 | 🟡 | ❌ |
 | AF-042 | **Vishal** | Reviewer / Self-Healer Agent (Pillar 4) — static analysis, unit + integration test gen, security scans (Trivy/Semgrep/Snyk), sandbox execution, AST-aware patching, LLM-as-judge; max 5 cycles; coverage ≥ 80% | `feature/reviewer-agent` | AF-036, AF-041 | 🟡 | ❌ |
@@ -194,19 +197,19 @@ Think of the project like building a house. You can't paint a room (build your a
 | AF-070 | Yogesh | LLMOps Summary screen — cost card, eval score card, last drift check; dark/light mode following system | `feature/mobile-llmops-summary` | AF-045 (data) | 🟡 | ❌ |
 | AF-071 | Yogesh | EAS Build + release — `eas.json` profiles (development, preview, production); App Store + Google Play submit via `eas submit` | `feature/eas-build-pipeline` | AF-063 | 🟢 | ❌ |
 
-## Phase 6 — VS Code Extension 🟢 (Owner: Asit — Depends on: Phase 3)
+## Phase 6 — VS Code Extension ✅ (Owner: Asit → built by Vishal — Depends on: Phase 3)
 
-> In-editor AI co-founder: run monitoring, HITL gate approvals, code-gen commands. **Owner: Asit** (reassigned 2026-06-04 from unassigned). AF-072 is 🟢 now; the rest depend on Phase 3. Plan: `developer-plans/12-asit-vscode-extension-plan.md`.
+> In-editor AI co-founder: run monitoring, HITL gate approvals, code-gen commands. Planned owner: Asit (reassigned 2026-06-04 from unassigned); **delivered 2026-06-07 by Vishal** on `feature/vscode-extension` (7/7). Plan: `developer-plans/12-asit-vscode-extension-plan.md`. Built against the AF-030/031/034 contract with the plan's intended fallbacks where AF-031 Realtime / AF-041 Coder are still landing.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-072 | Asit | Extension core — activation event, command palette scaffold, `ExtensionContext` lifecycle, Supabase Auth PKCE flow with token in `SecretStorage` | `feature/vscode-extension-core` | Phase 1 | 🟢 | ❌ |
-| AF-073 | Asit | Sidebar tree view — run list with status icons, pillar progress, live cost badge; refreshes via WebSocket | `feature/vscode-sidebar` | AF-030, AF-031 | 🔴 | ❌ |
-| AF-074 | Asit | HITL gate notifications — VS Code banner on `gate.required`; inline approve/reject buttons | `feature/vscode-gate-notifications` | AF-034 | 🔴 | ❌ |
-| AF-075 | Asit | Code-gen commands — `Generate Component`, `Generate API Endpoint`; invokes Coder Agent, streams tokens into editor tab | `feature/vscode-code-gen` | AF-041 | 🔴 | ❌ |
-| AF-076 | Asit | Live token streaming panel — `WebviewPanel` rendering agent step log stream in real time; follows active run | `feature/vscode-streaming-panel` | AF-031 | 🔴 | ❌ |
-| AF-077 | Asit | Artifact quick-open — `Open Lean Canvas`, `Open ERD`, `Open OpenAPI spec`; fetches `GET /v1/runs/{id}/artifacts`, previews in editor | `feature/vscode-artifact-viewer` | AF-030 | 🔴 | ❌ |
-| AF-078 | Asit | Marketplace packaging — `vsce package`, `vsce publish` in GitHub Actions; auto-bump version on merge to `main` | `feature/vscode-publish` | AF-072 | 🟡 | ❌ |
+| AF-072 | Asit → Vishal | Extension core — activation event, command palette scaffold, `ExtensionContext` lifecycle, Supabase Auth PKCE flow with token in `SecretStorage` | `feature/vscode-extension` | Phase 1 | 🟢 | ✅ |
+| AF-073 | Asit → Vishal | Sidebar tree view — run list with status icons, pillar progress, live cost badge; refreshes via WebSocket | `feature/vscode-extension` | AF-030, AF-031 | 🟢 | ✅ |
+| AF-074 | Asit → Vishal | HITL gate notifications — VS Code banner on `gate.required`; inline approve/reject buttons | `feature/vscode-extension` | AF-034 | 🟢 | ✅ |
+| AF-075 | Asit → Vishal | Code-gen commands — `Generate Component`, `Generate API Endpoint`; invokes Coder Agent, streams tokens into editor tab | `feature/vscode-extension` | AF-041 | 🟢 | ✅ |
+| AF-076 | Asit → Vishal | Live token streaming panel — `WebviewPanel` rendering agent step log stream in real time; follows active run | `feature/vscode-extension` | AF-031 | 🟢 | ✅ |
+| AF-077 | Asit → Vishal | Artifact quick-open — `Open Lean Canvas`, `Open ERD`, `Open OpenAPI spec`; fetches `GET /v1/runs/{id}/artifacts`, previews in editor | `feature/vscode-extension` | AF-030 | 🟢 | ✅ |
+| AF-078 | Asit → Vishal | Marketplace packaging — `vsce package`, `vsce publish` in GitHub Actions; auto-bump version on merge to `main` | `feature/vscode-extension` | AF-072 | 🟢 | ✅ |
 
 ---
 
@@ -218,75 +221,80 @@ Think of the project like building a house. You can't paint a room (build your a
 
 > **You are the unblocker.** Every "wired" task on the team waits on you. Your speed = the team's speed.
 
-**Owns (34 tasks):** AF-012 → AF-024 (all infra) · AF-025 → AF-032 (core API & data) · AF-033 → AF-035 (orchestrator) · AF-036 (BaseAgent) · AF-047 (tool registry shell) · **AF-046 (Guardrails pipeline — Purnima co-owns output/monitoring)** · **AF-072 → AF-078 (VS Code Extension, Phase 6)** · **Finance & Ops/Risk agents (Phase 4, design deferred)**.
+**Owns (28 tasks):** AF-012 → AF-024 (all infra) · AF-036 (BaseAgent) · AF-047 (tool registry shell) · **AF-046 (Guardrails pipeline — Purnima co-owns output/monitoring)** · **AF-072 → AF-078 (VS Code Extension, Phase 6)** · **Finance & Ops/Risk agents (Phase 4, design deferred)**.
 
-> ⚠️ **Overload note (bus-factor 1):** folding the previously-unassigned work (Guardrails, VS Code Extension, Finance & Ops/Risk) into Asit raises an already-overloaded lead to **~34 tasks** gating 9 people. **Strongly recommend delegating** the orchestrator (AF-033–035), BaseAgent (AF-036), or the entire VS Code Extension (AF-072–078) to an early-finishing pillar owner. Detailed plans: `developer-plans/11-asit-guardrails-pipeline-plan.md`, `12-asit-vscode-extension-plan.md`, `13-asit-finance-ops-risk-plan.md`.
+> ⚠️ **Overload note (bus-factor 1):** folding the previously-unassigned work (Guardrails, VS Code Extension, Finance & Ops/Risk) into Asit raises an already-overloaded lead to **~32 tasks** gating 9 people. **Strongly recommend delegating** the orchestrator (AF-033–035), BaseAgent (AF-036), or the entire VS Code Extension (AF-072–078) to an early-finishing pillar owner. Detailed plans: `developer-plans/11-asit-guardrails-pipeline-plan.md`, `12-asit-vscode-extension-plan.md`, `13-asit-finance-ops-risk-plan.md`.
 
 _Phase 2 — Infrastructure & Cloud_
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-012 | Asit | Terraform module `networking` — VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints for S3/ECR/Secrets | `feature/terraform-networking` | Phase 1 | 🟢 | ❌ |
-| AF-013 | Asit | Terraform module `ecs` — ECS Fargate cluster, task definitions per service, auto-scaling target-tracking policies | `feature/terraform-ecs` | AF-012 | 🟢 | ❌ |
-| AF-014 | Asit | Supabase project setup — `supabase link`, RLS policies, pgvector extension, schema-per-tenant migrations (hosted; no RDS) | `feature/supabase-setup` | Phase 1 | 🟢 | ❌ |
-| AF-015 | Asit | Terraform module `elasticache` — Redis 7 cluster (Multi-AZ), subnet groups, auth token | `feature/terraform-elasticache` | AF-012 | 🟢 | ❌ |
-| AF-016 | Asit | Terraform module `s3` — artifacts bucket, RLHF data lake, prompt-templates bucket; S3 Object Lock on audit bucket (7 yr) | `feature/terraform-s3` | AF-012 | 🟢 | ❌ |
-| AF-017 | Asit | Terraform module `messaging` — Confluent Kafka (primary bus + LLMOps telemetry), EventBridge bus + rules, per-pillar SQS queues + DLQs, SNS topic | `feature/terraform-messaging` | AF-012 | 🟢 | ❌ |
-| AF-018 | Asit | Terraform module `alb` — Application Load Balancer (L7), HTTPS listener, target groups per ECS service; CloudFront + WAF + Shield | `feature/terraform-alb` | AF-013 | 🟡 | ❌ |
-| AF-019 | Asit | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | AF-012 | 🟢 | ❌ |
-| AF-020 | Asit | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ❌ |
-| AF-021 | Asit | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ❌ |
-| AF-022 | Asit | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ❌ |
-| AF-023 | Asit (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ❌ |
-| AF-024 | Asit (← Purnima support) | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ❌ |
+| AF-012 | Asit→Vishal | Terraform module `networking` — VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints for S3/ECR/Secrets | `feature/terraform-networking` | Phase 1 | 🟢 | ✅ |
+| AF-013 | Asit→Vishal | Terraform module `ecs` — ECS Fargate cluster, task definitions per service, auto-scaling target-tracking policies | `feature/terraform-ecs` | AF-012 | 🟢 | ✅ |
+| AF-014 | Asit→Vishal | Supabase project setup — `supabase link`, RLS policies, pgvector extension, schema-per-tenant migrations (hosted; no RDS) | `feature/supabase-setup` | Phase 1 | 🟢 | ✅ |
+| AF-015 | Asit→Vishal | Terraform module `elasticache` — Redis 7 cluster (Multi-AZ), subnet groups, auth token | `feature/terraform-elasticache` | AF-012 | 🟢 | ✅ |
+| AF-016 | Asit→Vishal | Terraform module `s3` — artifacts bucket, RLHF data lake, prompt-templates bucket; S3 Object Lock on audit bucket (7 yr) | `feature/terraform-s3` | AF-012 | 🟢 | ✅ |
+| AF-017 | Asit→Vishal | Terraform module `messaging` — Confluent Kafka (primary bus + LLMOps telemetry), EventBridge bus + rules, per-pillar SQS queues + DLQs, SNS topic | `feature/terraform-messaging` | AF-012 | 🟢 | ✅* |
+| AF-018 | Asit→Vishal | Terraform module `alb` — Application Load Balancer (L7), HTTPS listener, target groups per ECS service; CloudFront + WAF + Shield | `feature/terraform-alb` | AF-013 | 🟡 | ✅* |
+| AF-019 | Asit→Vishal | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | AF-012 | 🟢 | ✅ |
+| AF-020 | Asit→Vishal | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ✅ |
+| AF-021 | Asit→Vishal | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ✅ |
+| AF-022 | Asit→Vishal | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ✅* |
+| AF-023 | Vishal (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ✅* |
+| AF-024 | Vishal (← Purnima support) | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ✅* |
 
 _Phase 3a — Core API & Data Layer_
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-025 | Asit | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟡 | ❌ |
-| AF-026 | Asit | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟡 | ❌ |
-| AF-027 | Asit | **⭐ UDAL** — `backend/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ❌ |
-| AF-028 | Asit | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ❌ |
-| AF-029 | Asit | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🔴 | ❌ |
-| AF-030 | Asit | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🔴 | ❌ |
-| AF-031 | Asit | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ❌ |
-| AF-032 | Asit | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🔴 | ❌ |
+| AF-025 | Somesh | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟡 | ✅ |
+| AF-026 | Somesh | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟡 | ✅ |
+| AF-027 | Somesh | **⭐ UDAL** — `backend/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ✅ |
+| AF-028 | Somesh | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ✅ |
+| AF-029 | Somesh | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🟢 | ✅ |
+| AF-030 | Somesh | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🟢 | ✅ |
+| AF-031 | Somesh | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ✅ |
+| AF-032 | Somesh | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🟢 | ✅ |
 
-_Phase 3b — LangGraph Orchestration_ ⚠️ *consider delegating (see Part D)*
+_Phase 3b — LangGraph Orchestration_
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-033 | Asit | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🔴 | ❌ |
-| AF-034 | Asit | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🔴 | ❌ |
-| AF-035 | Asit | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🔴 | ❌ |
+| AF-033 | Somesh | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🟢 | ✅ |
+| AF-034 | Somesh | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🟢 | ✅ |
+| AF-035 | Somesh | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🟢 | ✅ |
 
 _Agent foundation + Tool Registry shell_
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-036 | Asit / ⚪ shared | **⭐ `BaseAgent` ABC** — `understand()`, `plan()`, `execute()`, `verify()`, `learn()`; typed error hierarchy; circuit breakers on LLM + tool calls. **Blocks ALL agents.** | `feature/base-agent` | AF-027 | 🔴 | ❌ |
+| AF-036 | Asit / ⚪ shared | **⭐ `BaseAgent` ABC** — `understand()`, `plan()`, `execute()`, `verify()`, `learn()`; typed error hierarchy; circuit breakers on LLM + tool calls. **Blocks ALL agents.** | `feature/base-agent` | AF-027 | 🟢 | ✅ |
 | AF-047 | Asit (shell) + all pillars (entries) | Tool Registry + tools — `ToolRegistry` singleton; research tools (Tavily, SerpAPI, Crunchbase, G2); engineering tools (GitHub, Stripe, AWS Pricing API); marketing tools (X, LinkedIn, Resend, ProductHunt) | `feature/tool-registry` | AF-027 | 🟡 | ❌ |
 
 **🟢 Do today (no blockers):** All of Phase 2 infra. Drive the **critical path** in this order:
-`AF-012 networking → AF-013 ECS → AF-014 Supabase → AF-025/026 migrations → AF-027 UDAL → AF-028 FastAPI → AF-030 REST contracts → AF-036 BaseAgent`.
+`AF-012 networking → AF-013 ECS → AF-014 Supabase → AF-025/026 migrations → ~~AF-027 UDAL~~ ✅ → ~~AF-028 FastAPI~~ ✅ → ~~AF-030 REST contracts~~ ✅ → AF-036 BaseAgent`.
 Those turn **7 pillar owners from 🟡 to 🟢**.
 
-**🔴 Later (need earlier steps):** Orchestrator AF-033–035 (need UDAL + Redis), Auth AF-029, Redis AF-032.
+**🟢 Now unblocked (AF-028 ✅):** ~~AF-029 Auth middleware~~ ✅, ~~AF-030 REST endpoints~~ ✅.
+**🟢 Now Complete:** Orchestrator AF-033–035, Redis AF-032.
 
-**⚠️ You are a single point of failure** — you own infra **and** the whole shared backend (~25 tasks gating 9 people). Delegate the orchestrator (AF-033–035) or BaseAgent (AF-036) to a pillar owner who finishes early. See [Part D](#part-d--whats-missing-gaps--unassigned).
+**⚠️ You are a single point of failure** — you own infra **and** the BaseAgent (AF-036). The orchestrator (AF-033–035) and Redis (AF-032) have been successfully delegated to Somesh and completed.
 
 ---
 
-## 2. Somesh Chitranshi — Pillar 1: Idea Validation & Market Research 🟡
+## 2. Somesh Chitranshi — Pillar 1: Idea Validation & Market Research (also owns Orchestrator & Redis) 🟡
 
-**Owns (3 agents — heaviest single load):** AF-037 Strategy · AF-038 Research · AF-039 Product Planner.
+**Owns:** AF-025 → AF-035 (Alembic/UDAL/FastAPI/Redis/Orchestrator) · AF-037 Strategy · AF-038 Research · AF-039 Product Planner.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-037 | Somesh | Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability 0–100, bias audit, 3 pivots; SLA < 30 min | `feature/strategy-agent` | AF-036, AF-048, AF-049 | 🟡 | ❌ |
-| AF-038 | Somesh | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb fan-out, synthesis, citation groundedness check | `feature/research-agent` | AF-036, AF-047 | 🟡 | ❌ |
-| AF-039 | Somesh | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | AF-037 | 🟡 | ❌ |
+| AF-032 | Somesh | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🟢 | ✅ |
+| AF-033 | Somesh | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🟢 | ✅ |
+| AF-034 | Somesh | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🟢 | ✅ |
+| AF-035 | Somesh | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🟢 | ✅ |
+| AF-037 | Somesh | Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability 0–100, bias audit, 3 pivots; SLA < 30 min | `feature/strategy-agent` | AF-036, AF-048, AF-049 | 🟢 | ✅ |
+| AF-038 | Somesh | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb fan-out, synthesis, citation groundedness check | `feature/research-agent` | AF-036, AF-047 | 🟢 | ✅ |
+| AF-039 | Somesh | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | AF-037 | 🟢 | ✅ |
 
 **🟢 Do today (offline — no platform needed):**
 - Jinja2 **prompt templates**: market sizing (TAM/SAM/SOM), competitor discovery, persona generation, Lean Canvas, viability scoring, bias audit, pivot suggestions, PRD generation.
@@ -294,7 +302,7 @@ Those turn **7 pillar owners from 🟡 to 🟢**.
 - **Pydantic output schemas**: `{lean_canvas, viability_score, icps[], competitors[], sources[]}`, PRD schema.
 - **Golden eval datasets** (Promptfoo) + **mocked unit tests** (fake LLM + fake UDAL).
 
-**🔴 Blocked on:** AF-036 BaseAgent, AF-027 UDAL, AF-048 Prompt Registry, AF-049 LLM Router (to wire all 3 agents).
+**🔴 Blocked on:** AF-036 BaseAgent, AF-048 Prompt Registry, AF-049 LLM Router (to wire all 3 agents).
 **⚠️ Load:** 3 of the team's 9 agents — flag to Asit whether Research or Product Planner should move to a lighter owner.
 
 ---
@@ -470,8 +478,8 @@ RAUNAK (Web)  +  YOGESH (Mobile)  +  ASIT (VS Code Extension, AF-072–078)
 
 ## The wiring order — how each piece "connects" (do this, in this order)
 
-1. **Asit publishes the data contracts first.** Before the platform is even finished, Asit commits the **Pydantic I/O schemas** for each pillar (agent input/output) + the **OpenAPI 3.1 spec** (AF-030). This lets everyone build against a *frozen contract* instead of waiting.
-2. **Asit lands the foundation:** AF-027 UDAL → AF-028 FastAPI → AF-036 BaseAgent. ← this is the moment 🟡 → 🟢 for all agent owners.
+1. **Somesh publishes the data contracts first.** Before the platform is even finished, Somesh commits the **Pydantic I/O schemas** for each pillar (agent input/output) + the **OpenAPI 3.1 spec** (AF-030). This lets everyone build against a *frozen contract* instead of waiting.
+2. **Somesh/Asit land the foundation:** ~~AF-027 UDAL~~ ✅ → ~~AF-028 FastAPI~~ ✅ → AF-036 BaseAgent. ← this is the moment 🟡 → 🟢 for all agent owners.
 3. **Purnima lands the agent plumbing:** AF-048 Prompt Registry + AF-049 LLM Router. Agent owners' offline prompts/tools now plug into real infrastructure.
 4. **Each pillar owner wires their agent** by subclassing `BaseAgent`, registering tools in the Tool Registry (AF-047), and reading/writing through UDAL. They drop in the prompts + schemas + tools they already built offline.
 5. **Agent-to-agent connection** = the Orchestrator (AF-033). The LangGraph `StateGraph` calls Pillar 1 → 2 → 3 … in order, passing each agent's output as the next agent's input (via `RunState`). This is why pillar output schemas must be agreed early (see soft deps).
@@ -498,7 +506,7 @@ These are real parts of the plan/architecture with **no clear owner**. Asit to a
 | # | Gap | Tasks / Area | Why it matters | Suggested fix |
 |---|-----|--------------|----------------|---------------|
 | **A** | ✅ **VS Code Extension — assigned to Asit** | AF-072 → AF-078 (entire Phase 6) | A whole product surface (in-IDE co-founder) | **RESOLVED 2026-06-04 → Asit.** Plan: `developer-plans/12-asit-vscode-extension-plan.md`. Delegate to Raunak (TS/UI overlap) if Asit overloaded. |
-| **B** | ⚪ **Foundation overloaded on Lead** | Orchestrator AF-033–035, BaseAgent AF-036, UDAL AF-027 | One person gating 9 people = bottleneck + bus-factor 1 | Delegate orchestrator or BaseAgent to an early-finishing pillar owner |
+| **B** | ✅ **Foundation overloaded on Lead — Resolved** | BaseAgent AF-036 | BaseAgent ABC wraps every agent call | **RESOLVED 2026-06-06:** Orchestrator (AF-033–035) and Redis (AF-032) delegated to Somesh and completed. Asit still owns BaseAgent AF-036. |
 | **C** | ✅ **Guardrails pipeline — assigned to Asit** | AF-046 (OPA, Presidio, Llama Guard, TruLens, Evidently) | Wraps **every** agent call; security/compliance backbone | **RESOLVED 2026-06-04 → Asit** (Purnima co-owns output/monitoring stages). Plan: `developer-plans/11-asit-guardrails-pipeline-plan.md`. |
 | **D** | ⚪ **Pillar 1 overloaded** | Somesh owns AF-037 + AF-038 + AF-039 (3 agents) | Slowest pillar slows the whole chain (P2→P3… wait on P1) | Reassign Research **or** Product Planner to a lighter owner |
 | **E** | ✅ **Finance & Ops/Risk agents — owner recorded: Asit** | Canonical roster (CLAUDE.md §7.1); not in Phase 1 list | Needed in Phase 4; cross-cutting | **RESOLVED 2026-06-04 → Asit (Phase 4, design deferred).** Plan: `developer-plans/13-asit-finance-ops-risk-plan.md`. |
@@ -511,7 +519,7 @@ These are real parts of the plan/architecture with **no clear owner**. Asit to a
 
 # PART E — Recommendations (for the Lead)
 
-1. **Unblock first, in this order:** AF-027 UDAL → AF-036 BaseAgent → AF-028 FastAPI → AF-030 REST contracts. These four flip 7 people from 🟡 to 🟢.
+1. **Unblock first, in this order:** ~~AF-027 UDAL~~ ✅ → AF-036 BaseAgent → ~~AF-028 FastAPI~~ ✅ → ~~AF-030 REST contracts~~ ✅. These four flip 7 people from 🟡 to 🟢. (AF-027 + AF-028 + AF-030 done — next: AF-036.)
 2. **Publish agent I/O contracts (Pydantic schemas) on day 1** so pillar owners build against a fixed contract while the platform is still being wired.
 3. **Gaps A / C / E assigned to Asit** (VS Code Extension, Guardrails, Finance & Ops/Risk) as of 2026-06-04. Still open: **B** (delegate foundation — now more urgent at 34 tasks), **D** (rebalance Pillar 1), and ownership notes F/G/H/I.
 4. **Rebalance Pillar 1 (D)** — move one of Somesh's 3 agents.
@@ -523,6 +531,9 @@ These are real parts of the plan/architecture with **no clear owner**. Asit to a
 
 | Date | Version | Description |
 |------|---------|-------------|
+| 2026-06-06 | 3.3.0 | AF-036 to AF-039 marked ✅ (Somesh). BaseAgent ABC, Strategy & Ideation Agent, Research Agent, Product Planner Agent — all complete on somesh-feature, pushed to origin. Pillar 1 fully unblocked. |
+| 2026-06-06 | 3.2.0 | AF-032 to AF-035 marked ✅ and assigned to Somesh. Redis integration, RunState TypedDict + StateGraph factory, HITL gate state machine, and SQS worker loop are now complete. Overload on Lead reduced. |
+| 2026-06-04 | 3.1.0 | AF-027 UDAL marked ✅ (Somesh). Implemented: context.py, audit.py, relational.py, vector.py, graph.py, object_store.py, udal.py rewrite, get_udal() dep, supabase settings. 14 unit tests, ruff+mypy clean. Phase 3 done: 2→3, pending: 24→23. Total done: 13→14. |
 | 2026-06-04 | 3.0.0 | Assigned all previously-unassigned work to **Asit**: AF-046 (Guardrails), AF-072→AF-078 (VS Code Extension), Finance & Ops/Risk agents (Phase 4). Updated roster, status overview, per-person counts (Asit 26→34, Unassigned 8→0), Part A (3d + Phase 6 owners), Part B, Part D gaps A/C/E (resolved), Part E. Added `developer-plans/11–13`. Flagged Asit overload (bus-factor 1) + delegation recommendation. |
 | 2026-06-01 | 2.0.0 | Rebuilt as single source of truth — full 78-task descriptions merged from `TASKS.md` (Part A by phase + Part B by person), with Owner / Depends-on / Start columns, wiring/connection guide (Part C), gaps (Part D), recommendations (Part E). No longer need `TASKS.md` to work. |
 | 2026-06-01 | 1.0.0 | Initial per-person assignment + independence analysis + gap list |

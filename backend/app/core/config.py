@@ -30,6 +30,45 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:54322/postgres"
     redis_url: str = "redis://localhost:6379/0"
 
+    # Supabase (Storage + Auth) — required by ObjectClient and AF-029 auth middleware
+    supabase_url: str = "http://localhost:54321"
+    supabase_service_key: str = "dev-service-key-change-in-prod"
+    supabase_jwt_secret: str = "change-me-in-dev"
+
+    # Authorization & OPA
+    opa_url: str = "http://localhost:8181"
+
+    # AWS & Messaging (AF-034)
+    aws_region: str = "us-east-1"
+    eventbridge_bus_name: str = "autofounder-platform"
+    sqs_gate_decisions_queue_url: str | None = None
+    sqs_pillar_queues: dict[str, str] = {}
+    sqs_poll_wait_time_seconds: int = 20
+
+    # Agent Workers
+    workers_grpc_host: str = "localhost:50052"
+
+    # Mutual TLS (mTLS) for internal service-to-service calls
+    mtls_enabled: bool = False
+    mtls_allowed_dns: str = "CN=orchestrator.internal,CN=workers.internal"
+
+    # Pillar 1 — Strategy / Research (AF-037 / AF-038 / AF-039)
+    gemini_api_key: str = ""
+    strategy_model: str = "gemini-2.5-flash"
+    tavily_api_key: str = ""
+    serpapi_key: str = ""
+    crunchbase_api_key: str = ""
+    g2_api_key: str = ""
+    similarweb_api_key: str = ""
+
+    # Observability (AF-023 OTel · AF-024 Prometheus/LangSmith)
+    otel_enabled: bool = False
+    otel_exporter_otlp_endpoint: str | None = None
+    otel_service_name: str = "autofounder-backend"
+    metrics_enabled: bool = True
+    langsmith_api_key: str | None = None
+    langsmith_project: str = "autofounder-ai"
+
     @property
     def cors_origin_list(self) -> list[str]:
         """CORS origins as a clean list, parsed from the comma-separated env value."""

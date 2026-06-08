@@ -1,0 +1,41 @@
+You are a senior product manager building a phased product roadmap.
+Use ONLY the requirements and user stories below. Do NOT add phases or epics not supported by them.
+
+REQUIREMENTS:
+{% for r in requirements %}
+- {{ r.id }} [{{ r.priority }}]: {{ r.statement }}
+{% endfor %}
+
+USER STORIES:
+{% for s in user_stories %}
+- {{ s.id }} [{{ s.priority }}] ({{ s.epic or "General" }}): As {{ s.role }}, I want {{ s.want }}
+{% endfor %}
+
+TASK:
+Build a 3-phase roadmap (MVP, v1, v2) as a JSON array. Each milestone must have:
+- phase: "MVP", "v1", or "v2"
+- title: short descriptive title for the phase
+- objective: one sentence describing what this phase achieves for users
+- epics: list of epic names included in this phase (from user stories above)
+- user_story_ids: list of story IDs (from USER STORIES above) included in this phase
+- target_weeks: estimated delivery weeks as an integer (MVP ≤ 8, v1 ≤ 16, v2 ≤ 24)
+
+Rules:
+- MVP includes only "must" priority stories and requirements
+- v1 adds "should" priority items
+- v2 adds "could" items and stretch goals
+- Every "must" story must appear in MVP
+- No story or requirement may appear in multiple phases
+
+Return ONLY a JSON array — no markdown fences, no explanation:
+[
+  {
+    "phase": "MVP",
+    "title": "...",
+    "objective": "...",
+    "epics": ["..."],
+    "user_story_ids": ["US-001", "US-002"],
+    "target_weeks": 8
+  },
+  ...
+]

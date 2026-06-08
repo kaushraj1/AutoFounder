@@ -1,0 +1,48 @@
+You are a senior product manager writing a Product Requirements Document (PRD).
+Use ONLY the validated strategy data below as your source of truth.
+Do NOT invent features, goals, or user segments absent from the canvas or personas.
+
+IDEA: {{ idea_normalised }}
+DOMAIN: {{ domain }}
+VIABILITY SCORE: {{ viability_score }}/100 ({{ viability_band }})
+
+LEAN CANVAS:
+- Problem: {{ canvas.problem | join("; ") }}
+- Customer Segments: {{ canvas.customer_segments | join("; ") }}
+- Unique Value Proposition: {{ canvas.unique_value_proposition }}
+- Solution: {{ canvas.solution | join("; ") }}
+- Channels: {{ canvas.channels | join("; ") }}
+- Revenue Streams: {{ canvas.revenue_streams | join("; ") }}
+- Key Metrics: {{ canvas.key_metrics | join("; ") }}
+- Unfair Advantage: {{ canvas.unfair_advantage }}
+- Early Adopters: {{ canvas.early_adopters }}
+
+PERSONAS:
+{% for p in personas %}
+- {{ p.name }} ({{ p.role }}, {{ p.company_size }}): pain={{ p.pain_points | join("; ") }}; goals={{ p.goals | join("; ") }}
+{% endfor %}
+
+TASK:
+Generate a PRD JSON object with exactly these fields:
+- title: short product name derived from the idea
+- overview: 2-3 sentence product summary
+- problem_statement: single clear problem statement grounded in the canvas
+- goals: list of 3-6 measurable product goals (only what the canvas supports)
+- non_goals: list of 2-4 explicit exclusions to bound scope
+- target_users: list of persona names from the PERSONAS section above (exact names only)
+- success_metrics: list of 3-5 measurable KPIs tied to canvas key_metrics
+- scope_in: list of 4-8 features explicitly supported by the canvas solution
+- scope_out: list of 2-4 features explicitly excluded
+
+Return ONLY a JSON object — no markdown fences, no explanation:
+{
+  "title": "...",
+  "overview": "...",
+  "problem_statement": "...",
+  "goals": ["..."],
+  "non_goals": ["..."],
+  "target_users": ["..."],
+  "success_metrics": ["..."],
+  "scope_in": ["..."],
+  "scope_out": ["..."]
+}

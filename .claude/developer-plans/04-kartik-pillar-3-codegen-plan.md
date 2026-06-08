@@ -72,7 +72,7 @@ Pillar 3 is the **factory floor** — it turns the approved architecture (ERD + 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
 | BaseAgent ABC | AF-036 | Asit | CoderAgent subclasses it | 🔴 Blocked |
-| UDAL | AF-027 | Asit | Read architecture, write repo artifact refs | 🔴 Blocked |
+| UDAL | AF-027 | Somesh | Read architecture, write repo artifact refs | ✅ Done |
 | Architect output | AF-040 | Kaushlendra | ERD + OpenAPI + FeatureList = the spec | 🟡 |
 | Prompt Registry / Router | AF-048/049 | Purnima | Code-gen prompts + Gemini routing | 🟡 |
 | Tool Registry | AF-047 | Asit | GitHub + Stripe tools | 🟡 |
@@ -114,7 +114,7 @@ Pillar 3 is the **factory floor** — it turns the approved architecture (ERD + 
 Kaushlendra (Pillar 2: ERD + OpenAPI + FeatureList + stack)
    |
    v
-Asit AF-036 BaseAgent + AF-027 UDAL  +  Purnima AF-048/049
+Asit AF-036 BaseAgent + Somesh AF-027 UDAL  +  Purnima AF-048/049
    |
    v
 +------------------------------------------+

@@ -1,0 +1,42 @@
+You are a senior product manager writing INVEST user stories.
+Use ONLY the personas and requirements below as your source of truth.
+Every story must reference an existing persona name exactly as it appears in PERSONAS.
+
+PERSONAS:
+{% for p in personas %}
+- {{ p.name }} ({{ p.role }}): goals={{ p.goals | join("; ") }}; pain={{ p.pain_points | join("; ") }}
+{% endfor %}
+
+REQUIREMENTS (functional only):
+{% for r in requirements %}
+- {{ r.id }}: {{ r.statement }} [traces_to: {{ r.traces_to }}]
+{% endfor %}
+
+TASK:
+Write 6-12 user stories as a JSON array. Each story must have:
+- id: "US-001", "US-002", ...
+- persona: exact persona name from PERSONAS list above
+- role: the persona's role (e.g. "Product Manager", "Developer")
+- want: what they want to accomplish (no "to" prefix, just the action)
+- benefit: the outcome/value (why it matters)
+- acceptance_criteria: list of 2-4 specific, testable criteria (Given/When/Then or bullet facts)
+- priority: MoSCoW — "must", "should", "could", or "wont"
+- epic: a short epic/theme name grouping related stories
+
+Every story must map to at least one requirement above.
+Distribute stories across all personas — no persona should be left with zero stories.
+
+Return ONLY a JSON array — no markdown fences, no explanation:
+[
+  {
+    "id": "US-001",
+    "persona": "...",
+    "role": "...",
+    "want": "...",
+    "benefit": "...",
+    "acceptance_criteria": ["...", "..."],
+    "priority": "must",
+    "epic": "..."
+  },
+  ...
+]

@@ -1,0 +1,22 @@
+# Prometheus scrape config (AF-024). Scrapes the backend's /metrics endpoint.
+# In ECS, point `targets` at the service's private discovery name (or use an
+# ECS/EC2 SD config). Managed Prometheus (AMP) can ingest via remote_write.
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    project: autofounder-ai
+
+scrape_configs:
+  - job_name: autofounder-backend
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets:
+          - "backend.autofounder.internal:8000"
+        labels:
+          service: backend
+# remote_write:                      # uncomment to ship to Amazon Managed Prometheus
+#   - url: https://aps-workspaces.ap-south-1.amazonaws.com/workspaces/<ws-id>/api/v1/remote_write
+#     sigv4:
+#       region: ap-south-1

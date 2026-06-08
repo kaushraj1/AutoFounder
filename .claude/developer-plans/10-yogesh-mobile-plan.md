@@ -52,10 +52,10 @@ The mobile app is the **founder-on-the-go** companion — submit an idea, watch 
 
 | Source | Data Consumed | Required / Optional | Used For |
 |---|---|---|---|
-| **Asit (AF-030 REST)** | runs, gates, artifacts, ideas | **Required** | All data fetching |
-| **Asit (AF-031 Realtime)** | `step_events` channel | **Required** | Live run updates |
+| **Somesh (AF-030 REST)** | runs, gates, artifacts, ideas | **Required** | All data fetching |
+| **Somesh (AF-031 Realtime)** | `step_events` channel | **Required** | Live run updates |
 | **Asit (AF-017 SNS)** | push topic | **Required (AF-064)** | Gate notifications |
-| **Asit (AF-034 HITL manager)** | gate state machine | **Required (AF-068)** | Approve/reject sync |
+| **Somesh (AF-034 HITL manager)** | gate state machine | **Required (AF-068)** | Approve/reject sync |
 
 ### 1.4 Outputs Produced for Downstream Consumers
 
@@ -74,10 +74,10 @@ The mobile app is the **founder-on-the-go** companion — submit an idea, watch 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
 | Mobile scaffold | AF-006 | Team | `mobile-app/` workspace | ✅ Done |
-| REST endpoints | AF-030 | Asit | Real data | 🔴 (mock first) |
-| Realtime | AF-031 | Asit | Live run updates | 🔴 (mock first) |
+| REST endpoints | AF-030 | Somesh | Real data | ✅ Done |
+| Realtime | AF-031 | Somesh | Live run updates | ✅ Done |
 | SNS topic | AF-017 | Asit | Push notifications (AF-064) | 🔴 |
-| HITL gate manager | AF-034 | Asit | Gate approval (AF-068) | 🔴 |
+| HITL gate manager | AF-034 | Somesh | Gate approval (AF-068) | ✅ Done |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
 
@@ -85,7 +85,7 @@ The mobile app is the **founder-on-the-go** companion — submit an idea, watch 
 |---|---|---|---|
 | `packages/api-client` | AF-052 | Raunak/shared | Local typed client until generated |
 | Gate preview shapes | AF-037–044 | Pillar owners | Build on mock fixtures |
-| Supabase Auth | AF-029 | Asit | Dev mock session |
+| Supabase Auth | AF-029 | Somesh | Dev mock session |
 
 ### 2.3 Fallback Behavior Matrix
 
@@ -118,7 +118,7 @@ AF-063 Expo Router + secure-store Auth  (no backend -- start now)
    v
 ALL SCREENS on MOCK DATA (AF-065..AF-070)  +  AF-071 EAS profiles
    |
-   |  (when Asit ships AF-030 REST + AF-031 Realtime + AF-017 SNS + AF-034 HITL)
+   |  (when Somesh ships AF-030 REST + AF-031 Realtime + AF-017 SNS + AF-034 HITL)
    v
 AF-064 push + live screens + AF-068 offline gate sync
    |
@@ -500,7 +500,7 @@ The app consumes **AF-030 REST + AF-031 Realtime + AF-017 SNS + AF-034 HITL** (s
 | 6 | Mock fixtures + Jest/Maestro tests | P1 | 5 hrs | `tests/` |
 | 7 | **Agree REST + Realtime + SNS + HITL contract with Asit** | P0 | 1 hr | shared contract |
 
-**Build every screen on mock data now → add push (AF-064) + offline sync (AF-068) when AF-030/031/017/034 land.**
+**Build every screen on mock data now → add push (AF-064) + offline sync (AF-068) when Somesh's AF-030/031 land and Asit's AF-017/034 land.**
 
 ---
 
@@ -528,7 +528,7 @@ The app consumes **AF-030 REST + AF-031 Realtime + AF-017 SNS + AF-034 HITL** (s
 
 | Who | What | When | Status |
 |---|---|---|---|
-| **Asit (Platform)** | Agree REST (AF-030) + Realtime (AF-031) + SNS (AF-017) + HITL (AF-034) contracts | When they land | ⬜ Pending |
+| **Somesh/Asit (Platform)** | Agree REST (AF-030) + Realtime (AF-031) + SNS (AF-017) + HITL (AF-034) contracts | When they land | ⬜ Pending |
 | **Raunak (Web)** | Share `packages/api-client` + design system patterns | Ongoing | ⬜ Pending |
 | **Somesh / Kaushlendra / Pallavi** | Gate preview shapes (validation / architecture / launch) | When mock ready | ⬜ Pending |
 | **Purnima (P7)** | LLMOps Summary data shape (AF-070) | When mock ready | ⬜ Pending |
