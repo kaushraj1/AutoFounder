@@ -1,0 +1,8 @@
+{
+  "name": "clean_nextjs_fastapi",
+  "languages": ["python", "typescript"],
+  "seeded_defects": [],
+  "expected_verdict": "approved",
+  "expected_heal_cycles": 0,
+  "expected_coverage_pct": 87
+}

@@ -1,0 +1,8 @@
+{
+  "name": "failing_unit_tests",
+  "languages": ["python"],
+  "seeded_defects": ["off-by-one in add()", "wrong operator in multiply()"],
+  "expected_verdict": "approved",
+  "expected_heal_cycles": 2,
+  "note": "Healer must patch calculator.py (source), never calculator_spec.py (tests)."
+}

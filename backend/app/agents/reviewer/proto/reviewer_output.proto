@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+// AF-042 Reviewer / Self-Healer Agent (Pillar 4) → DevOps Agent (Pillar 5) handoff.
+// Mirrors app.agents.reviewer.schema.ReviewerOutput (Pydantic) field-for-field.
+package autofounder.reviewer.v1;
+
+message ReviewerOutput {
+  string run_id = 1;
+  string organization_id = 2;
+  string coder_run_id = 3;
+  string repo_url = 4;
+  string branch = 5;
+  int32 pr_number = 6;
+
+  // "approved" | "heal" | "escalate"
+  string review_decision = 7;
+  bool is_approved = 8;
+
+  float unit_test_coverage = 9;
+  int32 security_finding_count = 10;
+  int32 critical_finding_count = 11;
+  int32 llm_judge_overall = 12;
+  int32 heal_cycles_used = 13;
+
+  string review_report_url = 14;
+  string github_pr_comment_url = 15;
+  string escalation_reason = 16;
+  repeated string owasp_violations = 17;
+
+  int64 completed_at_unix_ms = 18;
+  int32 total_llm_tokens_used = 19;
+}

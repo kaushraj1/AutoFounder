@@ -61,6 +61,17 @@ class Settings(BaseSettings):
     g2_api_key: str = ""
     similarweb_api_key: str = ""
 
+    # Pillar 4 — Reviewer / Self-Healer (AF-042)
+    reviewer_model: str = "gemini-2.5-flash"
+    semgrep_app_token: str = ""
+    snyk_token: str = ""
+    sonarqube_url: str = ""
+    sonarqube_token: str = ""
+    sonarqube_project_key: str = ""
+    github_token: str = ""
+    slack_webhook_reviewer: str = ""
+    aws_s3_artifacts_bucket: str = ""
+
     # Observability (AF-023 OTel · AF-024 Prometheus/LangSmith)
     otel_enabled: bool = False
     otel_exporter_otlp_endpoint: str | None = None
