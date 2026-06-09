@@ -1,0 +1,8 @@
+{
+  "name": "low_coverage",
+  "languages": ["python"],
+  "seeded_defects": ["all tests pass but coverage ~62% (large untested module)"],
+  "expected_verdict": "escalate",
+  "expected_reason": "coverage < 80%",
+  "note": "Net-new test generation is out of MVP scope (D6) → escalate to founder."
+}
