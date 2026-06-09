@@ -2,7 +2,7 @@
 
 > **Owner**: Vishal Prasad
 > **Task ID**: AF-042 · **Branch**: `feature/reviewer-agent`
-> **Status**: 🟡 Partially startable (lots of offline work)
+> **Status**: ✅ Delivered 2026-06-09 — Phase-1 MVP shipped on `feature/reviewer-agent` (ruff/mypy/pytest green). Built against the AF-036/AF-041 contract with the documented Phase-1 fallbacks; Phase-2/3 items below remain future work.
 > **Date**: 2026-06-04 · **Version**: 1.0.0
 > **Depends on**: AF-036 (BaseAgent), AF-041 (Coder Agent repo output)
 > **SLA**: < 15 minutes end-to-end · Sandbox spin-up < 10 s · Auto-fix rate ≥ 90% · Coverage ≥ 80%

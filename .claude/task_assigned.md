@@ -57,13 +57,13 @@ Think of the project like building a house. You can't paint a room (build your a
 |-------|-------------|---------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | Team | 11 | 11 | 0 |
 | Phase 2 | Infrastructure & Cloud | Asit (Vishal exec) | 13 | 13 | 0 |
-| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 15 | 11 |
+| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 16 | 10 |
 | Phase 4 | Frontend — Next.js 14 | Raunak | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | Yogesh | 9 | 0 | 9 |
-| Phase 6 | VS Code Extension | **Asit** | 7 | 0 | 7 |
-| **Total** | | | **78** | **39** | **39** |
+| Phase 6 | VS Code Extension | **Asit** | 7 | 7 | 0 |
+| **Total** | | | **78** | **47** | **31** |
 
-**Per-person task count:** Asit **24** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 32 pending + 46 done = **78** (Phase 2 done by Vishal; Phase 3 = 15/26 via Somesh's agents; Phase 6 = 7/7 built by Vishal).
+**Per-person task count:** Asit **24** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 31 pending + 47 done = **78** (Phase 2 done by Vishal; Phase 3 = 16/26 — Somesh's Pillar-1 agents + Vishal's Reviewer AF-042; Phase 6 = 7/7 built by Vishal).
 
 
 ---
@@ -147,7 +147,7 @@ Think of the project like building a house. You can't paint a room (build your a
 | AF-039 | **Somesh** | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | AF-037 | 🟢 | ✅ |
 | AF-040 | **Kaushlendra** | Architect Agent (Pillar 2) — FR/NFR extraction, ERD, OpenAPI contract, stack selection, microservice boundaries, cost forecast; HITL approval gate | `feature/architect-agent` | AF-036, AF-039 | 🟡 | ❌ |
 | AF-041 | **Kartik** | Coder Agent (Pillar 3) — Frontend Specialist (Next.js 14 + Tailwind + shadcn/ui) ∥ Backend Specialist (FastAPI + SQLAlchemy + Supabase Auth + Stripe); Alembic migrations; zero lint errors; CI/CD scaffold | `feature/coder-agent` | AF-036, AF-040 | 🟡 | ❌ |
-| AF-042 | **Vishal** | Reviewer / Self-Healer Agent (Pillar 4) — static analysis, unit + integration test gen, security scans (Trivy/Semgrep/Snyk), sandbox execution, AST-aware patching, LLM-as-judge; max 5 cycles; coverage ≥ 80% | `feature/reviewer-agent` | AF-036, AF-041 | 🟡 | ❌ |
+| AF-042 | **Vishal** | Reviewer / Self-Healer Agent (Pillar 4) — static analysis, unit + integration test gen, security scans (Trivy/Semgrep/Snyk), sandbox execution, AST-aware patching, LLM-as-judge; max 5 cycles; coverage ≥ 80% | `feature/reviewer-agent` | AF-036, AF-041 | 🟢 | ✅ |
 | AF-043 | **Prasenjit** | DevOps Agent (Pillar 5) — multi-stage Dockerfile, Terraform plan + apply, ECS provisioning, Route 53 + ACM, monitoring setup, smoke test; SLA < 10 min; infra-spend HITL gate | `feature/devops-agent` | AF-036, AF-042 | 🟡 | ❌ |
 | AF-044 | **Pallavi** | Marketing Agent (Pillar 6) — brand kit (DALL-E 3), landing page, SEO engine (10 blog drafts), email drip sequences, social posts; feature-list hallucination cross-ref; Launch Control Center HITL gate | `feature/marketing-agent` | AF-036, AF-040 | 🟡 | ❌ |
 | AF-045 | **Purnima** | LLMOps Agent (Pillar 7) — trace analysis, DSPy prompt optimisation, Promptfoo regression, LiteLLM routing updates, TruLens drift monitoring, A/B experiments, FinOps report; weekly Step Functions cycle | `feature/llmops-agent` | AF-036, all agents running | 🔴 | ❌ |
@@ -335,21 +335,22 @@ Those turn **7 pillar owners from 🟡 to 🟢**.
 
 ---
 
-## 5. Vishal Prasad — Pillar 4: Testing & Self-Healing 🟡
+## 5. Vishal Prasad — Pillar 4: Testing & Self-Healing ✅
 
 **Owns:** AF-042 Reviewer / Self-Healer Agent.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-042 | Vishal | Reviewer / Self-Healer Agent (Pillar 4) — static analysis, unit + integration test gen, security scans (Trivy/Semgrep/Snyk), sandbox execution, AST-aware patching, LLM-as-judge; max 5 cycles; coverage ≥ 80% | `feature/reviewer-agent` | AF-036, AF-041 | 🟡 | ❌ |
+| AF-042 | Vishal | Reviewer / Self-Healer Agent (Pillar 4) — static analysis, unit + integration test gen, security scans (Trivy/Semgrep/Snyk), sandbox execution, AST-aware patching, LLM-as-judge; max 5 cycles; coverage ≥ 80% | `feature/reviewer-agent` | AF-036, AF-041 | 🟢 | ✅ |
 
-**🟢 Do today (lots of standalone work here):**
-- **Sandbox runner** prototype: ephemeral Docker + isolated network + Testcontainers — largely self-contained; test it on any sample repo today.
-- **Security-scan wrappers**: Trivy, Semgrep, Snyk, Gitleaks as standalone modules with typed outputs.
-- Prompt templates: unit/integration test generation, AST-aware patching, LLM-as-judge review.
-- Self-heal loop (max 5 cycles) as a pure state machine; output schema `{coverage, scan_results[], patches[], verdict}`; golden evals; mocked tests.
+**✅ Delivered 2026-06-09 by Vishal** on `feature/reviewer-agent` — a 14-node LangGraph `ReviewerAgent` (subclasses `BaseAgent`): `ingest → ephemeral sandbox → 5 parallel gates → LLM-judge → deterministic triage → bounded self-heal loop (max 5) → teardown → report`, with a central `error_handler` sink. Gates: ESLint/Prettier · Ruff/Black · Jest · pytest · Playwright · Trivy/Semgrep/Bandit/Snyk/Gitleaks · SonarQube — each degrades to a non-fatal SKIP when its binary/token is absent.
 
-**🔴 Blocked on:** AF-036 + foundation. **🔗 Soft dependency:** needs **Pillar 3's** generated code (AF-041) to test — but validate your whole pipeline against any sample Next.js/FastAPI repo in the meantime.
+- **Safety-first triage:** OWASP CRITICAL/HIGH non-fixable hard-block (severity fail-safe), coverage ≥ 80% gate, source-only heal patches (never tests).
+- **Outputs:** flat `ReviewerOutput` (+ protobuf) → DevOps Agent (AF-043); UDAL report + scan-JSON persistence; PR comment; Prometheus metrics (incl. per-node SLA); Slack escalation.
+- **Security hardening** (from an adversarial self-review): path-boundary heal-write guard, git arg-injection guard, credential redaction, crashed-gate guard.
+- **Verified green:** `ruff` + `ruff format` + `mypy` (196 files) + full `pytest` suite; unit + integration tests (no Docker/scanners/network) + 5 sample repos. Plan: `developer-plans/05-vishal-pillar-4-testing-plan.md`.
+
+**🔗 Soft dependency satisfied via contract:** built against **AF-036** BaseAgent + **Pillar 3's** generated repo (AF-041) with the plan's intended fallbacks — validated against bundled sample Next.js/FastAPI repos until the live Coder handoff + Docker/scanners land (MVP runs gates host-side; full in-container exec is Phase 2).
 
 ---
 

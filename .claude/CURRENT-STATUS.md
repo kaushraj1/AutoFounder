@@ -123,7 +123,7 @@ Reassigned to you from Asit (per Somesh, 2026-06-06). **Status: ~greenfield Terr
 
 > **Sequencing:** `AF-012 → AF-019/020/021 (parallel) → AF-013 → AF-015/016/017 → AF-018`, then close the CD loop (AF-022) and observability (AF-023/024). Coordinate with **Prasenjit (AF-043 DevOps agent)** — his product-Terraform mirrors your platform-Terraform; share modules.
 
-**Your own assignment, `AF-042` (Reviewer/Self-Healer agent), is ❌ not-started and blocked on `AF-036` (BaseAgent) + `AF-041` (Coder agent).** You can still build its offline pieces now (sandbox runner, Trivy/Semgrep/Snyk wrappers, self-heal state machine) per the task doc.
+**Your own assignment, `AF-042` (Reviewer/Self-Healer agent), is ✅ delivered (2026-06-09) on `feature/reviewer-agent` — see §10.** Built against the `AF-036` BaseAgent + `AF-041` Coder contract with the plan's intended fallbacks; ruff/mypy/pytest green. _(This §5 line reflected the pre-build state.)_
 
 ---
 
@@ -165,3 +165,15 @@ Since the snapshot above was written:
   - Wired into `pnpm-workspace.yaml` (it was missing); `.gitignore` updated for `*.vsix` + the extension's committed `.vscode/`.
   - **Verified green:** `tsc --noEmit`, ESLint, Prettier, **35** `node:test` unit tests, esbuild bundle (`dist/extension.js`), and `vsce package` (clean 32 KB `.vsix`).
 - **Honest scope note:** built against the AF-030 REST + AF-031 Realtime + AF-034 HITL contract. Because AF-031 Realtime is scaffold-only and AF-041 Coder Agent isn't built, the extension uses the plan's **intended fallbacks** (REST polling instead of live WS; a labelled placeholder for code-gen) — these activate automatically once the backend lands, no client change needed.
+
+---
+
+## 10. Update — 2026-06-09 (Pillar 4 Reviewer / Self-Healer complete)
+
+- **`AF-042` Reviewer / Self-Healer Agent (Pillar 4) delivered** by Vishal on `feature/reviewer-agent` (was ❌ not-started per §5). A 14-node LangGraph `ReviewerAgent` (subclasses `BaseAgent`): `ingest → ephemeral sandbox → 5 parallel gates → LLM-judge → deterministic triage → bounded self-heal loop (max 5) → teardown → report`, with a central `error_handler` sink. Gates: ESLint/Prettier · Ruff/Black · Jest · pytest · Playwright · Trivy/Semgrep/Bandit/Snyk/Gitleaks · SonarQube.
+  - **Safety-first triage:** OWASP CRITICAL/HIGH non-fixable hard-block (severity fail-safe), coverage ≥ 80% gate, source-only heal patches (never tests).
+  - **Outputs:** flat `ReviewerOutput` (+ protobuf) → DevOps Agent (AF-043); UDAL report + scan-JSON persistence; PR comment; Prometheus metrics (incl. per-node SLA); Slack escalation.
+  - **Security hardening** (from an adversarial multi-agent self-review, 20 findings fixed): path-boundary heal-write guard, git arg-injection guard, credential redaction, crashed-gate-can't-approve guard, OWASP fail-safe.
+- **Honest scope note:** built against the `AF-036` BaseAgent + `AF-041` Coder contract with the plan's **intended fallbacks** — scanners degrade to SKIP when a binary/token is absent; MVP runs gates **host-side** (full in-container exec is Phase 2). These activate automatically once Docker/scanners/Coder land, no change needed.
+- **Verified green:** `ruff` + `ruff format` + `mypy` (196 files) + full `pytest` suite. Unit + integration tests (no Docker/scanners/network) + 5 sample repos. Plan: [`developer-plans/05-vishal-pillar-4-testing-plan.md`](developer-plans/05-vishal-pillar-4-testing-plan.md).
+- Trackers synced: [`.claude/TASKS.md`](TASKS.md), [`.claude/task_assigned.md`](task_assigned.md), [`.claude/developer-plans/00-INDEX.md`](developer-plans/00-INDEX.md).
