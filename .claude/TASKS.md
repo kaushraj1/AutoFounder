@@ -10,11 +10,11 @@
 |-------|-------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | 11 | 11 | 0 |
 | Phase 2 | Infrastructure & Cloud | 13 | 13 | 0 |
-| Phase 3 | Backend — FastAPI + Agents | 26 | 15 | 11 |
+| Phase 3 | Backend — FastAPI + Agents | 26 | 16 | 10 |
 | Phase 4 | Frontend — Next.js 14 | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | 9 | 0 | 9 |
 | Phase 6 | VS Code Extension | 7 | 7 | 0 |
-| **Total** | | **78** | **46** | **32** |
+| **Total** | | **78** | **47** | **31** |
 
 > Phase 2: **13/13 merged to `dev`** (PR #13). Phase 3: **15/26** done — AF-025–039 (foundation + orchestrator + BaseAgent + Pillar-1 agents); AF-040–050 pending. **Phase 6: 7/7** done (`feature/vscode-extension`) — full TypeScript VS Code extension (esbuild-bundled, `tsc`+ESLint+Prettier clean, 35 unit tests, `vsce package` verified); built against the AF-030/031/034 contract with graceful fallbacks where AF-031 Realtime / AF-041 Coder are still landing. Documented Phase-2 follow-ups: AF-017 (Confluent), AF-018 (CloudFront/Shield), AF-022 (blue/green canary), AF-023 (FireLens sidecar), AF-024 (deployed Prometheus/Grafana + live LangSmith) — see footnotes.
 
@@ -106,7 +106,7 @@
 | AF-039 | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | ✅ Completed |
 | AF-040 | Architect Agent (Pillar 2) — FRs/NFRs extraction, ERD, OpenAPI contract, stack selection, microservice boundary analysis, cost forecast; HITL approval gate | `feature/architect-agent` | ❌ Pending |
 | AF-041 | Coder Agent (Pillar 3) — Frontend Specialist (Next.js 14 + Tailwind + shadcn/ui) ∥ Backend Specialist (FastAPI + SQLAlchemy + Supabase Auth + Stripe); Alembic DB migrations; zero lint errors; CI/CD scaffold | `feature/coder-agent` | ❌ Pending |
-| AF-042 | Reviewer / Self-Healer Agent (Pillar 4) — static analysis, unit + integration test gen, security scans (Trivy/Semgrep/Snyk), sandbox execution, AST-aware patching, LLM-as-judge; max 5 cycles; coverage ≥ 80% | `feature/reviewer-agent` | ❌ Pending |
+| AF-042 | Reviewer / Self-Healer Agent (Pillar 4) — static analysis, unit + integration test gen, security scans (Trivy/Semgrep/Snyk), sandbox execution, AST-aware patching, LLM-as-judge; max 5 cycles; coverage ≥ 80% | `feature/reviewer-agent` | ✅ Completed |
 | AF-043 | DevOps Agent (Pillar 5) — multi-stage Dockerfile, Terraform plan + apply, ECS provisioning, Route 53 + ACM, monitoring setup, smoke test; SLA < 10 min; infra-spend HITL gate | `feature/devops-agent` | ❌ Pending |
 | AF-044 | Marketing Agent (Pillar 6) — brand kit (DALL-E 3), landing page, SEO content engine (10 blog drafts), email drip sequences, social posts; feature-list hallucination cross-ref; Launch Control Center HITL gate | `feature/marketing-agent` | ❌ Pending |
 | AF-045 | LLMOps Agent (Pillar 7) — trace analysis, DSPy prompt optimisation, Promptfoo regression, LiteLLM routing updates, TruLens drift monitoring, A/B experiments, FinOps report; weekly Step Functions cycle | `feature/llmops-agent` | ❌ Pending |

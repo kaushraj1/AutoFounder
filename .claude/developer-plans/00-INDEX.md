@@ -13,7 +13,7 @@
 | 02 | [02-somesh-pillar-1-strategy-research-plan.md](02-somesh-pillar-1-strategy-research-plan.md) | **Somesh Chitranshi** | Pillar 1 — Strategy + Research + Product Planner | AF-037, AF-038, AF-039 | `feature/strategy-agent` |
 | 03 | [03-kaushlendra-pillar-2-architecture-plan.md](03-kaushlendra-pillar-2-architecture-plan.md) | **Kaushlendra Kumar Gupta** | Pillar 2 — Architect Agent | AF-040 | `feature/architect-agent` |
 | 04 | [04-kartik-pillar-3-codegen-plan.md](04-kartik-pillar-3-codegen-plan.md) | **Kartik Mogalapalli** | Pillar 3 — Coder Agent | AF-041 | `feature/coder-agent` |
-| 05 | [05-vishal-pillar-4-testing-plan.md](05-vishal-pillar-4-testing-plan.md) | **Vishal Prasad** | Pillar 4 — Reviewer / Self-Healer | AF-042 | `feature/reviewer-agent` |
+| 05 | [05-vishal-pillar-4-testing-plan.md](05-vishal-pillar-4-testing-plan.md) | **Vishal Prasad** | Pillar 4 — Reviewer / Self-Healer | AF-042 | `feature/reviewer-agent` ✅ |
 | 06 | [06-prasenjit-pillar-5-deployment-plan.md](06-prasenjit-pillar-5-deployment-plan.md) | **Prasenjit Roy** | Pillar 5 — DevOps Agent | AF-043 | `feature/devops-agent` |
 | 07 | [07-pallavi-pillar-6-marketing-plan.md](07-pallavi-pillar-6-marketing-plan.md) | **Pallavi Anil Sindkar** | Pillar 6 — Marketing Agent | AF-044 | `feature/marketing-agent` |
 | 08 | [08-purnima-pillar-7-llmops-plan.md](08-purnima-pillar-7-llmops-plan.md) | **Purnima** | Pillar 7 — LLMOps + shared Prompt Registry / Router / Eval | AF-045, AF-048, AF-049, AF-050 | `feature/llmops-agent` |
