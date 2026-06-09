@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deploy Console — PawTrail</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <style>body{font-family:Inter,sans-serif}</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-16 lg:pb-0">
+  <nav class="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-slate-800 bg-slate-900/95 flex justify-around py-3 text-xs">
+    <a href="code-review.html" class="text-slate-400">Review</a>
+    <a href="deploy-console.html" class="text-violet-300">Deploy</a>
+    <a href="launch-control.html" class="text-slate-400">Launch</a>
+    <a href="run-detail.html" class="text-slate-400">Hub</a>
+  </nav>
+  <div class="flex min-h-screen">
+    <aside class="hidden lg:flex w-64 flex-col border-r border-slate-800 bg-slate-900/50 text-sm">
+      <div class="p-5 border-b border-slate-800"><a href="dashboard.html" class="font-semibold">AutoFounder</a></div>
+      <div class="p-3">
+        <a href="run-detail.html" class="block px-3 py-2 text-slate-400">Overview</a>
+        <a href="code-review.html" class="block px-3 py-2 text-slate-500">③ Code review ✓</a>
+        <a href="deploy-console.html" class="block px-3 py-2 rounded-lg bg-violet-500/20 text-violet-200 mt-1">④ Deploy</a>
+        <a href="launch-control.html" class="block px-3 py-2 text-slate-400 mt-1">⑤ Launch</a>
+      </div>
+    </aside>
+    <main class="flex-1 flex flex-col">
+      <header class="border-b border-slate-800 px-6 py-3">
+        <nav class="text-sm text-slate-400 mb-3"><a href="run-detail.html">PawTrail</a> › <span class="text-white">Deploy</span></nav>
+        <div class="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="text-sm font-medium text-amber-200">Infra spend approval</p>
+            <p class="text-xs text-slate-400">Estimated <strong class="text-white">$142.50/month</strong> · ECS Fargate + RDS + Redis</p>
+          </div>
+          <a href="launch-control.html" class="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-sm font-medium whitespace-nowrap">Approve spend</a>
+        </div>
+      </header>
+      <div class="p-6 grid lg:grid-cols-2 gap-6 flex-1">
+        <div class="rounded-xl border border-slate-800 bg-black/40 p-4 font-mono text-xs space-y-1 max-h-80 overflow-y-auto">
+          <p class="text-slate-500">[16:18:03] Terraform apply complete (12 added)</p>
+          <p class="text-cyan-400">[16:20:11] ECS service pawtrail-api → healthy (2/2)</p>
+          <p class="text-cyan-400">[16:21:44] RDS postgres 16.3 ready</p>
+          <p class="text-cyan-400">[16:22:08] ElastiCache redis 7.1 ready</p>
+          <p class="text-emerald-400">[16:22:11] Smoke test /health → 200 (48ms)</p>
+          <p class="text-emerald-400">[16:22:12] Smoke test app → 200 (313ms)</p>
+          <p class="text-violet-300">[16:25:00] Deploy complete ✓</p>
+        </div>
+        <div class="space-y-4">
+          <div class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-5">
+            <p class="text-xs text-emerald-400 uppercase mb-2">Live URL</p>
+            <a href="launch-control.html" class="text-xl font-medium text-cyan-300 hover:underline break-all">https://app.pawtrail.in</a>
+            <p class="text-sm text-slate-400 mt-3">Region: ap-south-1 · Blue/green deploy</p>
+          </div>
+          <div class="rounded-xl border border-slate-800 p-4 grid grid-cols-2 gap-4 text-sm">
+            <div><p class="text-slate-500 text-xs">Smoke test</p><p class="text-emerald-400 font-medium">Passed</p></div>
+            <div><p class="text-slate-500 text-xs">Latency</p><p>48ms API</p></div>
+            <div><p class="text-slate-500 text-xs">Cluster</p><p class="text-slate-300">pawtrail-prod</p></div>
+            <div><p class="text-slate-500 text-xs">Rollback</p><button class="text-red-400 text-xs hover:underline">Available</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="px-6 pb-6"><a href="launch-control.html" class="inline-block px-5 py-2 rounded-lg bg-violet-600 text-sm font-medium">Continue to Launch →</a></div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://autofounder.ai/schemas/agents/marketing-output.json",
+  "title": "MarketingAgentOutput",
+  "description": "Output from Marketing Agent (Pillar 6). Core fields align with MarketerOutput; brand_kit and content blocks support Launch Studio UI.",
+  "type": "object",
+  "required": [
+    "run_id",
+    "organization_id",
+    "product_name",
+    "live_url",
+    "gtm_report_s3_uri",
+    "approved_content_types",
+    "hallucination_critical_count",
+    "hallucination_warning_count"
+  ],
+  "properties": {
+    "run_id": { "type": "string", "format": "uuid" },
+    "organization_id": { "type": "string" },
+    "product_name": { "type": "string" },
+    "live_url": { "type": "string", "format": "uri" },
+    "gtm_report_s3_uri": { "type": "string" },
+    "approved_content_types": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "landing_page",
+          "seo_blogs",
+          "social_posts",
+          "email_sequences",
+          "product_hunt_kit",
+          "visual_assets",
+          "press_release"
+        ]
+      }
+    },
+    "rejected_content_types": { "type": "array", "items": { "type": "string" } },
+    "scheduled_post_ids": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "hallucination_critical_count": { "type": "integer", "minimum": 0 },
+    "hallucination_warning_count": { "type": "integer", "minimum": 0 },
+    "total_llm_tokens_used": { "type": "integer", "minimum": 0 },
+    "total_images_generated": { "type": "integer", "minimum": 0 },
+    "brand_kit": {
+      "type": "object",
+      "properties": {
+        "tagline": { "type": "string" },
+        "positioning_statement": { "type": "string" },
+        "tone_of_voice": { "type": "array", "items": { "type": "string" } },
+        "primary_colors": { "type": "array", "items": { "type": "string" } },
+        "logo_concept": { "type": "string" },
+        "value_props": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "landing_page": { "type": "object" },
+    "seo_blogs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "target_keyword", "status"],
+        "properties": {
+          "title": { "type": "string" },
+          "target_keyword": { "type": "string" },
+          "secondary_keywords": { "type": "array", "items": { "type": "string" } },
+          "meta_description": { "type": "string" },
+          "body_markdown_excerpt": { "type": "string" },
+          "body_markdown": { "type": "string" },
+          "status": { "type": "string", "enum": ["draft", "approved", "published"] }
+        }
+      }
+    },
+    "social_posts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["channel", "content"],
+        "properties": {
+          "channel": { "type": "string" },
+          "content": { "type": "string" },
+          "hashtags": { "type": "array", "items": { "type": "string" } },
+          "scheduled_at": { "type": ["string", "null"], "format": "date-time" },
+          "status": { "type": "string", "default": "draft" }
+        }
+      }
+    },
+    "email_sequences": { "type": "object" },
+    "product_hunt_kit": { "type": "object" },
+    "hallucination_report": {
+      "type": "object",
+      "required": ["critical_count", "warning_count", "passed"],
+      "properties": {
+        "critical_count": { "type": "integer", "minimum": 0 },
+        "warning_count": { "type": "integer", "minimum": 0 },
+        "passed": { "type": "boolean" },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "claim": { "type": "string" },
+              "verdict": { "type": "string" },
+              "reason": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "generated_at": { "type": "string", "format": "date-time" }
+  }
+}

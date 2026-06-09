@@ -1,0 +1,149 @@
+{
+  "run_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "organization_id": "org_pawtrail_demo",
+  "product_name": "PawTrail",
+  "one_liner": "Subscription dog-walking for busy Bangalore pet parents with GPS-tracked walks and vetted walkers.",
+  "problem_statement": "Urban professionals in Bangalore struggle to find reliable, background-checked dog walkers on short notice. Existing marketplaces are fragmented, lack real-time walk tracking, and offer no subscription pricing for recurring schedules.",
+  "solution_summary": "PawTrail is a mobile-first subscription platform connecting pet owners with verified walkers in Koramangala, Indiranagar, and HSR Layout. Owners book recurring slots, receive live GPS routes, and pay a flat monthly fee with rollover credits.",
+  "target_market": "Dual-income households in Bangalore's top 3 tech corridors, owning medium/large dogs, spending ₹3,000–₹8,000/month on pet care.",
+  "tam_sam_som": {
+    "tam_inr_cr": 420,
+    "sam_inr_cr": 38,
+    "som_inr_cr": 2.4,
+    "methodology": "Bottom-up: 180k dog-owning households in Bangalore × ₹2,200 ARPU × 12; SAM filtered to premium corridors; SOM assumes 3-year capture of 6,200 subscribers."
+  },
+  "competitive_landscape": [
+    {
+      "name": "Wiggles",
+      "positioning": "Pan-India pet services marketplace",
+      "strengths": ["Brand recognition", "Wide service catalog"],
+      "weaknesses": ["No subscription model", "Inconsistent walker quality in BLR"],
+      "pricing": "₹399–₹699 per walk"
+    },
+    {
+      "name": "PetPooja Walkers (informal)",
+      "positioning": "WhatsApp-based local referrals",
+      "strengths": ["Low cost", "Hyperlocal trust"],
+      "weaknesses": ["No insurance", "No GPS proof", "No scheduling SLA"],
+      "pricing": "₹250–₹350 per walk"
+    },
+    {
+      "name": "Rover (global)",
+      "positioning": "Peer-to-peer pet sitting",
+      "strengths": ["Mature product", "Insurance"],
+      "weaknesses": ["Not India-localized", "No BLR density"],
+      "pricing": "USD pricing, limited India ops"
+    }
+  ],
+  "differentiation": [
+    "Subscription-first pricing with guaranteed walker assignment",
+    "Live GPS route + photo proof on every walk",
+    "Walker background checks via third-party KYC partner",
+    "Hyperlocal ops: 45-minute SLA for same-day reschedule"
+  ],
+  "business_model": "B2C subscription (₹1,999 / ₹3,499 / ₹5,999 tiers) + 15% commission on à-la-carte add-ons (grooming referrals, vet visits).",
+  "revenue_streams": [
+    "Monthly subscriptions (primary)",
+    "À-la-carte extra walks",
+    "Partner commissions (pet stores, vets)",
+    "Corporate pet-benefit plans (Phase 2)"
+  ],
+  "pricing_strategy": {
+    "model": "tiered_subscription",
+    "tiers": [
+      {
+        "name": "Starter",
+        "price_inr": 1999,
+        "walks_per_month": 8,
+        "features": ["GPS tracking", "1 dog", "Weekday slots"]
+      },
+      {
+        "name": "Active",
+        "price_inr": 3499,
+        "walks_per_month": 16,
+        "features": ["Priority walker", "Weekend slots", "Rollover 4 walks"]
+      },
+      {
+        "name": "Premium",
+        "price_inr": 5999,
+        "walks_per_month": 30,
+        "features": ["Dedicated walker", "Same-day reschedule", "Pet insurance discount"]
+      }
+    ],
+    "rationale": "Price 10–15% above informal walkers while undercutting per-walk marketplace rates for recurring users."
+  },
+  "go_to_market": {
+    "channels": ["Instagram geo-ads", "Apartment society partnerships", "Pet influencer collabs", "Google Local SEO"],
+    "launch_sequence": ["Waitlist in HSR Layout", "50 founding walkers onboarded", "Paid pilot with 200 households", "Expand to Koramangala"],
+    "cac_target_inr": 450,
+    "ltv_target_inr": 8400
+  },
+  "key_metrics": [
+    "Monthly active subscribers",
+    "Walk completion rate (target ≥ 98%)",
+    "Walker utilization",
+    "Net revenue retention",
+    "NPS (target ≥ 55)"
+  ],
+  "risks": [
+    {
+      "risk": "Walker supply churn in monsoon season",
+      "severity": "high",
+      "mitigation": "Retention bonuses + indoor play alternative credits"
+    },
+    {
+      "risk": "Regulatory ambiguity for gig pet workers",
+      "severity": "medium",
+      "mitigation": "Contractor model with insurance rider; legal review before scale"
+    },
+    {
+      "risk": "Low trust without brand",
+      "severity": "medium",
+      "mitigation": "Founding member guarantee + visible walker profiles"
+    }
+  ],
+  "personas": [
+    {
+      "name": "Priya — Tech PM",
+      "demographics": "32, Koramangala, ₹28 LPA household",
+      "pain_points": ["Unpredictable work hours", "Guilt about leaving Bruno alone"],
+      "jobs_to_be_done": ["Reliable 7am walks", "Proof walk happened"],
+      "willingness_to_pay": "high"
+    },
+    {
+      "name": "Arjun — Startup founder",
+      "demographics": "29, HSR Layout, travels 2 weeks/month",
+      "pain_points": ["Last-minute travel", "Walker no-shows"],
+      "jobs_to_be_done": ["Swap walker instantly", "Subscription not per-walk hassle"],
+      "willingness_to_pay": "medium"
+    }
+  ],
+  "mvp_scope": {
+    "in_scope": [
+      "Owner mobile web app",
+      "Walker mobile web app",
+      "Subscription billing (Razorpay)",
+      "GPS walk tracking",
+      "Admin dashboard for ops"
+    ],
+    "out_of_scope": [
+      "Native iOS/Android apps",
+      "Grooming marketplace",
+      "Multi-city expansion",
+      "AI walker matching"
+    ],
+    "success_criteria": [
+      "200 paying subscribers in 90 days",
+      "≥ 95% on-time walk starts",
+      "Churn < 8% monthly"
+    ]
+  },
+  "confidence_score": 0.82,
+  "assumptions": [
+    "Bangalore premium pet spend grew 18% YoY (Euromonitor proxy)",
+    "Walker supply of 50 can be recruited in 6 weeks with ₹2k signing bonus",
+    "Razorpay subscriptions support required billing cadence"
+  ],
+  "total_llm_tokens_used": 12480,
+  "generated_at": "2026-06-08T10:15:22Z"
+}

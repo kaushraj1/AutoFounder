@@ -1,0 +1,127 @@
+{
+  "run_id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+  "organization_id": "org_pawtrail_demo",
+  "product_name": "PawTrail",
+  "live_url": "https://app.pawtrail.in",
+  "gtm_report_s3_uri": "s3://autofounder-artifacts/org_pawtrail_demo/d4e5f6a7/marketing/gtm-report.pdf",
+  "approved_content_types": [
+    "landing_page",
+    "seo_blogs",
+    "social_posts",
+    "email_sequences",
+    "product_hunt_kit",
+    "visual_assets"
+  ],
+  "rejected_content_types": [],
+  "scheduled_post_ids": {
+    "linkedin": "buf_8f2a91c",
+    "twitter": "tw_44b7e02",
+    "instagram": "buf_9c3d118"
+  },
+  "hallucination_critical_count": 0,
+  "hallucination_warning_count": 1,
+  "total_llm_tokens_used": 51200,
+  "total_images_generated": 4,
+  "brand_kit": {
+    "tagline": "Walks you can trust. Routes you can see.",
+    "positioning_statement": "PawTrail is the subscription dog-walking service for Bangalore professionals who need proof, not promises.",
+    "tone_of_voice": ["warm", "reassuring", "local", "premium-but-accessible"],
+    "primary_colors": ["#2D6A4F", "#F4A261", "#F8F9FA"],
+    "logo_concept": "Minimal paw print forming a GPS route pin",
+    "value_props": [
+      "Vetted walkers with background checks",
+      "Live GPS on every walk",
+      "Subscription pricing — no per-walk math",
+      "Same-day reschedule in HSR, Koramangala, Indiranagar"
+    ]
+  },
+  "landing_page": {
+    "headline": "Your dog walked. Every step tracked.",
+    "subheadline": "Subscribe to trusted dog walks in Bangalore with live GPS routes and photo proof.",
+    "cta_primary": "Start free 7-day trial",
+    "cta_secondary": "See how GPS tracking works",
+    "sections": [
+      {
+        "type": "hero",
+        "copy": "Busy week? PawTrail assigns a vetted walker and sends you a live route map while Bruno gets his exercise."
+      },
+      {
+        "type": "social_proof",
+        "copy": "Trusted by 200+ pet parents in HSR Layout and Koramangala."
+      },
+      {
+        "type": "pricing",
+        "tiers": ["Starter ₹1,999", "Active ₹3,499", "Premium ₹5,999"]
+      }
+    ],
+    "meta_title": "PawTrail — Subscription Dog Walking in Bangalore with GPS Tracking",
+    "meta_description": "Book vetted dog walkers in HSR, Koramangala & Indiranagar. Live GPS routes, photo proof, flat monthly plans. Start your free trial."
+  },
+  "seo_blogs": [
+    {
+      "title": "Best Dog Walkers in HSR Layout: What to Look For in 2026",
+      "target_keyword": "dog walker HSR Layout",
+      "secondary_keywords": ["pet walking Bangalore", "trusted dog walker"],
+      "meta_description": "How to choose a reliable dog walker in HSR Layout — background checks, GPS proof, and subscription vs per-walk pricing compared.",
+      "body_markdown_excerpt": "If you live in HSR Layout and work long hours, finding a dog walker you trust is harder than it should be...",
+      "status": "draft"
+    },
+    {
+      "title": "GPS Dog Walk Tracking: Why Bangalore Pet Parents Are Switching",
+      "target_keyword": "GPS dog walk tracking India",
+      "secondary_keywords": ["live dog walk app", "pet safety Bangalore"],
+      "meta_description": "Why live GPS walk tracking matters for urban pet parents — and how subscription models reduce no-shows.",
+      "body_markdown_excerpt": "When Priya leaves for work at 8am, she used to wonder if Bruno actually got his walk...",
+      "status": "draft"
+    }
+  ],
+  "social_posts": [
+    {
+      "channel": "linkedin",
+      "content": "Launching PawTrail in Bangalore 🐾 — subscription dog walks with live GPS tracking. No more wondering if the walk happened. Founding members get 20% off for 3 months. → app.pawtrail.in",
+      "hashtags": ["#PetTech", "#BangaloreStartup", "#DogWalking"],
+      "scheduled_at": "2026-06-10T09:00:00+05:30",
+      "status": "scheduled"
+    },
+    {
+      "channel": "instagram",
+      "content": "Bruno's 7am walk? You'll see every step on the map. 📍 PawTrail is live in HSR & Koramangala. Link in bio.",
+      "hashtags": ["#BangaloreDogs", "#DogWalker", "#PawTrail"],
+      "scheduled_at": "2026-06-10T18:30:00+05:30",
+      "status": "scheduled"
+    }
+  ],
+  "email_sequences": {
+    "welcome_series": [
+      {
+        "subject": "Welcome to PawTrail — your first walk is on us",
+        "preview": "Book your trial walk in under 2 minutes",
+        "delay_hours": 0
+      },
+      {
+        "subject": "How GPS walk tracking keeps Bruno safe",
+        "preview": "See exactly where your walker goes",
+        "delay_hours": 48
+      }
+    ]
+  },
+  "product_hunt_kit": {
+    "tagline": "Subscription dog walks with live GPS — built for Bangalore",
+    "description": "PawTrail connects pet parents with vetted walkers on flat monthly plans. Every walk includes a live route map and photo proof.",
+    "first_comment": "Hey PH! We built PawTrail after one too many 'sorry, walker didn't show' messages in Bangalore pet groups. Would love your feedback on our GPS proof flow.",
+    "launch_date": "2026-06-15"
+  },
+  "hallucination_report": {
+    "critical_count": 0,
+    "warning_count": 1,
+    "passed": true,
+    "findings": [
+      {
+        "claim": "200+ pet parents in HSR Layout",
+        "verdict": "warning",
+        "reason": "Pilot count is 187; rounded up in landing copy — founder approved"
+      }
+    ]
+  },
+  "generated_at": "2026-06-08T18:40:33Z"
+}

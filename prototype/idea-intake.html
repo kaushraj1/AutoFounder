@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New idea — AutoFounder AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <style>body{font-family:Inter,sans-serif}</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-16 lg:pb-0">
+  <nav class="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-slate-800 bg-slate-900/95 flex justify-around py-3 text-xs">
+    <a href="dashboard.html" class="text-slate-400">Builds</a>
+    <a href="idea-intake.html" class="text-violet-300 font-medium">New idea</a>
+    <a href="run-detail.html" class="text-slate-400">PawTrail</a>
+    <a href="llmops-dashboard.html" class="text-slate-400">AI costs</a>
+  </nav>
+  <div class="flex min-h-screen">
+    <aside class="hidden lg:flex w-64 flex-col border-r border-slate-800 bg-slate-900/50">
+      <div class="p-5 border-b border-slate-800 flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400 flex items-center justify-center text-xs font-bold text-slate-950">AF</div>
+        <span class="font-semibold">AutoFounder</span>
+      </div>
+      <nav class="p-3 space-y-1 flex-1">
+        <a href="idea-intake.html" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-500/20 text-violet-300 border border-violet-500/30 text-sm font-medium">+ New idea</a>
+        <a href="dashboard.html" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 text-sm">My builds</a>
+        <a href="llmops-dashboard.html" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 text-sm">AI costs</a>
+      </nav>
+    </aside>
+    <main class="flex-1 flex flex-col">
+      <header class="border-b border-slate-800 bg-slate-900/30 px-6 py-3 flex items-center justify-between">
+        <span class="text-sm text-slate-400">New idea</span>
+        <span class="text-sm text-cyan-400">AI spend: <strong class="text-white">$48.72</strong> / mo</span>
+      </header>
+      <div class="flex-1 p-6 lg:p-10 max-w-3xl">
+        <h1 class="text-2xl font-semibold mb-2">Describe your startup idea</h1>
+        <p class="text-slate-400 mb-8">Plain English is fine. Our AI will research, design, build, and help you launch.</p>
+        <form action="run-detail.html" class="space-y-6">
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2">Your idea <span class="text-red-400">*</span></label>
+            <textarea name="idea" rows="6" class="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500" placeholder="e.g. A subscription app that helps dog owners find trusted walkers in Bangalore…">A subscription app that helps dog owners find trusted walkers in Bangalore, with GPS-tracked walks and vetted walkers on monthly plans.</textarea>
+          </div>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-2">Locale</label>
+              <select class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm">
+                <option>en-IN (India)</option>
+                <option>en-US</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-2">Reference URL (optional)</label>
+              <input type="url" placeholder="https://…" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm">
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-3 pt-2">
+            <button type="submit" class="px-6 py-3 rounded-lg bg-gradient-to-r from-violet-600 to-violet-500 font-medium hover:from-violet-500">Start build →</button>
+            <a href="dashboard.html" class="px-6 py-3 rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-800 text-sm">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
