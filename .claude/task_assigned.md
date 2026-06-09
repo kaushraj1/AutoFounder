@@ -57,13 +57,13 @@ Think of the project like building a house. You can't paint a room (build your a
 |-------|-------------|---------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | Team | 11 | 11 | 0 |
 | Phase 2 | Infrastructure & Cloud | Asit (Vishal exec) | 13 | 13 | 0 |
-| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 16 | 10 |
+| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 18 | 8 |
 | Phase 4 | Frontend — Next.js 14 | Raunak | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | Yogesh | 9 | 0 | 9 |
 | Phase 6 | VS Code Extension | **Asit** | 7 | 7 | 0 |
-| **Total** | | | **78** | **47** | **31** |
+| **Total** | | | **78** | **49** | **29** |
 
-**Per-person task count:** Asit **24** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 31 pending + 47 done = **78** (Phase 2 done by Vishal; Phase 3 = 16/26 — Somesh's Pillar-1 agents + Vishal's Reviewer AF-042; Phase 6 = 7/7 built by Vishal).
+**Per-person task count:** Asit **24** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 29 pending + 49 done = **78** (Phase 2 done by Vishal; Phase 3 = 18/26 — Somesh's Pillar-1 agents + Vishal's Reviewer AF-042 + Asit's AF-046 Guardrails + AF-047 Tool Registry; Phase 6 = 7/7 built by Vishal).
 
 
 ---
@@ -154,10 +154,12 @@ Think of the project like building a house. You can't paint a room (build your a
 
 ### 3d — Guardrails, Tools & Prompts (Owners: Asit [AF-046 Guardrails + AF-047 Tools] + Purnima [AF-048/049/050])
 
+> **Progress (2026-06-09, Vishal exec for Asit):** ✅ **AF-047 Tool Registry** + ✅* **AF-046 6-stage Guardrails Pipeline** delivered on `feat/platform/guardrails-tool-registry` (off `dev`). The pipeline (`before_llm`/`around_tool`/`after_llm` + immutable lineage) replaces the old `NotImplementedError` stub; security stages fail closed, quality stages fail open + flag. Additively wired into `BaseAgent` (opt-in `guardrails=` param, default `None` → existing agents untouched). **Verified green:** ruff + mypy (210 files) + full pytest (369 passed, +127 new). **`*` = documented Phase-2 follow-ups (graceful fallbacks active now):** AF-046 swaps the regex-PII/heuristic-injection/lexicon-toxicity fallbacks for the real services (Presidio, Llama Guard, TruLens, Evidently, OPA sidecar) + deploys the S3 Object-Lock audit bucket. Tool *entries* (Tavily/GitHub/Stripe/…) remain each pillar's job by design.
+
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-046 | **Asit** (Purnima co-owns output/monitoring stages) | **6-stage Guardrails Pipeline** — OPA policy, Presidio PII + Llama Guard input, prompt constraint validators, tool schema + cost-cap execution guard, TruLens + citation output guard, Evidently AI monitoring; immutable audit log. **Wraps every agent call.** | `feature/guardrails-pipeline` | AF-028 | 🟡 | ❌ |
-| AF-047 | **Asit** (shell) + all pillars (entries) | Tool Registry + tools — `ToolRegistry` singleton; research tools (Tavily, SerpAPI, Crunchbase, G2); engineering tools (GitHub, Stripe, AWS Pricing API); marketing tools (X, LinkedIn, Resend, ProductHunt) | `feature/tool-registry` | AF-027 | 🟡 | ❌ |
+| AF-046 | **Asit** (Purnima co-owns output/monitoring stages) | **6-stage Guardrails Pipeline** — OPA policy, Presidio PII + Llama Guard input, prompt constraint validators, tool schema + cost-cap execution guard, TruLens + citation output guard, Evidently AI monitoring; immutable audit log. **Wraps every agent call.** | `feat/platform/guardrails-tool-registry` | AF-028 | 🟢 | ✅* |
+| AF-047 | **Asit** (shell) + all pillars (entries) | Tool Registry + tools — `ToolRegistry` singleton; research tools (Tavily, SerpAPI, Crunchbase, G2); engineering tools (GitHub, Stripe, AWS Pricing API); marketing tools (X, LinkedIn, Resend, ProductHunt) | `feat/platform/guardrails-tool-registry` | AF-027 | 🟢 | ✅ |
 | AF-048 | **Purnima** (shell) + all pillars (prompts) | Prompt Registry — versioned Jinja2 templates in `prompt_registry` table + S3; `get()` resolves active/canary; deterministic canary split; strict variable validation | `feature/prompt-registry` | AF-025 | 🟡 | ❌ |
 | AF-049 | **Purnima** | LiteLLM Model Router + RAG — task-class → model routing (Gemini 3.5 Flash; gemini-embedding-2 768-dim); hybrid BM25 + ANN on Supabase pgvector; Cohere reranking; context compression; citation check | `feature/model-router-rag` | AF-027, AF-014 | 🟡 | ❌ |
 | AF-050 | **Purnima** + pillar golden sets | Eval harness — Promptfoo golden sets per agent, LangSmith batch eval runner, CI gate blocking prompt promotion on score regression > 2% | `feature/eval-harness` | AF-048 | 🟡 | ❌ |
@@ -221,7 +223,9 @@ Think of the project like building a house. You can't paint a room (build your a
 
 > **You are the unblocker.** Every "wired" task on the team waits on you. Your speed = the team's speed.
 
-**Owns (28 tasks):** AF-012 → AF-024 (all infra) · AF-036 (BaseAgent) · AF-047 (tool registry shell) · **AF-046 (Guardrails pipeline — Purnima co-owns output/monitoring)** · **AF-072 → AF-078 (VS Code Extension, Phase 6)** · **Finance & Ops/Risk agents (Phase 4, design deferred)**.
+**Owns (28 tasks):** AF-012 → AF-024 (all infra ✅) · AF-036 (BaseAgent ✅) · AF-047 (tool registry shell ✅) · **AF-046 (Guardrails pipeline ✅* — Purnima co-owns output/monitoring)** · **AF-072 → AF-078 (VS Code Extension, Phase 6 ✅)** · **Finance & Ops/Risk agents (Phase 4, design deferred)**.
+
+> ✅ **Asit's platform foundation is fully delivered (MVP).** Infra (AF-012–024), BaseAgent (AF-036), VS Code Extension (AF-072–078), and now **AF-047 Tool Registry + AF-046 Guardrails** are all built and green (Vishal exec). The only Asit items not done are the **Phase-4 deferred** Finance + Ops/Risk agents (design deferred, not in Phase 1/2/3 scope). See §3d progress note and `CURRENT-STATUS.md` §11.
 
 > ⚠️ **Overload note (bus-factor 1):** folding the previously-unassigned work (Guardrails, VS Code Extension, Finance & Ops/Risk) into Asit raises an already-overloaded lead to **~32 tasks** gating 9 people. **Strongly recommend delegating** the orchestrator (AF-033–035), BaseAgent (AF-036), or the entire VS Code Extension (AF-072–078) to an early-finishing pillar owner. Detailed plans: `developer-plans/11-asit-guardrails-pipeline-plan.md`, `12-asit-vscode-extension-plan.md`, `13-asit-finance-ops-risk-plan.md`.
 
@@ -264,21 +268,22 @@ _Phase 3b — LangGraph Orchestration_
 | AF-034 | Somesh | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🟢 | ✅ |
 | AF-035 | Somesh | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🟢 | ✅ |
 
-_Agent foundation + Tool Registry shell_
+_Agent foundation + Tool Registry shell + Guardrails_
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
 | AF-036 | Asit / ⚪ shared | **⭐ `BaseAgent` ABC** — `understand()`, `plan()`, `execute()`, `verify()`, `learn()`; typed error hierarchy; circuit breakers on LLM + tool calls. **Blocks ALL agents.** | `feature/base-agent` | AF-027 | 🟢 | ✅ |
-| AF-047 | Asit (shell) + all pillars (entries) | Tool Registry + tools — `ToolRegistry` singleton; research tools (Tavily, SerpAPI, Crunchbase, G2); engineering tools (GitHub, Stripe, AWS Pricing API); marketing tools (X, LinkedIn, Resend, ProductHunt) | `feature/tool-registry` | AF-027 | 🟡 | ❌ |
+| AF-047 | Asit (shell) + all pillars (entries) | Tool Registry shell — `ToolRegistry` singleton (register/get/call, JSON-schema + Pydantic arg validation, auth scope, cost class). Tool *entries* (Tavily, GitHub, Stripe, …) remain each pillar's job. | `feat/platform/guardrails-tool-registry` | AF-027 | 🟢 | ✅ |
+| AF-046 | Asit (Purnima co-owns output/monitoring) | **6-stage Guardrails Pipeline** — `before_llm`/`around_tool`/`after_llm` + immutable lineage; security stages fail closed, quality fail open+flag; additively wired into `BaseAgent` (opt-in). MVP fallbacks active; real services = Phase-2. | `feat/platform/guardrails-tool-registry` | AF-028 | 🟢 | ✅* |
 
 **🟢 Do today (no blockers):** All of Phase 2 infra. Drive the **critical path** in this order:
 `AF-012 networking → AF-013 ECS → AF-014 Supabase → AF-025/026 migrations → ~~AF-027 UDAL~~ ✅ → ~~AF-028 FastAPI~~ ✅ → ~~AF-030 REST contracts~~ ✅ → AF-036 BaseAgent`.
 Those turn **7 pillar owners from 🟡 to 🟢**.
 
 **🟢 Now unblocked (AF-028 ✅):** ~~AF-029 Auth middleware~~ ✅, ~~AF-030 REST endpoints~~ ✅.
-**🟢 Now Complete:** Orchestrator AF-033–035, Redis AF-032.
+**🟢 Now Complete:** Orchestrator AF-033–035, Redis AF-032, **AF-047 Tool Registry**, **AF-046 Guardrails pipeline** (delivered 2026-06-09).
 
-**⚠️ You are a single point of failure** — you own infra **and** the BaseAgent (AF-036). The orchestrator (AF-033–035) and Redis (AF-032) have been successfully delegated to Somesh and completed.
+**✅ Critical path cleared** — infra, BaseAgent (AF-036), Tool Registry (AF-047), and the Guardrails pipeline (AF-046) are all delivered; the orchestrator (AF-033–035) + Redis (AF-032) were delegated to Somesh and completed. Asit's remaining work is only the Phase-4-deferred Finance + Ops/Risk agents.
 
 ---
 

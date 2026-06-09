@@ -420,7 +420,7 @@ class UDALClient:
 | 3 | AF-025/026 migrations, **AF-027 UDAL** | Schemas + tenant-safe data access | ✅ Done |
 | 3 | **AF-028 FastAPI**, AF-029 auth, **AF-030 REST** | Gateway + JWT + endpoints + OpenAPI | ✅ Done |
 | 4 | AF-031 Realtime, AF-032 Redis | Live stream + checkpoints/cache | ✅ Done (delegated AF-032 to Somesh) |
-| 4 | **AF-036 BaseAgent**, AF-047 Tool Registry shell | Agent contract published — **unblocks 7 owners** | 🔴→🟢 |
+| 4 | **AF-036 BaseAgent**, AF-047 Tool Registry shell | Agent contract published — **unblocks 7 owners** | ✅ Done (AF-047 on `feat/platform/guardrails-tool-registry`, 2026-06-09) |
 | 5 | AF-033 StateGraph, AF-034 HITL gate, AF-035 SQS worker | Full orchestrator (delegated to Somesh) | ✅ Done |
 
 ### Phase 4 — Scale (Weeks 6+)
@@ -576,7 +576,7 @@ The platform's "output contract" is the **BaseAgent ABC** (§3.2) plus the **Run
 | 4 | **AF-027 UDAL** with cross-tenant guard | P0 | 8 hrs | `backend/app/db/udal.py` |
 | 5 | **AF-036 BaseAgent ABC** | P0 | 4 hrs | `backend/app/agents/base.py` |
 | 6 | AF-028 FastAPI bootstrap + AF-030 REST | P0 | 8 hrs | `backend/app/main.py`, `api/v1/` |
-| 7 | AF-047 Tool Registry shell | P1 | 3 hrs | `backend/app/tools/registry.py` |
+| 7 | AF-047 Tool Registry shell | P1 | 3 hrs | `backend/app/tools/registry.py` ✅ **Done 2026-06-09** (register/get/call + JSON-schema/Pydantic validation + auth scope + cost class; 14 tests) |
 | 8 | CI/CD `ci.yml` (lint/typecheck/test/scan) | P1 | 4 hrs | `.github/workflows/ci.yml` |
 
 **The single highest-leverage move: publish the contracts (item #1) on day one, then land UDAL → BaseAgent → FastAPI → REST. That sequence flips 7 pillar owners from 🟡 to 🟢.**
