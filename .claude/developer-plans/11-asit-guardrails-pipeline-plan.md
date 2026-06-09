@@ -1,8 +1,8 @@
 # Guardrails & Governance Pipeline (AF-046): Technical Implementation Plan
 
 > **Owner**: Asit Piri (Purnima co-owns the Output + Monitoring stages)
-> **Task ID**: AF-046 · **Branch**: `feature/guardrails-pipeline`
-> **Status**: 🟡 Partially startable (validators offline); wires in after AF-028
+> **Task ID**: AF-046 · **Branch**: `feat/platform/guardrails-tool-registry` (off `dev`)
+> **Status**: ✅ **Delivered (MVP) 2026-06-09** by Vishal (exec for Asit) — all 6 stages + audit/lineage + pipeline wrapper built with the plan's graceful fallbacks (regex PII, heuristic injection, lexicon toxicity, inline OPA); additively wired into `BaseAgent` (opt-in). Verified green: ruff + mypy (210 files) + full pytest (369 passed, +127 new). **Phase-2 follow-up:** swap fallbacks for the real services (Presidio, Llama Guard, TruLens, Evidently, OPA sidecar) + deploy the S3 Object-Lock audit bucket.
 > **Date**: 2026-06-04 · **Version**: 1.0.0
 > **Depends on**: AF-028 (FastAPI), AF-027 (UDAL), AF-036 (BaseAgent)
 > **Scope note**: Reassigned to Asit 2026-06-04 (was unassigned, Part D gap C). **Wraps every agent invocation.**
