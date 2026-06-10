@@ -16,4 +16,5 @@ htmlcov/
 # Dev artifacts
 tests/
 *.md
+!README.md
 .git/
