@@ -26,7 +26,7 @@ def create_run(idea: IdeaCreate, *, organization_id: str) -> RunRead:
     run = RunRead(
         id=uuid.uuid4(),
         pillar="strategy",
-        status=RunStatus.pending,
+        status=RunStatus.queued,
         created_at=datetime.now(UTC),
     )
     _STORE.setdefault(organization_id, {})[run.id] = run

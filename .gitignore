@@ -56,6 +56,7 @@ htmlcov/
 *.log
 
 # ─── Environment & Secrets ────────────────────────────────────────────────────
+.env
 *.local
 *.pem
 *.key

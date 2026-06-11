@@ -93,7 +93,7 @@ class OrchestratorEngine:
         async with self._session_factory() as session:
             await session.execute(
                 text(
-                    f"SET LOCAL search_path TO org_{organization_id}, platform, public; "
+                    f'SET LOCAL search_path TO "org_{organization_id}", platform, public; '
                     f"SET LOCAL app.organization_id = '{organization_id}';"
                 )
             )
@@ -127,7 +127,7 @@ class OrchestratorEngine:
         async with self._session_factory() as session:
             await session.execute(
                 text(
-                    f"SET LOCAL search_path TO org_{organization_id}, platform, public; "
+                    f'SET LOCAL search_path TO "org_{organization_id}", platform, public; '
                     f"SET LOCAL app.organization_id = '{organization_id}';"
                 )
             )
@@ -210,7 +210,7 @@ class OrchestratorEngine:
 
                 await session.execute(
                     text(
-                        f"SET LOCAL search_path TO org_{organization_id}, platform, public; "
+                        f'SET LOCAL search_path TO "org_{organization_id}", platform, public; '
                         f"SET LOCAL app.organization_id = '{organization_id}';"
                     )
                 )
@@ -268,7 +268,7 @@ class OrchestratorEngine:
 
                 await session.execute(
                     text(
-                        f"SET LOCAL search_path TO org_{org_id}, platform, public; "
+                        f'SET LOCAL search_path TO "org_{org_id}", platform, public; '
                         f"SET LOCAL app.organization_id = '{org_id}';"
                     )
                 )

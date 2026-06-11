@@ -108,6 +108,7 @@ def upgrade() -> None:
                     cost_usd        NUMERIC(12,6) NOT NULL DEFAULT 0,
                     created_by      TEXT          NOT NULL,
                     created_at      TIMESTAMPTZ   NOT NULL DEFAULT now(),
+                    updated_at      TIMESTAMPTZ   NOT NULL DEFAULT now(),
                     started_at      TIMESTAMPTZ,
                     completed_at    TIMESTAMPTZ
                 )
@@ -140,7 +141,8 @@ def upgrade() -> None:
                     content_url     TEXT,
                     content         JSONB       NOT NULL DEFAULT '{}',
                     metadata        JSONB       NOT NULL DEFAULT '{}',
-                    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+                    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
                 )
             $sql$, s, s);
             EXECUTE format(
@@ -174,7 +176,8 @@ def upgrade() -> None:
                     decided_by      TEXT,
                     decided_at      TIMESTAMPTZ,
                     timeout_at      TIMESTAMPTZ,
-                    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+                    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
                 )
             $sql$, s, s);
             EXECUTE format(
