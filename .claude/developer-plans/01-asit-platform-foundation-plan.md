@@ -3,7 +3,7 @@
 > **Owner**: Asit Piri (Project Lead)
 > **Task IDs**: AF-012 → AF-036, AF-047 (~26 tasks)
 > **Branches**: `feature/terraform-*`, `feature/udal-core`, `feature/fastapi-app-setup`, `feature/langgraph-graph`, `feature/base-agent`, `feature/tool-registry`
-> **Status**: 🟢 Now (Phase 2 infra) — **the critical path; Asit's speed = the team's speed**
+> **Status**: ✅ **Delivered** — AF-012→024 infra · AF-025→032 core API/data · AF-033→035 orchestrator · AF-036 BaseAgent · AF-047 Tool Registry all complete per [TASKS.md](../TASKS.md) + [task_assigned.md](../task_assigned.md). Orchestrator (AF-033–035) + Redis (AF-032) delegated to Somesh; the only Asit work left is plan 13 (Finance + Ops/Risk, Phase-4 deferred).
 > **Date**: 2026-06-04 · **Version**: 1.0.0
 > **Depends on**: Phase 1 monorepo (✅ done)
 > **SLA / North Star**: `AF-027 UDAL → AF-036 BaseAgent → AF-028 FastAPI → AF-030 REST contracts` flips **7 pillar owners** from 🟡 to 🟢

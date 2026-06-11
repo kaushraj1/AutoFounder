@@ -74,10 +74,10 @@ They are **not** in the linear 7-pillar build path; they attach as advisory agen
 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
-| BaseAgent ABC | AF-036 | Asit | Both agents subclass it | 🔴 Blocked |
+| BaseAgent ABC | AF-036 | Asit | Both agents subclass it | ✅ Done |
 | UDAL | AF-027 | Somesh | Read pillar outputs + cost data | ✅ Done |
-| Pillars 1–2 outputs | AF-037–040 | Somesh/Kaushlendra | Inputs to model | 🔴 |
-| LLMOps cost telemetry | AF-045 | Purnima | Real COGS for finance/ops | 🔴 |
+| Pillars 1–2 outputs | AF-037–040 | Somesh/Kaushlendra | Inputs to model | 🟡 Partial — AF-037/038/039 done; AF-040 pending |
+| LLMOps cost telemetry | AF-045 | Purnima | Real COGS for finance/ops | ❌ Pending (Purnima) |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
 

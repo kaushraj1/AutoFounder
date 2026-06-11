@@ -2,9 +2,9 @@
 
 > **Owner**: Kaushlendra Kumar Gupta
 > **Task ID**: AF-040 · **Branch**: `feature/architect-agent`
-> **Status**: 🟡 Partially startable (offline work)
+> **Status**: 🟢 Unblocked — platform foundation (AF-036 BaseAgent · AF-027 UDAL · AF-039 Product Planner) all delivered. Ready to wire the agent; soft-waits only on AF-048/049 (Prompt Registry + LLM Router, Purnima). Agent itself ❌ not built yet.
 > **Date**: 2026-06-04 · **Version**: 1.0.0
-> **Depends on**: AF-036 (BaseAgent), AF-039 (Product Planner output)
+> **Depends on**: AF-036 (BaseAgent) ✅, AF-039 (Product Planner output) ✅ — both delivered
 > **SLA**: Architecture design + HITL approval within the validation→build window
 > **Ground truth**: [CLAUDE.md](../CLAUDE.md) §7.5 · [architect-agent.md](../../docs/architecture/Agents-Architecture/architect-agent.md)
 
@@ -71,10 +71,10 @@ Pillar 2 is the **system architect**. It takes the validated idea (Lean Canvas +
 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
-| BaseAgent ABC | AF-036 | Asit | ArchitectAgent subclasses it | 🔴 Blocked |
+| BaseAgent ABC | AF-036 | Asit | ArchitectAgent subclasses it | ✅ Done |
 | UDAL | AF-027 | Somesh | Read PRD, write ERD/OpenAPI artifacts | ✅ Done |
-| Product Planner output | AF-039 | Somesh | The PRD is the input | 🟡 |
-| Prompt Registry / Router | AF-048/049 | Purnima | Templated prompts + Gemini routing | 🟡 |
+| Product Planner output | AF-039 | Somesh | The PRD is the input | ✅ Done |
+| Prompt Registry / Router | AF-048/049 | Purnima | Templated prompts + Gemini routing | ❌ Pending (Purnima) |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
 
@@ -370,8 +370,8 @@ class ArchitectOutput(BaseModel):
 |---|---|---|---|
 | 1 | Schemas + Jinja2 prompts (FR/NFR, ERD, OpenAPI, stack, auth, cost, FeatureList) | `schema.py`, `prompts/*.j2` | 🟢 Start now |
 | 1 | ERD (Mermaid) + OpenAPI generators; AWS Pricing wrapper | `tools/*.py` | 🟢 Start now |
-| 2 | StateGraph + 9 nodes + routers + Founder gate | `graph.py`, `nodes/` | 🟡 Needs BaseAgent |
-| 3 | Wire ArchitectAgent to BaseAgent; OpenAPI validation | `agent.py` | 🔴 Needs AF-036 |
+| 2 | StateGraph + 9 nodes + routers + Founder gate | `graph.py`, `nodes/` | 🟢 Ready (AF-036 done) |
+| 3 | Wire ArchitectAgent to BaseAgent; OpenAPI validation | `agent.py` | 🟢 Ready (AF-036 done) |
 | 3 | Golden evals + mocked tests | `tests/` | 🟢 Start now |
 
 ### Phase 2 (Weeks 4–6)
@@ -560,7 +560,7 @@ message ArchitectOutput {
 | **Kartik (Pillar 3)** | Agree the ERD + OpenAPI + FeatureList output contract | Immediately | ⬜ Pending |
 | **Pallavi (Pillar 6)** | Agree the FeatureList shape (hallucination ground truth) | Immediately | ⬜ Pending |
 | **Prasenjit (Pillar 5)** | Share stack + scaling plan for infra sizing | Soon | ⬜ Pending |
-| **Asit (Platform)** | BaseAgent + UDAL + AWS Pricing tool registration | When AF-036 starts | ⬜ Pending |
+| **Asit (Platform)** | BaseAgent + UDAL + AWS Pricing tool registration | When AF-036 starts | ✅ BaseAgent + UDAL + Tool Registry delivered |
 | **Purnima (Pillar 7)** | Register architect prompts (AF-048) + routing | When shells exist | ⬜ Pending |
 
 ---

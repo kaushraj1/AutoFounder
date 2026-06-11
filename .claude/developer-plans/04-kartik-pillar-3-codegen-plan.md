@@ -2,9 +2,9 @@
 
 > **Owner**: Kartik Mogalapalli
 > **Task ID**: AF-041 · **Branch**: `feature/coder-agent`
-> **Status**: 🟡 Partially startable (offline work)
+> **Status**: 🟡 Platform unblocked (AF-036 BaseAgent · AF-027 UDAL · AF-047 Tool Registry delivered) — but still **blocked on AF-040 Architect output** (Kaushlendra) for the spec, plus AF-048/049 (Purnima). Agent ❌ not built yet.
 > **Date**: 2026-06-04 · **Version**: 1.0.0
-> **Depends on**: AF-036 (BaseAgent), AF-040 (Architect ERD + OpenAPI + FeatureList)
+> **Depends on**: AF-036 (BaseAgent) ✅, AF-040 (Architect ERD + OpenAPI + FeatureList) ❌ pending
 > **SLA**: Code generation < 15 min; zero lint errors; TypeScript strict; mypy clean
 > **Ground truth**: [CLAUDE.md](../CLAUDE.md) §7.6 · [coder-agent.md](../../docs/architecture/Agents-Architecture/coder-agent.md)
 
@@ -71,11 +71,11 @@ Pillar 3 is the **factory floor** — it turns the approved architecture (ERD + 
 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
-| BaseAgent ABC | AF-036 | Asit | CoderAgent subclasses it | 🔴 Blocked |
+| BaseAgent ABC | AF-036 | Asit | CoderAgent subclasses it | ✅ Done |
 | UDAL | AF-027 | Somesh | Read architecture, write repo artifact refs | ✅ Done |
-| Architect output | AF-040 | Kaushlendra | ERD + OpenAPI + FeatureList = the spec | 🟡 |
-| Prompt Registry / Router | AF-048/049 | Purnima | Code-gen prompts + Gemini routing | 🟡 |
-| Tool Registry | AF-047 | Asit | GitHub + Stripe tools | 🟡 |
+| Architect output | AF-040 | Kaushlendra | ERD + OpenAPI + FeatureList = the spec | ❌ Pending (Kaushlendra) — **the live blocker** |
+| Prompt Registry / Router | AF-048/049 | Purnima | Code-gen prompts + Gemini routing | ❌ Pending (Purnima) |
+| Tool Registry | AF-047 | Asit | GitHub + Stripe tools | ✅ Done (shell; add entries) |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
 
@@ -391,9 +391,9 @@ class CoderOutput(BaseModel):
 |---|---|---|---|
 | 1 | Code-gen prompt templates (Next.js, FastAPI, db, auth, stripe, admin, CI/CD) | `prompts/*.j2` | 🟢 Start now |
 | 1 | Repo scaffolding templates + GitHub/Stripe tool wrappers | `templates/`, `tools/*.py` | 🟢 Start now |
-| 2 | StateGraph + 12 nodes (FE||BE parallel; `wait_for_image_push` poll loop) + routers | `graph.py`, `nodes/` | 🟡 Needs BaseAgent |
+| 2 | StateGraph + 12 nodes (FE||BE parallel; `wait_for_image_push` poll loop) + routers | `graph.py`, `nodes/` | 🟢 Ready (AF-036 done) |
 | 2 | Style-enforce pipeline (Prettier/ESLint/Black/Ruff) | `nodes/style_enforce.py` | 🟢 Start now |
-| 3 | Wire CoderAgent to BaseAgent; CoderOutput contract (incl. `services[]`) | `agent.py` | 🔴 Needs AF-036 |
+| 3 | Wire CoderAgent to BaseAgent; CoderOutput contract (incl. `services[]`) | `agent.py` | 🟡 BaseAgent ready; needs AF-040 spec |
 | 3 | Golden evals (compile-clean, lint-clean) + mocked tests | `tests/golden/` | 🟢 Start now |
 
 ### Phase 2 (Weeks 4–6)
@@ -592,7 +592,7 @@ message ServiceManifest {
 | **Kaushlendra (Pillar 2)** | Agree ERD + OpenAPI + FeatureList input shape | Immediately | ⬜ Pending |
 | **Vishal (Pillar 4)** | Agree CoderOutput (`repo_url`/`pr_number`/`branch`/`coder_run_id`/manifest) | Immediately | ⬜ Pending |
 | **Prasenjit (Pillar 5)** | Confirm Dockerfile + preview expectations | Soon | ✅ Resolved — Variant A (see Appendix A, D6): Coder owns image build/push + `services[].image_uri`; DevOps consumes as-is |
-| **Asit (Platform)** | BaseAgent + UDAL + GitHub/Stripe tool registration | When AF-036 starts | ⬜ Pending |
+| **Asit (Platform)** | BaseAgent + UDAL + GitHub/Stripe tool registration | When AF-036 starts | ✅ BaseAgent + UDAL + Tool Registry shell delivered (add GitHub/Stripe entries) |
 | **Purnima (Pillar 7)** | Register coder prompts (AF-048) + routing | When shells exist | ⬜ Pending |
 | **Raunak (Frontend)** | Code Review Studio source-diff contract (AF-057) | When mock data ready | ⬜ Pending |
 

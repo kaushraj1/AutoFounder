@@ -2,9 +2,9 @@
 
 > **Owner**: Pallavi Anil Sindkar
 > **Task ID**: AF-044 · **Branch**: `feature/marketing-agent`
-> **Status**: 🟡 Partially startable (offline work)
+> **Status**: 🟡 Platform unblocked (AF-036 BaseAgent · AF-027 UDAL · AF-028 FastAPI · AF-047 Tool Registry delivered) — but still **blocked on AF-040 Architect feature list** (Kaushlendra, hallucination ground truth) + AF-049 router (Purnima). Agent ❌ not built yet.
 > **Date**: 2026-06-04 · **Version**: 1.0.0
-> **Depends on**: AF-036 (BaseAgent), AF-040 (Architect feature list)
+> **Depends on**: AF-036 (BaseAgent) ✅, AF-040 (Architect feature list) ❌ pending
 > **SLA**: < 45 minutes end-to-end (excluding async Founder Approval gate)
 > **Ground truth**: [CLAUDE.md](../CLAUDE.md) §7.9/§34 · [marketer-agent.md](../../docs/architecture/Agents-Architecture/marketer-agent.md)
 
@@ -71,12 +71,12 @@ Pillar 6 is the **Go-To-Market (GTM) automation engine**. It receives a deployed
 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
-| BaseAgent ABC | AF-036 | Asit | MarketingAgent subclasses it | 🔴 Blocked |
+| BaseAgent ABC | AF-036 | Asit | MarketingAgent subclasses it | ✅ Done |
 | UDAL | AF-027 | Somesh | Read inputs, write assets via UDAL | ✅ Done |
 | FastAPI bootstrap | AF-028 | Somesh | HITL gate + artifact retrieval | ✅ Done |
-| **Architect feature list** | AF-040 | Kaushlendra | Ground truth for hallucination check | 🟡 |
-| Tool Registry | AF-047 | Asit | DALL-E 3, Buffer, Typefully, Resend, Tavily, Ahrefs | 🟡 |
-| LLM Router | AF-049 | Purnima | Gemini 3.5 Flash routing | 🟡 |
+| **Architect feature list** | AF-040 | Kaushlendra | Ground truth for hallucination check | ❌ Pending (Kaushlendra) — **the live blocker** |
+| Tool Registry | AF-047 | Asit | DALL-E 3, Buffer, Typefully, Resend, Tavily, Ahrefs | ✅ Done (shell; add entries) |
+| LLM Router | AF-049 | Purnima | Gemini 3.5 Flash routing | ❌ Pending (Purnima) |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
 
@@ -408,8 +408,8 @@ class MarketerOutput(BaseModel):
 | 1 | Schemas + 9 Jinja2 prompts (brand, landing, blogs, PH, social, email, visuals, hallucination, report) | `schema.py`, `prompts/*.j2` | 🟢 Start now |
 | 1 | Tool wrappers (Tavily, Ahrefs, DALL-E 3, Buffer, Typefully, Resend) | `tools/*.py` | 🟢 Start now |
 | 1 | **Hallucination cross-reference validator (standalone)** | `nodes/hallucination_check.py` | 🟢 Start now |
-| 2 | StateGraph + 13 nodes (6 parallel) + routers | `graph.py`, `nodes/` | 🟡 Needs BaseAgent |
-| 3 | Wire MarketingAgent to BaseAgent; partial approval | `agent.py` | 🔴 Needs AF-036 |
+| 2 | StateGraph + 13 nodes (6 parallel) + routers | `graph.py`, `nodes/` | 🟢 Ready (AF-036 done) |
+| 3 | Wire MarketingAgent to BaseAgent; partial approval | `agent.py` | 🟡 BaseAgent ready; needs AF-040 feature list |
 | 3 | 5 mock product fixtures + golden evals | `tests/` | 🟢 Start now |
 
 ### Phase 2 (Weeks 4–6)
@@ -618,7 +618,7 @@ message MarketerOutput {
 | **Kaushlendra (Pillar 2)** | Agree `FeatureList` schema (hallucination ground truth) | Immediately | ⬜ Pending |
 | **Somesh (Pillar 1)** | Confirm `lean_canvas_json` + persona format | Immediately | ⬜ Pending |
 | **Prasenjit (Pillar 5)** | Agree `live_url` input for CTAs | Soon | ⬜ Pending |
-| **Asit (Platform)** | BaseAgent + UDAL + tool registration | When AF-036 starts | ⬜ Pending |
+| **Asit (Platform)** | BaseAgent + UDAL + tool registration | When AF-036 starts | ✅ BaseAgent + UDAL + Tool Registry shell delivered (add marketing entries) |
 | **Purnima (Pillar 7)** | Register marketing prompts (AF-048) + routing | When shells exist | ⬜ Pending |
 | **Raunak (Frontend)** | Launch Control Center data contract (AF-059) | When mock data ready | ⬜ Pending |
 | **Yogesh (Mobile)** | Mobile gate preview (AF-068) | When mock data ready | ⬜ Pending |

@@ -75,13 +75,13 @@ Pillar 4 is the **quality-gate and self-healing engine** of the Auto-Founder AI 
 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
-| **BaseAgent ABC** | AF-036 | Asit / shared | `ReviewerAgent` subclasses it | 🔴 Blocked |
+| **BaseAgent ABC** | AF-036 | Asit / shared | `ReviewerAgent` subclasses it | ✅ Done |
 | **UDAL** | AF-027 | Somesh | All reads/writes via UDAL | ✅ Done |
 | **FastAPI App Bootstrap** | AF-028 | Somesh | REST for Code Review Studio + escalation gate | ✅ Done |
-| **Coder Agent output** | AF-041 | Kartik | The repo to test is the input | 🟡 Offline started |
-| **Tool Registry (shell)** | AF-047 | Asit (shell) | Sandbox/scan/test tools registered | 🟡 |
-| **LLM Router** | AF-049 | Purnima | Judge/triage/heal routing (Gemini 3.5 Flash) | 🟡 |
-| **Docker daemon in sandbox host** | AF-013/infra | Asit / Prasenjit | Docker-in-Docker to build/run sandboxes | 🟡 Infra design |
+| **Coder Agent output** | AF-041 | Kartik | The repo to test is the input | ❌ Pending (Kartik) — built against contract w/ sample-repo fallback |
+| **Tool Registry (shell)** | AF-047 | Asit (shell) | Sandbox/scan/test tools registered | ✅ Done |
+| **LLM Router** | AF-049 | Purnima | Judge/triage/heal routing (Gemini 3.5 Flash) | ❌ Pending (Purnima) — `FakeLLM` fallback in MVP |
+| **Docker daemon in sandbox host** | AF-013/infra | Asit / Prasenjit | Docker-in-Docker to build/run sandboxes | ✅ Infra delivered (host-side gates in MVP; in-container = Phase 2) |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
 
@@ -463,9 +463,9 @@ class ReviewerState(BaseModel):
 | 1 | **Sandbox runner prototype** (Docker build/run/exec/teardown) | `tools/sandbox.py` | 🟢 Start now |
 | 1 | Schemas + 4 Jinja2 prompts (judge, triage, heal, report) | `schema.py`, `prompts/*.j2` | 🟢 Start now |
 | 1 | 5 security-scan + 6 test/lint runner wrappers | `tools/*.py` | 🟢 Start now |
-| 2 | StateGraph + 13 nodes + routers + self-heal loop | `graph.py`, `nodes/` | 🟡 Needs BaseAgent |
+| 2 | StateGraph + 13 nodes + routers + self-heal loop | `graph.py`, `nodes/` | ✅ Done |
 | 2 | Self-heal state machine + MAX_HEAL_CYCLES + OWASP hard-block | `nodes/auto_heal.py`, `utils/owasp.py` | 🟢 Start now |
-| 3 | Wire ReviewerAgent to BaseAgent; 5 sample repos e2e | `agent.py` | 🔴 Needs AF-036 |
+| 3 | Wire ReviewerAgent to BaseAgent; 5 sample repos e2e | `agent.py` | ✅ Done (AF-036 delivered) |
 
 ### Phase 2 (Weeks 4–6)
 Real Trivy/Semgrep/Snyk/SonarQube; Firecracker/gVisor; real GitHub patches; AST-aware healing; `generate_missing_tests`; Code Review Studio contract (AF-057); SLA + Prometheus + PagerDuty.
@@ -675,7 +675,7 @@ message ReviewerOutput {
 |---|---|---|---|
 | **Kartik (Pillar 3)** | Agree Coder→Reviewer contract: `repo_url`/`pr_number`/`branch`/`coder_run_id`/manifest | Immediately | ⬜ Pending |
 | **Prasenjit (Pillar 5)** | Align Reviewer→DevOps `ReviewerOutput` handoff | Immediately | ⬜ Pending |
-| **Asit (Platform)** | BaseAgent + UDAL + Docker-in-Docker on Fargate | When AF-036 starts | ⬜ Pending |
+| **Asit (Platform)** | BaseAgent + UDAL + Docker-in-Docker on Fargate | When AF-036 starts | ✅ BaseAgent + UDAL + infra delivered (in-container exec = Phase 2) |
 | **Asit (Platform)** | Register reviewer tools (AF-047) | When AF-047 shell exists | ⬜ Pending |
 | **Purnima (Pillar 7)** | Register reviewer prompts (AF-048) + routing | When shells exist | ⬜ Pending |
 | **Kaushlendra (Pillar 2)** | (Optional) FeatureList for judge feature-check | When convenient | ⬜ Pending |
