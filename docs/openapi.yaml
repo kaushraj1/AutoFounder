@@ -1,0 +1,1394 @@
+openapi: 3.1.0
+info:
+  title: AutoFounder AI — Founder Portal API
+  version: 1.0.0
+  description: |
+    **Contract-first REST API** for the AutoFounder Founder Portal.
+
+    ## Design principle: no agent coupling
+
+    The frontend MUST depend only on this specification. It MUST NOT import agent
+    schemas, LangGraph state, or internal pillar agent output types.
+
+    | Concern | API abstraction | NOT exposed |
+    |---------|-----------------|-------------|
+    | Strategy / research output | `ArtifactRead` with `kind: lean_canvas \| market_report \| prd \| viability` | StrategistAgent, ResearchAgent |
+    | Architecture output | `kind: erd \| openapi \| stack \| cost_forecast` | ArchitectAgent |
+    | Code output | `kind: repo_url \| review_report` | CoderAgent, ReviewerAgent |
+    | Deploy output | `kind: deploy_url \| smoke_test` | DevOpsAgent |
+    | Marketing output | `kind: brand_kit \| landing_page \| social_posts \| email_sequences \| blog_drafts` | MarketingAgent |
+    | FinOps | `GET /v1/llmops/cost` | LLMOpsAgent internals |
+    | Live progress | `GET /v1/runs/{run_id}/stream` + `RunRead` | Orchestrator nodes |
+
+  contact:
+    name: AutoFounder Platform
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api.autofounder.ai
+    description: Production
+  - url: https://api-staging.autofounder.ai
+    description: Staging
+  - url: http://localhost:8000
+    description: Local development
+
+tags:
+  - name: System
+    description: Health and platform probes (no auth)
+  - name: Ideas
+    description: Submit startup ideas and bootstrap runs
+  - name: Runs
+    description: Run lifecycle, cancellation, and live event stream
+  - name: Gates
+    description: Human-in-the-loop approval decisions
+  - name: Artifacts
+    description: Typed deliverables produced during a run (agent-agnostic)
+  - name: Workspaces
+    description: Org workspaces that group runs
+  - name: LLMOps
+    description: Cost telemetry and founder feedback signals
+  - name: Admin
+    description: Super-admin tenant and registry management
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Supabase JWT for human users. Required claims: `sub`, `organization_id`,
+        `role`, `scope`. Tenant context is resolved from the token — never from
+        the request body.
+
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Machine clients (`af_<base64url>`). Planned.
+
+  parameters:
+    RunId:
+      name: run_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Run identifier returned by `POST /v1/ideas`
+
+    GateId:
+      name: gate_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    WorkspaceId:
+      name: workspace_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 25
+        minimum: 1
+        maximum: 100
+
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+      description: Opaque cursor from a previous paginated response
+
+    Order:
+      name: order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+
+    ArtifactKindFilter:
+      name: kind
+      in: query
+      schema:
+        $ref: "#/components/schemas/ArtifactKind"
+      description: Filter artifacts by deliverable type
+
+    RunStatusFilter:
+      name: status
+      in: query
+      schema:
+        $ref: "#/components/schemas/RunStatus"
+
+    LastEventId:
+      name: Last-Event-ID
+      in: header
+      schema:
+        type: string
+      description: Replay stream events after this id (30-minute window)
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          example:
+            error:
+              code: AF_ERR_UNAUTHORIZED
+              message: Missing or invalid token
+            meta:
+              request_id: af-req-err401
+              timestamp: "2026-06-09T10:00:00Z"
+
+    Forbidden:
+      description: Valid token but insufficient scope or role
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          example:
+            error:
+              code: AF_ERR_FORBIDDEN
+              message: Insufficient scope for this operation
+            meta:
+              request_id: af-req-err403
+              timestamp: "2026-06-09T10:00:00Z"
+
+    NotFound:
+      description: Resource not found (or belongs to another organization)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          example:
+            error:
+              code: AF_ERR_NOT_FOUND
+              message: Run not found
+            meta:
+              request_id: af-req-err404
+              timestamp: "2026-06-09T10:00:00Z"
+
+    ValidationError:
+      description: Request body or parameter failed validation
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          example:
+            error:
+              code: AF_ERR_VALIDATION
+              message: idea text must be at least 10 characters
+            meta:
+              request_id: af-req-err400
+              timestamp: "2026-06-09T10:00:00Z"
+
+    Conflict:
+      description: State conflict (e.g. gate already decided)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          example:
+            error:
+              code: AF_ERR_GATE_ALREADY_DECIDED
+              message: Gate has already been decided
+              details:
+                gate_id: "880e8400-e29b-41d4-a716-446655440003"
+                current_state: approved
+            meta:
+              request_id: af-req-err409
+              timestamp: "2026-06-09T10:00:00Z"
+
+    CostCapExceeded:
+      description: Organization monthly cost limit reached
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          example:
+            error:
+              code: AF_ERR_COST_CAP_EXCEEDED
+              message: Organization monthly cost limit reached
+            meta:
+              request_id: af-req-err402
+              timestamp: "2026-06-09T10:00:00Z"
+
+    RateLimited:
+      description: Too many requests
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          example:
+            error:
+              code: AF_ERR_RATE_LIMITED
+              message: Too many requests
+            meta:
+              request_id: af-req-err429
+              timestamp: "2026-06-09T10:00:00Z"
+
+  schemas:
+    # -------------------------------------------------------------------------
+    # Envelopes & errors
+    # -------------------------------------------------------------------------
+    Meta:
+      type: object
+      required: [request_id, timestamp]
+      properties:
+        request_id:
+          type: string
+          example: af-req-01jmock001
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorDetail:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Namespaced code prefixed with `AF_ERR_`
+          example: AF_ERR_NOT_FOUND
+        message:
+          type: string
+          description: Human-readable, safe to display in UI
+        details:
+          type: object
+          additionalProperties: true
+
+    ErrorEnvelope:
+      type: object
+      required: [error, meta]
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorDetail"
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    PaginationInfo:
+      type: object
+      required: [has_more]
+      properties:
+        cursor:
+          type: ["string", "null"]
+          description: Opaque token for the next page
+        has_more:
+          type: boolean
+        total:
+          type: integer
+          minimum: 0
+
+    BoolEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: boolean
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    # Domain — runs, gates, artifacts (frontend-facing only)
+    Pillar:
+      type: integer
+      minimum: 1
+      maximum: 7
+      description: |
+        Pipeline stage index (1=validation … 7=LLMOps). UI maps to studio routes;
+        the API does not expose agent class names.
+
+    RunStatus:
+      type: string
+      enum: [queued, pending, running, paused, awaiting_gate, completed, failed, cancelled]
+      description: |
+        `pending` is accepted for backward compatibility with current backend.
+
+    GateKind:
+      type: string
+      enum:
+        - validation_approve
+        - architecture_approve
+        - infra_spend_approve
+        - launch_approve
+        - canary_rollout
+
+    GateState:
+      type: string
+      enum: [pending, approved, rejected, timed_out]
+
+    GateRead:
+      type: object
+      required: [id, run_id, kind, state, payload, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        run_id:
+          type: string
+          format: uuid
+        kind:
+          $ref: "#/components/schemas/GateKind"
+        state:
+          $ref: "#/components/schemas/GateState"
+        payload:
+          type: object
+          additionalProperties: true
+          description: Gate-specific context for the approval UI (opaque to agents)
+        decided_by:
+          type: ["string", "null"]
+          description: User id (`sub` claim) when decided
+        decided_at:
+          type: ["string", "null"]
+          format: date-time
+        timeout_at:
+          type: ["string", "null"]
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    GateDecision:
+      type: object
+      required: [decision]
+      properties:
+        decision:
+          type: string
+          enum: [approved, rejected]
+          description: Use `rejected` with notes to record a pivot on validation gate
+        notes:
+          type: ["string", "null"]
+          maxLength: 2000
+
+    RunRead:
+      type: object
+      required: [id, status, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        workspace_id:
+          type: string
+          format: uuid
+        organization_id:
+          type: string
+        status:
+          $ref: "#/components/schemas/RunStatus"
+        current_pillar:
+          $ref: "#/components/schemas/Pillar"
+        idea_text:
+          type: string
+        idea_meta:
+          type: object
+          additionalProperties: true
+          description: Normalised idea metadata (locale, domain tags, etc.)
+        cost_usd:
+          type: number
+          format: float
+          minimum: 0
+        gates:
+          type: array
+          items:
+            $ref: "#/components/schemas/GateRead"
+        live_url:
+          type: ["string", "null"]
+          format: uri
+          description: Populated after deploy artifact is available
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: ["string", "null"]
+          format: date-time
+        completed_at:
+          type: ["string", "null"]
+          format: date-time
+        pillar:
+          type: string
+          deprecated: true
+          description: Legacy backend field — prefer `current_pillar`
+
+    IdeaCreate:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 10
+          maxLength: 10000
+          description: Raw startup idea in plain text
+        locale:
+          type: string
+          example: en-IN
+        source_url:
+          type: string
+          format: uri
+        workspace_id:
+          type: string
+          format: uuid
+          description: Defaults to the organization's default workspace
+
+    ArtifactKind:
+      type: string
+      enum:
+        - lean_canvas
+        - market_report
+        - viability
+        - prd
+        - erd
+        - openapi
+        - stack
+        - cost_forecast
+        - review_report
+        - repo_url
+        - deploy_url
+        - smoke_test
+        - brand_kit
+        - landing_page
+        - social_posts
+        - email_sequences
+        - blog_drafts
+
+    ArtifactRead:
+      type: object
+      required: [id, run_id, kind, uri, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        run_id:
+          type: string
+          format: uuid
+        kind:
+          $ref: "#/components/schemas/ArtifactKind"
+        uri:
+          type: string
+          description: S3 URI or HTTPS URL to fetch full payload when `meta` is partial
+        meta:
+          description: |
+            Inline deliverable payload. Shape depends on `kind` — see
+            `ArtifactMeta*` schemas. Frontend types artifacts by `kind`, not agent.
+          oneOf:
+            - $ref: "#/components/schemas/ArtifactMetaLeanCanvas"
+            - $ref: "#/components/schemas/ArtifactMetaViability"
+            - $ref: "#/components/schemas/ArtifactMetaErd"
+            - $ref: "#/components/schemas/ArtifactMetaReviewReport"
+            - $ref: "#/components/schemas/ArtifactMetaDeployUrl"
+            - $ref: "#/components/schemas/ArtifactMetaBrandKit"
+            - $ref: "#/components/schemas/ArtifactMetaLandingPage"
+            - $ref: "#/components/schemas/ArtifactMetaSocialPosts"
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    # Artifact meta contracts (API-level, keyed by kind)
+    ArtifactMetaLeanCanvas:
+      type: object
+      properties:
+        problem:
+          type: array
+          items:
+            type: string
+        customer_segments:
+          type: array
+          items:
+            type: string
+        unique_value_proposition:
+          type: string
+        solution:
+          type: array
+          items:
+            type: string
+        unfair_advantage:
+          type: string
+        early_adopters:
+          type: string
+        viability_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        viability_band:
+          type: string
+          enum: [low, moderate, high]
+
+    ArtifactMetaViability:
+      type: object
+      properties:
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        band:
+          type: string
+          enum: [low, moderate, high]
+        summary:
+          type: string
+        risks:
+          type: array
+          items:
+            type: string
+
+    ArtifactMetaErd:
+      type: object
+      properties:
+        mermaid:
+          type: string
+        stack:
+          type: array
+          items:
+            type: object
+            required: [layer, choice]
+            properties:
+              layer:
+                type: string
+              choice:
+                type: string
+              rationale:
+                type: string
+        cost_forecast_usd:
+          type: number
+
+    ArtifactMetaReviewReport:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [passed, failed, escalated]
+        coverage_pct:
+          type: number
+          minimum: 0
+          maximum: 100
+        heal_cycles:
+          type: integer
+          minimum: 0
+        max_cycles:
+          type: integer
+        scans:
+          type: array
+          items:
+            type: object
+            properties:
+              tool:
+                type: string
+              severity:
+                type: string
+              count:
+                type: integer
+        repo_url:
+          type: string
+          format: uri
+        pr_url:
+          type: string
+          format: uri
+
+    ArtifactMetaDeployUrl:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        infra_cost_usd:
+          type: number
+        region:
+          type: string
+        smoke_test:
+          type: object
+          properties:
+            passed:
+              type: boolean
+            latency_ms:
+              type: number
+
+    ArtifactMetaBrandKit:
+      type: object
+      properties:
+        tagline:
+          type: string
+        positioning_statement:
+          type: string
+        tone_of_voice:
+          type: array
+          items:
+            type: string
+        primary_colors:
+          type: array
+          items:
+            type: string
+
+    ArtifactMetaLandingPage:
+      type: object
+      properties:
+        headline:
+          type: string
+        subheadline:
+          type: string
+        cta_primary:
+          type: string
+        meta_title:
+          type: string
+        meta_description:
+          type: string
+
+    ArtifactMetaSocialPosts:
+      type: object
+      properties:
+        posts:
+          type: array
+          items:
+            type: object
+            properties:
+              channel:
+                type: string
+              content:
+                type: string
+              scheduled_at:
+                type: string
+                format: date-time
+              status:
+                type: string
+
+    WorkspaceRead:
+      type: object
+      required: [id, name, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        created_at:
+          type: string
+          format: date-time
+
+    WorkspaceCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 500
+
+    CostRead:
+      type: object
+      required: [total_cost_usd]
+      properties:
+        total_cost_usd:
+          type: number
+          format: float
+          minimum: 0
+
+    CostDetailRead:
+      type: object
+      required: [total_cost_usd, breakdown]
+      properties:
+        total_cost_usd:
+          type: number
+          format: float
+        breakdown:
+          type: array
+          items:
+            type: object
+            required: [key, cost_usd]
+            properties:
+              key:
+                type: string
+                description: Model name, pillar index, or run id depending on `group_by`
+              cost_usd:
+                type: number
+                format: float
+
+    FeedbackCreate:
+      type: object
+      required: [run_id, rating]
+      properties:
+        run_id:
+          type: string
+          format: uuid
+        step_id:
+          type: string
+          description: Workflow step key from stream events (not agent class name)
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          maxLength: 2000
+
+    TenantRead:
+      type: object
+      required: [id, name, tier, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tier:
+          type: string
+          enum: [solopreneur, startup, enterprise]
+        status:
+          type: string
+          enum: [active, suspended, trial]
+
+    AuditLogEntry:
+      type: object
+      required: [id, action, actor_id, at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        action:
+          type: string
+        actor_id:
+          type: string
+        resource_type:
+          type: string
+        resource_id:
+          type: string
+        at:
+          type: string
+          format: date-time
+
+    StreamEvent:
+      type: object
+      required: [type]
+      description: |
+        WebSocket server→client frame. Uses workflow `step_key` and `pillar` —
+        never internal agent class names.
+      properties:
+        type:
+          type: string
+          enum:
+            - step.started
+            - token
+            - tool.call
+            - step.completed
+            - gate.required
+            - run.completed
+            - run.failed
+        step_id:
+          type: string
+        step_key:
+          type: string
+          description: UI-stable step identifier (e.g. `validation.synthesis`, `deploy.smoke_test`)
+        pillar:
+          $ref: "#/components/schemas/Pillar"
+        content:
+          type: string
+          description: Streaming text token (when type=token)
+        tool:
+          type: string
+        args:
+          type: object
+          additionalProperties: true
+        gate_id:
+          type: string
+          format: uuid
+        kind:
+          $ref: "#/components/schemas/GateKind"
+        payload:
+          type: object
+          additionalProperties: true
+        run_id:
+          type: string
+          format: uuid
+        cost_usd:
+          type: number
+        error:
+          type: string
+        at:
+          type: string
+          format: date-time
+
+    StreamClientMessage:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [ping]
+
+    HealthResponse:
+      type: object
+      required: [status, service, version, env]
+      properties:
+        status:
+          type: string
+          example: ok
+        service:
+          type: string
+          example: autofounder-api
+        version:
+          type: string
+        env:
+          type: string
+
+    # Response envelopes
+    RunEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/RunRead"
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    RunListEnvelope:
+      type: object
+      required: [data, pagination, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/RunRead"
+        pagination:
+          $ref: "#/components/schemas/PaginationInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    GateEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/GateRead"
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    ArtifactListEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtifactRead"
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    CostEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/CostRead"
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    CostDetailEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/CostDetailRead"
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    WorkspaceEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/WorkspaceRead"
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    WorkspaceListEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkspaceRead"
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    TenantListEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/TenantRead"
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    AuditLogEnvelope:
+      type: object
+      required: [data, pagination, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLogEntry"
+        pagination:
+          $ref: "#/components/schemas/PaginationInfo"
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      tags: [System]
+      summary: Liveness probe
+      security: []
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: ok
+                service: autofounder-api
+                version: "0.1.0"
+                env: development
+
+  /v1/ideas:
+    post:
+      operationId: submitIdea
+      tags: [Ideas]
+      summary: Submit a startup idea and create a run
+      description: |
+        Creates a new run in `queued` state and enqueues orchestration.
+        Returns `RunRead` — frontend polls/streaming observes progress.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdeaCreate"
+            example:
+              text: "A subscription app that helps dog owners find trusted walkers in Bangalore."
+              locale: en-IN
+      responses:
+        "201":
+          description: Run created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunEnvelope"
+              example:
+                data:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  workspace_id: "660e8400-e29b-41d4-a716-446655440001"
+                  organization_id: "org_pawtrail_demo"
+                  status: queued
+                  current_pillar: 1
+                  idea_text: "A subscription app that helps dog owners find trusted walkers in Bangalore."
+                  cost_usd: 0
+                  gates: []
+                  created_at: "2026-06-09T10:00:00Z"
+                meta:
+                  request_id: af-req-01jmock002
+                  timestamp: "2026-06-09T10:00:00Z"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/CostCapExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /v1/runs:
+    get:
+      operationId: listRuns
+      tags: [Runs]
+      summary: List runs for the current organization
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Order"
+        - $ref: "#/components/parameters/RunStatusFilter"
+      responses:
+        "200":
+          description: Paginated run list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunListEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/runs/{run_id}:
+    get:
+      operationId: getRun
+      tags: [Runs]
+      summary: Get run state, gates, and summary
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "200":
+          description: Run detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: cancelRun
+      tags: [Runs]
+      summary: Cancel an in-progress run
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "200":
+          description: Run cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoolEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /v1/runs/{run_id}/gates/{gate_id}:
+    post:
+      operationId: decideGate
+      tags: [Gates]
+      summary: Approve or reject a human-in-the-loop gate
+      description: Gate decisions are made via REST, not WebSocket.
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+        - $ref: "#/components/parameters/GateId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GateDecision"
+            examples:
+              approve:
+                value:
+                  decision: approved
+                  notes: Strong market signal, proceed.
+              pivot:
+                value:
+                  decision: rejected
+                  notes: Pivot to B2B corporate pet-care benefits.
+      responses:
+        "200":
+          description: Gate updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GateEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /v1/runs/{run_id}/artifacts:
+    get:
+      operationId: listArtifacts
+      tags: [Artifacts]
+      summary: List typed deliverables for a run
+      description: |
+        Primary data source for pillar studios. Filter by `kind` to load
+        validation, architecture, review, deploy, or launch content.
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+        - $ref: "#/components/parameters/ArtifactKindFilter"
+      responses:
+        "200":
+          description: Artifact list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtifactListEnvelope"
+              example:
+                data:
+                  - id: "aa0e8400-e29b-41d4-a716-446655440010"
+                    run_id: "550e8400-e29b-41d4-a716-446655440000"
+                    kind: lean_canvas
+                    uri: "s3://artifacts/org_pawtrail/lean_canvas.json"
+                    meta:
+                      problem: ["Dog owners struggle to find reliable walkers"]
+                      viability_score: 72
+                      viability_band: moderate
+                    created_at: "2026-06-09T10:14:00Z"
+                meta:
+                  request_id: af-req-01jmock006
+                  timestamp: "2026-06-09T10:16:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/runs/{run_id}/stream:
+    get:
+      operationId: streamRunEvents
+      tags: [Runs]
+      summary: WebSocket upgrade for live run events
+      description: |
+        Upgrade: `GET /v1/runs/{run_id}/stream` with `Upgrade: websocket`.
+
+        **Server → client:** `StreamEvent` JSON frames.
+        **Client → server:** `StreamClientMessage` (ping).
+
+        Reconnect with `Last-Event-ID` header to replay events (30 min window).
+      x-implementation-status: planned
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+        - $ref: "#/components/parameters/LastEventId"
+      responses:
+        "101":
+          description: Switching Protocols (WebSocket)
+      x-websocket-messages:
+        serverToClient:
+          - name: step.started
+            payload:
+              $ref: "#/components/schemas/StreamEvent"
+            example:
+              type: step.started
+              step_id: evt-001
+              step_key: validation.synthesis
+              pillar: 1
+              at: "2026-06-09T10:01:00Z"
+          - name: token
+            example:
+              type: token
+              step_id: evt-001
+              content: "Analyzing market size..."
+          - name: gate.required
+            example:
+              type: gate.required
+              gate_id: "880e8400-e29b-41d4-a716-446655440003"
+              kind: validation_approve
+              payload: {}
+          - name: run.completed
+            example:
+              type: run.completed
+              run_id: "550e8400-e29b-41d4-a716-446655440000"
+              cost_usd: 4.56
+        clientToServer:
+          - name: ping
+            payload:
+              $ref: "#/components/schemas/StreamClientMessage"
+
+  /v1/workspaces:
+    get:
+      operationId: listWorkspaces
+      tags: [Workspaces]
+      summary: List workspaces for the current organization
+      x-implementation-status: planned
+      responses:
+        "200":
+          description: Workspace list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceListEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createWorkspace
+      tags: [Workspaces]
+      summary: Create a workspace
+      x-implementation-status: planned
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkspaceCreate"
+      responses:
+        "201":
+          description: Workspace created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceEnvelope"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/workspaces/{workspace_id}/runs:
+    get:
+      operationId: listWorkspaceRuns
+      tags: [Workspaces]
+      summary: List runs within a workspace
+      x-implementation-status: planned
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Order"
+        - $ref: "#/components/parameters/RunStatusFilter"
+      responses:
+        "200":
+          description: Paginated runs in workspace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunListEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/feedback:
+    post:
+      operationId: submitFeedback
+      tags: [LLMOps]
+      summary: Submit founder feedback on a workflow step
+      description: RLHF signal for LLMOps — references `step_id` from stream, not agents.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackCreate"
+            example:
+              run_id: "550e8400-e29b-41d4-a716-446655440000"
+              step_id: launch.hero_copy
+              rating: 4
+              comment: Tone is good; shorten the hero headline.
+      responses:
+        "200":
+          description: Feedback accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoolEnvelope"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/llmops/cost:
+    get:
+      operationId: getCostTelemetry
+      tags: [LLMOps]
+      summary: Organization-wide cost total (current billing period)
+      responses:
+        "200":
+          description: Cost summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CostEnvelope"
+              example:
+                data:
+                  total_cost_usd: 12.47
+                meta:
+                  request_id: af-req-01jmock001
+                  timestamp: "2026-06-09T10:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/llmops/cost/detail:
+    get:
+      operationId: getCostDetail
+      tags: [LLMOps]
+      summary: Cost breakdown by model, pillar, or run
+      x-implementation-status: planned
+      parameters:
+        - name: group_by
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [model, pillar, run]
+      responses:
+        "200":
+          description: Cost breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CostDetailEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/admin/tenants:
+    get:
+      operationId: listTenants
+      tags: [Admin]
+      summary: List all tenants (super-admin)
+      x-implementation-status: planned
+      x-required-role: super_admin
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Tenant list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenantListEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /v1/admin/audit-log:
+    get:
+      operationId: listAuditLog
+      tags: [Admin]
+      summary: Platform audit log (super-admin)
+      x-implementation-status: planned
+      x-required-role: super_admin
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"

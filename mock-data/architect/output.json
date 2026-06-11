@@ -1,0 +1,156 @@
+{
+  "run_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "organization_id": "org_pawtrail_demo",
+  "product_name": "PawTrail",
+  "architecture_style": "modular_monolith",
+  "tech_stack": {
+    "frontend": "Next.js 15 (App Router) + TypeScript + Tailwind + shadcn/ui",
+    "backend": "FastAPI 0.115 + Python 3.12",
+    "database": "PostgreSQL 16 (Neon) with tenant schemas",
+    "cache": "Redis 7 (Upstash)",
+    "queue": "AWS SQS",
+    "storage": "S3",
+    "auth": "Clerk",
+    "payments": "Razorpay Subscriptions",
+    "maps": "Google Maps JavaScript API + Geolocation",
+    "hosting": "Vercel (frontend) + AWS ECS Fargate (API)"
+  },
+  "system_context": {
+    "actors": ["Pet Owner", "Dog Walker", "Ops Admin", "Payment Gateway", "KYC Provider"],
+    "external_systems": ["Clerk", "Razorpay", "Google Maps", "Twilio SMS", "SendGrid"]
+  },
+  "c4_containers": [
+    {
+      "name": "Owner Web App",
+      "type": "spa",
+      "technology": "Next.js",
+      "responsibilities": ["Book walks", "View GPS routes", "Manage subscription"]
+    },
+    {
+      "name": "Walker Web App",
+      "type": "spa",
+      "technology": "Next.js",
+      "responsibilities": ["Accept jobs", "Start/end walks", "Upload walk photos"]
+    },
+    {
+      "name": "API Gateway",
+      "type": "api",
+      "technology": "FastAPI",
+      "responsibilities": ["REST + WebSocket", "Auth middleware", "Tenant routing"]
+    },
+    {
+      "name": "Walk Tracking Service",
+      "type": "worker",
+      "technology": "Python + Redis pub/sub",
+      "responsibilities": ["GPS point ingestion", "Route polyline", "Live owner updates"]
+    }
+  ],
+  "modules": [
+    {
+      "name": "identity",
+      "bounded_context": "Auth & profiles",
+      "entities": ["User", "WalkerProfile", "OwnerProfile"],
+      "apis": ["/v1/users/me", "/v1/walkers/{id}"]
+    },
+    {
+      "name": "scheduling",
+      "bounded_context": "Walk bookings",
+      "entities": ["WalkSlot", "RecurringSchedule", "Assignment"],
+      "apis": ["/v1/walks", "/v1/schedules"]
+    },
+    {
+      "name": "billing",
+      "bounded_context": "Subscriptions",
+      "entities": ["Subscription", "Invoice", "CreditBalance"],
+      "apis": ["/v1/billing/subscribe", "/v1/billing/webhooks/razorpay"]
+    },
+    {
+      "name": "tracking",
+      "bounded_context": "Live GPS walks",
+      "entities": ["WalkSession", "GpsPoint", "WalkProof"],
+      "apis": ["/v1/walks/{id}/track", "WS /v1/walks/{id}/stream"]
+    }
+  ],
+  "data_model_summary": {
+    "tables": 18,
+    "tenant_isolation": "schema-per-tenant (org_{uuid})",
+    "key_relationships": [
+      "Owner 1—N Dogs",
+      "Dog 1—N WalkSessions",
+      "Walker N—M WalkSlots via Assignment",
+      "Subscription 1—1 Owner"
+    ]
+  },
+  "api_contracts": [
+    {
+      "name": "CreateWalk",
+      "method": "POST",
+      "path": "/v1/walks",
+      "request_schema": "CreateWalkRequest",
+      "response_schema": "WalkRead"
+    },
+    {
+      "name": "StartWalkSession",
+      "method": "POST",
+      "path": "/v1/walks/{walk_id}/start",
+      "request_schema": "StartWalkRequest",
+      "response_schema": "WalkSessionRead"
+    },
+    {
+      "name": "StreamWalkGPS",
+      "method": "WEBSOCKET",
+      "path": "/v1/walks/{walk_id}/stream",
+      "message_schema": "GpsPointEvent"
+    }
+  ],
+  "non_functional_requirements": {
+    "availability": "99.5% MVP",
+    "p95_api_latency_ms": 300,
+    "concurrent_live_walks": 500,
+    "data_residency": "ap-south-1 (Mumbai)",
+    "pii_handling": "Encrypt phone/address at rest; mask in logs"
+  },
+  "security_design": [
+    "Clerk JWT validation on all /v1 routes",
+    "Row-level tenant guard via organization_id",
+    "Walker can only access assigned walks",
+    "Razorpay webhook HMAC verification",
+    "S3 presigned URLs for walk photos (15 min TTL)"
+  ],
+  "deployment_topology": {
+    "environments": ["dev", "staging", "production"],
+    "ci_cd": "GitHub Actions → Vercel preview + ECS blue/green",
+    "secrets": "AWS Secrets Manager",
+    "observability": "Datadog APM + structured JSON logs"
+  },
+  "architecture_decisions": [
+    {
+      "id": "ADR-001",
+      "title": "Modular monolith over microservices for MVP",
+      "status": "accepted",
+      "rationale": "Team size < 5; faster iteration; clear module boundaries for future extraction"
+    },
+    {
+      "id": "ADR-002",
+      "title": "WebSocket GPS streaming via Redis pub/sub",
+      "status": "accepted",
+      "rationale": "Low-latency owner updates without polling; scales to 500 concurrent walks"
+    },
+    {
+      "id": "ADR-003",
+      "title": "Schema-per-tenant PostgreSQL",
+      "status": "accepted",
+      "rationale": "Aligns with existing AutoFounder UDAL pattern"
+    }
+  ],
+  "diagram_artifacts": {
+    "context_diagram_s3_uri": "s3://autofounder-artifacts/org_pawtrail_demo/a1b2c3d4/arch/c4-context.png",
+    "container_diagram_s3_uri": "s3://autofounder-artifacts/org_pawtrail_demo/a1b2c3d4/arch/c4-containers.png",
+    "erd_s3_uri": "s3://autofounder-artifacts/org_pawtrail_demo/a1b2c3d4/arch/erd.png",
+    "openapi_spec_s3_uri": "s3://autofounder-artifacts/org_pawtrail_demo/a1b2c3d4/arch/openapi.yaml"
+  },
+  "lld_document_s3_uri": "s3://autofounder-artifacts/org_pawtrail_demo/a1b2c3d4/arch/lld.md",
+  "confidence_score": 0.88,
+  "total_llm_tokens_used": 18240,
+  "generated_at": "2026-06-08T12:42:10Z"
+}

@@ -1,0 +1,93 @@
+{
+  "run_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+  "organization_id": "org_pawtrail_demo",
+  "parent_run_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "reviewer_run_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+  "product_name": "PawTrail",
+  "repo_url": "https://github.com/pawtrail-demo/pawtrail-mvp",
+  "aws_region": "ap-south-1",
+  "deploy_strategy": "blue_green",
+  "approval_status": "approved",
+  "estimated_monthly_cost_usd": 142.5,
+  "live_url": "https://app.pawtrail.in",
+  "api_url": "https://api.pawtrail.in",
+  "deploy_status": "healthy",
+  "infrastructure": {
+    "vpc_id": "vpc-0a1b2c3d4e5f67890",
+    "ecs_cluster": "pawtrail-prod-cluster",
+    "ecs_services": [
+      {
+        "service_name": "pawtrail-api",
+        "desired_count": 2,
+        "status": "ready",
+        "task_def_arn": "arn:aws:ecs:ap-south-1:123456789012:task-definition/pawtrail-api:7"
+      }
+    ],
+    "rds": {
+      "endpoint": "pawtrail-prod.xxxx.ap-south-1.rds.amazonaws.com",
+      "engine": "postgres",
+      "engine_version": "16.3",
+      "instance_class": "db.t4g.micro",
+      "status": "ready"
+    },
+    "elasticache": {
+      "endpoint": "pawtrail-redis.xxxx.cache.amazonaws.com",
+      "engine": "redis",
+      "node_type": "cache.t3.micro",
+      "status": "ready"
+    },
+    "s3_bucket": "pawtrail-prod-assets-ap-south-1"
+  },
+  "dns": {
+    "domain": "pawtrail.in",
+    "record_name": "app.pawtrail.in",
+    "tls_issuer": "letsencrypt-prod",
+    "cert_status": "issued"
+  },
+  "cicd": {
+    "workflow": ".github/workflows/deploy-ecs.yml",
+    "ecr_registry": "123456789012.dkr.ecr.ap-south-1.amazonaws.com/pawtrail-api",
+    "last_deploy_commit": "f3a9c21b8e4d7f6012a5b9c3e8d1f4a7b2c6e90",
+    "last_deploy_at": "2026-06-08T16:22:11Z"
+  },
+  "smoke_tests": [
+    {
+      "endpoint": "https://api.pawtrail.in/health",
+      "status_code": 200,
+      "latency_ms": 48.2,
+      "passed": true
+    },
+    {
+      "endpoint": "https://app.pawtrail.in",
+      "status_code": 200,
+      "latency_ms": 312.7,
+      "passed": true
+    },
+    {
+      "endpoint": "https://api.pawtrail.in/v1/walks",
+      "status_code": 401,
+      "latency_ms": 22.1,
+      "passed": true,
+      "note": "Expected 401 without auth token"
+    }
+  ],
+  "smoke_tests_passed": true,
+  "monitoring": {
+    "grafana_dashboard_url": "https://grafana.autofounder.internal/d/pawtrail-prod",
+    "alarms_configured": [
+      "ECS-CPU-High-pawtrail-api",
+      "RDS-Connections-High",
+      "ALB-5xx-Rate"
+    ],
+    "log_group": "/ecs/pawtrail-api",
+    "log_retention_days": 90
+  },
+  "terraform": {
+    "state_s3_key": "org_pawtrail_demo/c3d4e5f6/terraform.tfstate",
+    "plan_summary": "12 to add, 0 to change, 0 to destroy",
+    "last_apply_at": "2026-06-08T16:18:03Z"
+  },
+  "deploy_report_s3_uri": "s3://autofounder-artifacts/org_pawtrail_demo/c3d4e5f6/devops/deploy-report.md",
+  "total_llm_tokens_used": 9840,
+  "generated_at": "2026-06-08T16:25:00Z"
+}
