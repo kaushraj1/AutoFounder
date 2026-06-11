@@ -10,7 +10,6 @@ from uuid import uuid4
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Minimal valid data fixtures
 # ---------------------------------------------------------------------------
@@ -28,15 +27,60 @@ def org_id() -> str:
 @pytest.fixture()
 def sample_requirements() -> list[dict[str, Any]]:
     return [
-        {"id": "FR-001", "kind": "FR", "description": "Users can sign up with email/password", "priority": "P0"},
-        {"id": "FR-002", "kind": "FR", "description": "Users can create projects", "priority": "P0"},
-        {"id": "FR-003", "kind": "FR", "description": "Users can store API keys per project", "priority": "P0"},
-        {"id": "FR-004", "kind": "FR", "description": "Audit log records every secret access", "priority": "P0"},
-        {"id": "FR-005", "kind": "FR", "description": "Team admin can invite members by email", "priority": "P1"},
-        {"id": "NFR-001", "kind": "NFR", "description": "API p99 latency < 150 ms under 500 concurrent users", "priority": "P0"},
-        {"id": "NFR-002", "kind": "NFR", "description": "Secrets encrypted at rest with AES-256", "priority": "P0"},
-        {"id": "NFR-003", "kind": "NFR", "description": "99.9% monthly uptime SLA", "priority": "P0"},
-        {"id": "NFR-004", "kind": "NFR", "description": "GDPR compliant — EU data residency option", "priority": "P1"},
+        {
+            "id": "FR-001",
+            "kind": "FR",
+            "description": "Users can sign up with email/password",
+            "priority": "P0",
+        },
+        {
+            "id": "FR-002",
+            "kind": "FR",
+            "description": "Users can create projects",
+            "priority": "P0",
+        },
+        {
+            "id": "FR-003",
+            "kind": "FR",
+            "description": "Users can store API keys per project",
+            "priority": "P0",
+        },
+        {
+            "id": "FR-004",
+            "kind": "FR",
+            "description": "Audit log records every secret access",
+            "priority": "P0",
+        },
+        {
+            "id": "FR-005",
+            "kind": "FR",
+            "description": "Team admin can invite members by email",
+            "priority": "P1",
+        },
+        {
+            "id": "NFR-001",
+            "kind": "NFR",
+            "description": "API p99 latency < 150 ms under 500 concurrent users",
+            "priority": "P0",
+        },
+        {
+            "id": "NFR-002",
+            "kind": "NFR",
+            "description": "Secrets encrypted at rest with AES-256",
+            "priority": "P0",
+        },
+        {
+            "id": "NFR-003",
+            "kind": "NFR",
+            "description": "99.9% monthly uptime SLA",
+            "priority": "P0",
+        },
+        {
+            "id": "NFR-004",
+            "kind": "NFR",
+            "description": "GDPR compliant — EU data residency option",
+            "priority": "P1",
+        },
     ]
 
 
@@ -100,7 +144,11 @@ def valid_erd_mermaid() -> str:
 def valid_openapi_spec() -> dict[str, Any]:
     return {
         "openapi": "3.1.0",
-        "info": {"title": "SecretSync API", "version": "1.0.0", "description": "Secrets management API"},
+        "info": {
+            "title": "SecretSync API",
+            "version": "1.0.0",
+            "description": "Secrets management API",
+        },
         "servers": [{"url": "/v1"}],
         "security": [{"BearerAuth": []}],
         "paths": {
@@ -160,9 +208,21 @@ def valid_feature_list() -> dict[str, Any]:
             "SendGrid/Resend for email notifications",
         ],
         "pricing_tiers": [
-            {"name": "Free", "price_usd_monthly": 0, "limits": {"projects": 1, "team_members": 1}},
-            {"name": "Pro", "price_usd_monthly": 12, "limits": {"projects": 10, "team_members": 5}},
-            {"name": "Team", "price_usd_monthly": 49, "limits": {"projects": -1, "team_members": -1}},
+            {
+                "name": "Free",
+                "price_usd_monthly": 0,
+                "limits": {"projects": 1, "team_members": 1},
+            },
+            {
+                "name": "Pro",
+                "price_usd_monthly": 12,
+                "limits": {"projects": 10, "team_members": 5},
+            },
+            {
+                "name": "Team",
+                "price_usd_monthly": 49,
+                "limits": {"projects": -1, "team_members": -1},
+            },
         ],
     }
 

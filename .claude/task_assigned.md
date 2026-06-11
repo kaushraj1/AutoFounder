@@ -312,17 +312,17 @@ Those turn **7 pillar owners from 🟡 to 🟢**.
 
 ---
 
-## 3. Kaushlendra Kumar Gupta — Pillar 2: Architecture & Tech Stack 🟡
+## 3. Kaushlendra Kumar Gupta — Pillar 2: Architecture & Tech Stack 🟪
 
 **Owns:** AF-040 Architect Agent.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-040 | Kaushlendra | Architect Agent (Pillar 2) — FR/NFR extraction, ERD, OpenAPI contract, stack selection, microservice boundaries, cost forecast; HITL approval gate | `feature/architect-agent` | AF-036, AF-039 | 🟡 | ❌ |
+| AF-040 | Kaushlendra | Architect Agent (Pillar 2) — FR/NFR extraction, ERD, OpenAPI contract, stack selection, microservice boundaries, cost forecast; HITL approval gate | `feature/architect-agent` | AF-036, AF-039 | ✅ | 🟪 |
 
-**🟢 Do today (offline):** Architect prompt templates (FR/NFR extraction, stack selection, microservice boundaries, cost forecast); ERD generation logic (Mermaid); OpenAPI 3.1 contract generator; AWS Pricing API tool wrapper; output schemas; golden evals; mocked tests.
+**✅ Completed:** All 9 nodes (extract_requirements, design_erd, design_api_contract, select_stack, design_join, auth_strategy, scaling_plan, cost_forecast, compose_featurelist), LangGraph StateGraph, Pydantic schema (FeatureList / Requirement / ArchitectOutput), Mermaid + OpenAPI validator tools, all Jinja2 prompt templates, LangGraph parallel-state fix (Annotated reducers). **60 unit + integration tests passing.**
 
-**🔴 Blocked on:** AF-036 + foundation. **🔗 Soft dependency:** consumes **Pillar 1's** Lean Canvas + personas (AF-037/039) — **agree the schema with Somesh now** so contracts line up.
+**⬜ Still pending:** Wire to real BaseAgent (replace base_stub.py — awaits AF-036 error hierarchy from Asit) · Agree FeatureList + input schema with Somesh / Kartik / Pallavi · AF-048/049 Prompt Registry + LLM Router (Purnima).
 
 ---
 

@@ -56,7 +56,10 @@ class TestOpenAPIValidation:
         assert any("empty" in e.lower() for e in result.errors)
 
     def test_path_without_leading_slash_fails(self, tool, valid_openapi_spec):
-        spec = {**valid_openapi_spec, "paths": {"projects": {"get": {"operationId": "x", "responses": {}}}}}
+        spec = {
+            **valid_openapi_spec,
+            "paths": {"projects": {"get": {"operationId": "x", "responses": {}}}},
+        }
         result = tool.validate(spec)
         assert result.valid is False
         assert any("/" in e for e in result.errors)

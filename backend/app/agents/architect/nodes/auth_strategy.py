@@ -77,7 +77,6 @@ def auth_strategy(state: ArchitectState) -> ArchitectState:
     )
 
     return {
-        **state,
         "auth_strategy": result,
-        "llm_tokens_used": state.get("llm_tokens_used", 0) + tokens,
+        "llm_tokens_used": tokens,
     }

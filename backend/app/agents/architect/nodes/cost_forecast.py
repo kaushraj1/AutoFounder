@@ -46,8 +46,7 @@ def cost_forecast(state: ArchitectState) -> ArchitectState:
     )
 
     return {
-        **state,
         "cost_estimate": result,
         "pricing_source": pricing_result.source,
-        "llm_tokens_used": state.get("llm_tokens_used", 0) + tokens,
+        "llm_tokens_used": tokens,
     }

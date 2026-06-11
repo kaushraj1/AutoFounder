@@ -13,7 +13,8 @@ Design rules:
 
 from __future__ import annotations
 
-from typing import Any
+import operator
+from typing import Annotated, Any
 
 from typing_extensions import TypedDict
 
@@ -92,6 +93,8 @@ class ArchitectState(TypedDict, total=False):
 
     # ------------------------------------------------------------------
     # Errors / metadata
+    # Annotated with reducers so parallel nodes can safely append/add
+    # without causing InvalidUpdateError in LangGraph.
     # ------------------------------------------------------------------
-    errors: list[str]
-    llm_tokens_used: int
+    errors: Annotated[list[str], operator.add]
+    llm_tokens_used: Annotated[int, operator.add]

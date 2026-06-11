@@ -38,7 +38,7 @@ def compose_featurelist(state: ArchitectState) -> ArchitectState:
     integrations: list[str] = result.get("integrations", [])
     pricing_tiers: list[dict] = result.get("pricing_tiers", [])
 
-    errors = list(state.get("errors", []))
+    errors: list[str] = []
 
     # FATAL guard — Pillar 6 refuses to run without features
     if not features:
@@ -54,12 +54,11 @@ def compose_featurelist(state: ArchitectState) -> ArchitectState:
     )
 
     return {
-        **state,
         "feature_list": {
             "features": features,
             "integrations": integrations,
             "pricing_tiers": pricing_tiers,
         },
         "errors": errors,
-        "llm_tokens_used": state.get("llm_tokens_used", 0) + tokens,
+        "llm_tokens_used": tokens,
     }

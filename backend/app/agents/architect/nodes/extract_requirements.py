@@ -35,13 +35,10 @@ def extract_requirements(state: ArchitectState) -> ArchitectState:
     if not requirements:
         logger.error("[architect] extract_requirements — no requirements returned")
         return {
-            **state,
             "requirements": [],
             "use_cases": [],
-            "errors": state.get("errors", []) + [
-                "extract_requirements: LLM returned no requirements"
-            ],
-            "llm_tokens_used": state.get("llm_tokens_used", 0) + tokens,
+            "errors": ["extract_requirements: LLM returned no requirements"],
+            "llm_tokens_used": tokens,
         }
 
     logger.info(
@@ -51,8 +48,7 @@ def extract_requirements(state: ArchitectState) -> ArchitectState:
     )
 
     return {
-        **state,
         "requirements": requirements,
         "use_cases": use_cases,
-        "llm_tokens_used": state.get("llm_tokens_used", 0) + tokens,
+        "llm_tokens_used": tokens,
     }

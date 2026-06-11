@@ -54,10 +54,9 @@ def select_stack(state: ArchitectState) -> ArchitectState:
     )
 
     return {
-        **state,
         "stack": stack,
         "microservice_boundaries": boundaries,
         "stack_rationale": rationale,
         "stack_deviations": deviations,
-        "llm_tokens_used": state.get("llm_tokens_used", 0) + tokens,
+        "llm_tokens_used": tokens,
     }

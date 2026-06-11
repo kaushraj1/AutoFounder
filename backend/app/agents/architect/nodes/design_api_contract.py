@@ -32,7 +32,7 @@ def design_api_contract(state: ArchitectState) -> ArchitectState:
 
     # Validate immediately
     validation = _validator.validate(result)
-    errors = list(state.get("errors", []))
+    errors: list[str] = []
 
     if not validation.valid:
         logger.warning(
@@ -63,10 +63,9 @@ def design_api_contract(state: ArchitectState) -> ArchitectState:
     )
 
     return {
-        **state,
         "openapi_3_1": result,
         "openapi_valid": validation.valid,
         "openapi_errors": validation.errors,
         "errors": errors,
-        "llm_tokens_used": state.get("llm_tokens_used", 0) + tokens,
+        "llm_tokens_used": tokens,
     }

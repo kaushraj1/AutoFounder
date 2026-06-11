@@ -36,7 +36,7 @@ def design_erd(state: ArchitectState) -> ArchitectState:
 
     # Validate the generated ERD
     validation = _mermaid.validate(erd_mermaid)
-    errors = list(state.get("errors", []))
+    errors: list[str] = []
 
     if not validation.valid:
         for err in validation.errors:
@@ -55,11 +55,10 @@ def design_erd(state: ArchitectState) -> ArchitectState:
     )
 
     return {
-        **state,
         "erd_mermaid": erd_mermaid,
         "erd_entities": entities,
         "erd_indexes": indexes,
         "erd_design_notes": design_notes,
         "errors": errors,
-        "llm_tokens_used": state.get("llm_tokens_used", 0) + tokens,
+        "llm_tokens_used": tokens,
     }

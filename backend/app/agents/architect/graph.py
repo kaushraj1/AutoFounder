@@ -85,7 +85,7 @@ def _hitl_gate(state: ArchitectState) -> ArchitectState:
     if status == "rejected" and comment:
         logger.info("[architect] hitl_gate — rejection comment: %s", comment)
 
-    return {**state, "approval_status": status}
+    return {"approval_status": status}
 
 
 def _error_end(state: ArchitectState) -> ArchitectState:
@@ -94,7 +94,7 @@ def _error_end(state: ArchitectState) -> ArchitectState:
     logger.error("[architect] error_end — %d error(s):", len(errors))
     for err in errors:
         logger.error("  • %s", err)
-    return state
+    return {}
 
 
 def build_architect_graph() -> CompiledStateGraph:

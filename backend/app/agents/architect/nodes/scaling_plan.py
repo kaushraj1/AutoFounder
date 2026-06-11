@@ -81,7 +81,6 @@ def scaling_plan(state: ArchitectState) -> ArchitectState:
     logger.info("[architect] scaling_plan — done")
 
     return {
-        **state,
         "scaling_plan": result,
-        "llm_tokens_used": state.get("llm_tokens_used", 0) + tokens,
+        "llm_tokens_used": tokens,
     }

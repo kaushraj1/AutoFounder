@@ -20,7 +20,6 @@ def design_join(state: ArchitectState) -> ArchitectState:
     """LangGraph node: barrier — verify all three parallel designs are present."""
     logger.info("[architect] design_join — checking parallel outputs")
 
-    errors = list(state.get("errors", []))
     missing = []
 
     if not state.get("erd_mermaid"):
@@ -30,15 +29,15 @@ def design_join(state: ArchitectState) -> ArchitectState:
     if not state.get("stack"):
         missing.append("stack")
 
+    new_errors: list[str] = []
     if missing:
         msg = f"design_join: parallel design outputs missing: {', '.join(missing)}"
         logger.error("[architect] %s", msg)
-        errors.append(msg)
+        new_errors.append(msg)
 
     logger.info("[architect] design_join — all parallel outputs present, continuing")
 
     return {
-        **state,
         "design_complete": len(missing) == 0,
-        "errors": errors,
+        "errors": new_errors,
     }

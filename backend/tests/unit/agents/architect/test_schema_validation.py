@@ -13,7 +13,6 @@ from pydantic import ValidationError
 
 from app.agents.architect.schema import ArchitectOutput, FeatureList, Requirement
 
-
 # ---------------------------------------------------------------------------
 # FeatureList
 # ---------------------------------------------------------------------------
@@ -54,12 +53,25 @@ class TestRequirement:
 
     def test_missing_required_field_raises(self):
         with pytest.raises(ValidationError):
-            Requirement(id="FR-001", kind="FR", priority="P0")  # missing description  # type: ignore[call-arg]
+            Requirement(  # type: ignore[call-arg]
+                id="FR-001", kind="FR", priority="P0"  # missing description
+            )
 
 
 # ---------------------------------------------------------------------------
 # ArchitectOutput
 # ---------------------------------------------------------------------------
+
+_SAMPLE_ERD = (
+    "erDiagram\n"
+    "    USER { uuid id PK\n datetime created_at\n datetime updated_at }"
+)
+_SAMPLE_OPENAPI = {
+    "openapi": "3.1.0",
+    "info": {"title": "Test", "version": "1.0.0"},
+    "paths": {},
+}
+
 
 class TestArchitectOutput:
     def test_valid_full_output(self, valid_feature_list, sample_requirements, sample_stack):
@@ -68,8 +80,8 @@ class TestArchitectOutput:
             run_id=uuid4(),
             organization_id="org-test",
             requirements=requirements,
-            erd_mermaid="erDiagram\n    USER { uuid id PK\n datetime created_at\n datetime updated_at }",
-            openapi_3_1={"openapi": "3.1.0", "info": {"title": "Test", "version": "1.0.0"}, "paths": {}},
+            erd_mermaid=_SAMPLE_ERD,
+            openapi_3_1=_SAMPLE_OPENAPI,
             stack=sample_stack,
             microservice_boundaries=["auth-module", "billing-module"],
             auth_strategy={"provider": "Supabase Auth"},
@@ -81,13 +93,15 @@ class TestArchitectOutput:
         assert output.approval_status == "approved"
         assert output.feature_list.features[0].startswith("Users can")
 
-    def test_default_approval_status_is_pending(self, valid_feature_list, sample_requirements, sample_stack):
+    def test_default_approval_status_is_pending(
+        self, valid_feature_list, sample_requirements, sample_stack
+    ):
         requirements = [Requirement(**r) for r in sample_requirements]
         output = ArchitectOutput(
             run_id=uuid4(),
             organization_id="org-test",
             requirements=requirements,
-            erd_mermaid="erDiagram\n    USER { uuid id PK\n datetime created_at\n datetime updated_at }",
+            erd_mermaid=_SAMPLE_ERD,
             openapi_3_1={},
             stack=sample_stack,
             microservice_boundaries=[],
