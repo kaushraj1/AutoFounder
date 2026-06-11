@@ -60,6 +60,19 @@ async def submit_idea(
         db.session.add(new_run)
         await db.session.commit()
         await db.audit("create", "runs", str(new_run.id))
+
+        from app.orchestrator.events.producer import event_producer
+        await event_producer.publish_event(
+            event_type="run.created",
+            organization_id=udal.organization_id,
+            run_id=str(new_run.id),
+            pillar=1,
+            payload={
+                "workspace_id": str(workspace_id),
+                "idea_text": idea.text
+            }
+        )
+
         run_read = RunRead.model_validate(new_run)
 
     return ResponseEnvelope(data=run_read, meta=meta)

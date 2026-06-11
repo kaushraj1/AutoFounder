@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     aws_region: str = "us-east-1"
     eventbridge_bus_name: str = "autofounder-platform"
     sqs_gate_decisions_queue_url: str | None = None
+    sqs_run_created_queue_url: str | None = None
     sqs_pillar_queues: dict[str, str] = {}
     sqs_poll_wait_time_seconds: int = 20
 
