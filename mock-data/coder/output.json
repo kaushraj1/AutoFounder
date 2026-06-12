@@ -41,7 +41,10 @@
     },
     {
       "module": "owner-app",
-      "files": ["frontend/src/app/(owner)/dashboard/page.tsx", "frontend/src/app/(owner)/walks/[id]/live/page.tsx"],
+      "files": [
+        "frontend/src/app/(owner)/dashboard/page.tsx",
+        "frontend/src/app/(owner)/walks/[id]/live/page.tsx"
+      ],
       "status": "complete",
       "test_coverage_pct": 45
     }

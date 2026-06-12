@@ -1,76 +1,119 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Launch Control — PawTrail</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
-  <style>body{font-family:Inter,sans-serif}</style>
-</head>
-<body class="bg-slate-950 text-slate-100 min-h-screen pb-16 lg:pb-0">
-  <nav class="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-slate-800 bg-slate-900/95 flex justify-around py-3 text-xs">
-    <a href="deploy-console.html" class="text-slate-400">Deploy</a>
-    <a href="launch-control.html" class="text-violet-300">Launch</a>
-    <a href="dashboard.html" class="text-slate-400">Done ✓</a>
-    <a href="run-detail.html" class="text-slate-400">Hub</a>
-  </nav>
-  <div class="flex min-h-screen">
-    <aside class="hidden lg:flex w-64 flex-col border-r border-slate-800 bg-slate-900/50 text-sm">
-      <div class="p-5 border-b border-slate-800"><a href="dashboard.html" class="font-semibold">AutoFounder</a></div>
-      <div class="p-3">
-        <a href="run-detail.html" class="block px-3 py-2 text-slate-400">Overview</a>
-        <a href="deploy-console.html" class="block px-3 py-2 text-slate-500">④ Deploy ✓</a>
-        <a href="launch-control.html" class="block px-3 py-2 rounded-lg bg-violet-500/20 text-violet-200 mt-1">⑤ Launch</a>
-      </div>
-    </aside>
-    <main class="flex-1">
-      <header class="border-b border-slate-800 px-6 py-3 flex flex-wrap justify-between items-center gap-3">
-        <nav class="text-sm text-slate-400"><a href="run-detail.html">PawTrail</a> › <span class="text-white">Launch</span></nav>
-        <a href="dashboard.html" class="px-4 py-2 rounded-lg bg-emerald-600 text-sm font-medium">Approve launch 🚀</a>
-      </header>
-      <div class="p-6 grid lg:grid-cols-12 gap-6">
-        <div class="lg:col-span-4 space-y-4">
-          <div class="rounded-xl border border-slate-800 p-4">
-            <h3 class="text-sm font-medium mb-3">Brand kit</h3>
-            <p class="text-lg font-semibold text-violet-300">Walks you can trust.</p>
-            <p class="text-xs text-slate-400 mt-2">Routes you can see.</p>
-            <div class="flex gap-2 mt-4">
-              <span class="w-8 h-8 rounded-full bg-[#2D6A4F] border border-slate-600" title="Primary"></span>
-              <span class="w-8 h-8 rounded-full bg-[#F4A261] border border-slate-600"></span>
-              <span class="w-8 h-8 rounded-full bg-[#F8F9FA] border border-slate-600"></span>
-            </div>
-          </div>
-          <div class="rounded-xl border border-slate-800 p-4 text-sm">
-            <p class="text-xs text-slate-500 mb-2">Product Hunt</p>
-            <p class="font-medium">Subscription dog walks with live GPS</p>
-            <p class="text-xs text-slate-400 mt-2">Launch: Jun 15, 2026</p>
-          </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Launch Control — PawTrail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: { extend: { fontFamily: { sans: ["Inter", "sans-serif"] } } },
+      };
+    </script>
+    <style>
+      body {
+        font-family: Inter, sans-serif;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-100 min-h-screen pb-16 lg:pb-0">
+    <nav
+      class="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-slate-800 bg-slate-900/95 flex justify-around py-3 text-xs"
+    >
+      <a href="deploy-console.html" class="text-slate-400">Deploy</a>
+      <a href="launch-control.html" class="text-violet-300">Launch</a>
+      <a href="dashboard.html" class="text-slate-400">Done ✓</a>
+      <a href="run-detail.html" class="text-slate-400">Hub</a>
+    </nav>
+    <div class="flex min-h-screen">
+      <aside class="hidden lg:flex w-64 flex-col border-r border-slate-800 bg-slate-900/50 text-sm">
+        <div class="p-5 border-b border-slate-800">
+          <a href="dashboard.html" class="font-semibold">AutoFounder</a>
         </div>
-        <div class="lg:col-span-8 space-y-4">
-          <div class="rounded-xl border border-slate-700 bg-gradient-to-br from-slate-900 to-violet-950/30 p-8 min-h-[200px]">
-            <p class="text-xs text-violet-400 uppercase mb-2">Landing page preview</p>
-            <h2 class="text-2xl font-bold">Your dog walked. Every step tracked.</h2>
-            <p class="text-slate-400 mt-2 max-w-lg">Subscribe to trusted dog walks in Bangalore with live GPS routes and photo proof.</p>
-            <span class="inline-block mt-4 px-4 py-2 rounded-lg bg-violet-600 text-sm">Start free 7-day trial</span>
-          </div>
-          <div class="flex gap-2 text-sm border-b border-slate-800 pb-2">
-            <span class="text-cyan-400">Social</span><span class="text-slate-500">Email</span><span class="text-slate-500">Blogs</span>
-          </div>
-          <div class="rounded-xl border border-slate-800 p-4 text-sm">
-            <div class="flex justify-between items-start gap-2">
-              <div>
-                <span class="text-xs text-blue-400">LinkedIn · scheduled Jun 10</span>
-                <p class="mt-2 text-slate-300">Launching PawTrail in Bangalore 🐾 — subscription dog walks with live GPS tracking. Founding members get 20% off.</p>
+        <div class="p-3">
+          <a href="run-detail.html" class="block px-3 py-2 text-slate-400">Overview</a>
+          <a href="deploy-console.html" class="block px-3 py-2 text-slate-500">④ Deploy ✓</a>
+          <a
+            href="launch-control.html"
+            class="block px-3 py-2 rounded-lg bg-violet-500/20 text-violet-200 mt-1"
+            >⑤ Launch</a
+          >
+        </div>
+      </aside>
+      <main class="flex-1">
+        <header
+          class="border-b border-slate-800 px-6 py-3 flex flex-wrap justify-between items-center gap-3"
+        >
+          <nav class="text-sm text-slate-400">
+            <a href="run-detail.html">PawTrail</a> › <span class="text-white">Launch</span>
+          </nav>
+          <a href="dashboard.html" class="px-4 py-2 rounded-lg bg-emerald-600 text-sm font-medium"
+            >Approve launch 🚀</a
+          >
+        </header>
+        <div class="p-6 grid lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-4 space-y-4">
+            <div class="rounded-xl border border-slate-800 p-4">
+              <h3 class="text-sm font-medium mb-3">Brand kit</h3>
+              <p class="text-lg font-semibold text-violet-300">Walks you can trust.</p>
+              <p class="text-xs text-slate-400 mt-2">Routes you can see.</p>
+              <div class="flex gap-2 mt-4">
+                <span
+                  class="w-8 h-8 rounded-full bg-[#2D6A4F] border border-slate-600"
+                  title="Primary"
+                ></span>
+                <span class="w-8 h-8 rounded-full bg-[#F4A261] border border-slate-600"></span>
+                <span class="w-8 h-8 rounded-full bg-[#F8F9FA] border border-slate-600"></span>
               </div>
-              <div class="flex gap-1 text-lg"><button title="Good">👍</button><button title="Needs work">👎</button></div>
+            </div>
+            <div class="rounded-xl border border-slate-800 p-4 text-sm">
+              <p class="text-xs text-slate-500 mb-2">Product Hunt</p>
+              <p class="font-medium">Subscription dog walks with live GPS</p>
+              <p class="text-xs text-slate-400 mt-2">Launch: Jun 15, 2026</p>
             </div>
           </div>
-          <p class="text-xs text-amber-400/80">⚠ 1 marketing claim flagged for review (founding member count rounded)</p>
+          <div class="lg:col-span-8 space-y-4">
+            <div
+              class="rounded-xl border border-slate-700 bg-gradient-to-br from-slate-900 to-violet-950/30 p-8 min-h-[200px]"
+            >
+              <p class="text-xs text-violet-400 uppercase mb-2">Landing page preview</p>
+              <h2 class="text-2xl font-bold">Your dog walked. Every step tracked.</h2>
+              <p class="text-slate-400 mt-2 max-w-lg">
+                Subscribe to trusted dog walks in Bangalore with live GPS routes and photo proof.
+              </p>
+              <span class="inline-block mt-4 px-4 py-2 rounded-lg bg-violet-600 text-sm"
+                >Start free 7-day trial</span
+              >
+            </div>
+            <div class="flex gap-2 text-sm border-b border-slate-800 pb-2">
+              <span class="text-cyan-400">Social</span><span class="text-slate-500">Email</span
+              ><span class="text-slate-500">Blogs</span>
+            </div>
+            <div class="rounded-xl border border-slate-800 p-4 text-sm">
+              <div class="flex justify-between items-start gap-2">
+                <div>
+                  <span class="text-xs text-blue-400">LinkedIn · scheduled Jun 10</span>
+                  <p class="mt-2 text-slate-300">
+                    Launching PawTrail in Bangalore 🐾 — subscription dog walks with live GPS
+                    tracking. Founding members get 20% off.
+                  </p>
+                </div>
+                <div class="flex gap-1 text-lg">
+                  <button title="Good">👍</button><button title="Needs work">👎</button>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-amber-400/80">
+              ⚠ 1 marketing claim flagged for review (founding member count rounded)
+            </p>
+          </div>
         </div>
-      </div>
-    </main>
-  </div>
-</body>
+      </main>
+    </div>
+  </body>
 </html>

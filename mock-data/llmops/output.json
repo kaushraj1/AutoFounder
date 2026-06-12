@@ -10,12 +10,8 @@
     "coder/fastapi-scaffold@v2.1.0",
     "reviewer/security-triage@v1.0.2"
   ],
-  "prompts_blocked": [
-    "marketing/landing-page@v1.4.0"
-  ],
-  "prompts_retired": [
-    "coder/fastapi-scaffold@v2.0.1"
-  ],
+  "prompts_blocked": ["marketing/landing-page@v1.4.0"],
+  "prompts_retired": ["coder/fastapi-scaffold@v2.0.1"],
   "routing_updates": [
     {
       "task_class": "long_form_copy",

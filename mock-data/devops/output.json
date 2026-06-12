@@ -74,11 +74,7 @@
   "smoke_tests_passed": true,
   "monitoring": {
     "grafana_dashboard_url": "https://grafana.autofounder.internal/d/pawtrail-prod",
-    "alarms_configured": [
-      "ECS-CPU-High-pawtrail-api",
-      "RDS-Connections-High",
-      "ALB-5xx-Rate"
-    ],
+    "alarms_configured": ["ECS-CPU-High-pawtrail-api", "RDS-Connections-High", "ALB-5xx-Rate"],
     "log_group": "/ecs/pawtrail-api",
     "log_retention_days": 90
   },

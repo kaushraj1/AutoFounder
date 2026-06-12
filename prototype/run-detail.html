@@ -1,88 +1,210 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PawTrail — Build hub</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
-  <style>body{font-family:Inter,sans-serif}</style>
-</head>
-<body class="bg-slate-950 text-slate-100 min-h-screen pb-16 lg:pb-0">
-  <nav class="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-slate-800 bg-slate-900/95 flex justify-around py-3 text-xs">
-    <a href="dashboard.html" class="text-slate-400">Builds</a>
-    <a href="validation-studio.html" class="text-amber-300">Validate</a>
-    <a href="run-detail.html" class="text-violet-300 font-medium">Hub</a>
-    <a href="llmops-dashboard.html" class="text-slate-400">Costs</a>
-  </nav>
-  <div class="flex min-h-screen">
-    <aside class="hidden lg:flex w-64 flex-col border-r border-slate-800 bg-slate-900/50 text-sm">
-      <div class="p-5 border-b border-slate-800"><a href="dashboard.html" class="flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400 flex items-center justify-center text-xs font-bold text-slate-950">AF</div><span class="font-semibold">AutoFounder</span></a></div>
-      <nav class="p-3 space-y-1">
-        <a href="idea-intake.html" class="block px-3 py-2 rounded-lg text-violet-300 hover:bg-slate-800">+ New idea</a>
-        <a href="dashboard.html" class="block px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800">My builds</a>
-        <a href="llmops-dashboard.html" class="block px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800">AI costs</a>
-      </nav>
-      <div class="px-3 py-2 mt-2 border-t border-slate-800">
-        <p class="text-xs text-slate-500 uppercase tracking-wider px-3 mb-2">PawTrail</p>
-        <a href="run-detail.html" class="block px-3 py-2 rounded-lg bg-slate-800 text-white">Overview</a>
-        <a href="validation-studio.html" class="block px-3 py-2 rounded-lg text-amber-300 bg-amber-500/10 border border-amber-500/20 mt-1">① Validate</a>
-        <a href="architecture-studio.html" class="block px-3 py-2 rounded-lg text-slate-500 mt-1 opacity-60" title="Unlock after validation">② Architecture</a>
-        <a href="code-review.html" class="block px-3 py-2 rounded-lg text-slate-500 mt-1 opacity-60">③ Code review</a>
-        <a href="deploy-console.html" class="block px-3 py-2 rounded-lg text-slate-500 mt-1 opacity-60">④ Deploy</a>
-        <a href="launch-control.html" class="block px-3 py-2 rounded-lg text-slate-500 mt-1 opacity-60">⑤ Launch</a>
-      </div>
-    </aside>
-    <main class="flex-1 flex flex-col min-w-0">
-      <header class="border-b border-slate-800 bg-slate-900/30 px-4 lg:px-6 py-3">
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-          <nav class="text-sm text-slate-400"><a href="dashboard.html" class="hover:text-white">My builds</a> <span class="mx-1">›</span> <span class="text-white">PawTrail</span></nav>
-          <span class="text-sm">Cost: <strong class="text-cyan-400">$2.14</strong></span>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PawTrail — Build hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: { extend: { fontFamily: { sans: ["Inter", "sans-serif"] } } },
+      };
+    </script>
+    <style>
+      body {
+        font-family: Inter, sans-serif;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-100 min-h-screen pb-16 lg:pb-0">
+    <nav
+      class="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-slate-800 bg-slate-900/95 flex justify-around py-3 text-xs"
+    >
+      <a href="dashboard.html" class="text-slate-400">Builds</a>
+      <a href="validation-studio.html" class="text-amber-300">Validate</a>
+      <a href="run-detail.html" class="text-violet-300 font-medium">Hub</a>
+      <a href="llmops-dashboard.html" class="text-slate-400">Costs</a>
+    </nav>
+    <div class="flex min-h-screen">
+      <aside class="hidden lg:flex w-64 flex-col border-r border-slate-800 bg-slate-900/50 text-sm">
+        <div class="p-5 border-b border-slate-800">
+          <a href="dashboard.html" class="flex items-center gap-2"
+            ><div
+              class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400 flex items-center justify-center text-xs font-bold text-slate-950"
+            >
+              AF
+            </div>
+            <span class="font-semibold">AutoFounder</span></a
+          >
         </div>
-        <a href="validation-studio.html" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-200 text-sm font-medium">⚠ Your approval is needed — <span class="underline">Review validation</span></a>
-      </header>
-      <div class="p-4 lg:p-6 flex-1 space-y-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 class="text-xl font-semibold">PawTrail</h1>
-            <p class="text-slate-400 text-sm mt-1 max-w-2xl">Subscription dog-walking for busy Bangalore pet parents with GPS-tracked walks.</p>
-            <span class="inline-block mt-2 px-2 py-0.5 rounded text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30">Awaiting gate · Stage 1</span>
+        <nav class="p-3 space-y-1">
+          <a
+            href="idea-intake.html"
+            class="block px-3 py-2 rounded-lg text-violet-300 hover:bg-slate-800"
+            >+ New idea</a
+          >
+          <a
+            href="dashboard.html"
+            class="block px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800"
+            >My builds</a
+          >
+          <a
+            href="llmops-dashboard.html"
+            class="block px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800"
+            >AI costs</a
+          >
+        </nav>
+        <div class="px-3 py-2 mt-2 border-t border-slate-800">
+          <p class="text-xs text-slate-500 uppercase tracking-wider px-3 mb-2">PawTrail</p>
+          <a href="run-detail.html" class="block px-3 py-2 rounded-lg bg-slate-800 text-white"
+            >Overview</a
+          >
+          <a
+            href="validation-studio.html"
+            class="block px-3 py-2 rounded-lg text-amber-300 bg-amber-500/10 border border-amber-500/20 mt-1"
+            >① Validate</a
+          >
+          <a
+            href="architecture-studio.html"
+            class="block px-3 py-2 rounded-lg text-slate-500 mt-1 opacity-60"
+            title="Unlock after validation"
+            >② Architecture</a
+          >
+          <a
+            href="code-review.html"
+            class="block px-3 py-2 rounded-lg text-slate-500 mt-1 opacity-60"
+            >③ Code review</a
+          >
+          <a
+            href="deploy-console.html"
+            class="block px-3 py-2 rounded-lg text-slate-500 mt-1 opacity-60"
+            >④ Deploy</a
+          >
+          <a
+            href="launch-control.html"
+            class="block px-3 py-2 rounded-lg text-slate-500 mt-1 opacity-60"
+            >⑤ Launch</a
+          >
+        </div>
+      </aside>
+      <main class="flex-1 flex flex-col min-w-0">
+        <header class="border-b border-slate-800 bg-slate-900/30 px-4 lg:px-6 py-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <nav class="text-sm text-slate-400">
+              <a href="dashboard.html" class="hover:text-white">My builds</a>
+              <span class="mx-1">›</span> <span class="text-white">PawTrail</span>
+            </nav>
+            <span class="text-sm">Cost: <strong class="text-cyan-400">$2.14</strong></span>
           </div>
-          <button class="px-3 py-2 rounded-lg border border-red-500/40 text-red-300 text-sm hover:bg-red-500/10">Cancel build</button>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-500/20 border border-violet-500/40 text-xs"><span class="w-6 h-6 rounded-full bg-violet-500 flex items-center justify-center text-white font-bold">1</span> Validate</div>
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-500">2 Architecture</div>
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-500">3 Build</div>
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-500">4 Deploy</div>
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-500">5 Launch</div>
-        </div>
-        <div class="grid lg:grid-cols-3 gap-4">
-          <a href="validation-studio.html" class="lg:col-span-1 rounded-xl border border-violet-500/30 bg-violet-500/10 p-4 hover:bg-violet-500/15 transition">
-            <p class="text-violet-300 font-medium text-sm">Validation Studio →</p>
-            <p class="text-xs text-slate-400 mt-1">Lean Canvas ready · Viability 72</p>
-          </a>
-          <a href="architecture-studio.html" class="rounded-xl border border-slate-800 bg-slate-900/50 p-4 opacity-50 pointer-events-none">
-            <p class="text-slate-400 font-medium text-sm">Architecture Studio</p>
-            <p class="text-xs text-slate-500 mt-1">Locked until validation approved</p>
-          </a>
-          <a href="code-review.html" class="rounded-xl border border-slate-800 bg-slate-900/50 p-4 opacity-50 pointer-events-none">
-            <p class="text-slate-400 font-medium text-sm">Code Review</p>
-            <p class="text-xs text-slate-500 mt-1">Not started</p>
-          </a>
-        </div>
-        <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-          <h2 class="text-sm font-medium text-slate-300 mb-3">Live activity</h2>
-          <div class="font-mono text-xs space-y-2 text-slate-400 max-h-48 overflow-y-auto">
-            <p><span class="text-cyan-500">10:14:22</span> <span class="text-slate-500">validation.synthesis</span> Lean Canvas generated</p>
-            <p><span class="text-cyan-500">10:12:08</span> <span class="text-slate-500">validation.research</span> Analyzing competitors in Bangalore…</p>
-            <p><span class="text-cyan-500">10:10:05</span> <span class="text-slate-500">validation.research</span> Market sizing complete (TAM ₹420 Cr)</p>
-            <p><span class="text-amber-400">10:15:00</span> <span class="text-amber-300">gate.required</span> Waiting for your validation approval</p>
+          <a
+            href="validation-studio.html"
+            class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-200 text-sm font-medium"
+            >⚠ Your approval is needed — <span class="underline">Review validation</span></a
+          >
+        </header>
+        <div class="p-4 lg:p-6 flex-1 space-y-6">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 class="text-xl font-semibold">PawTrail</h1>
+              <p class="text-slate-400 text-sm mt-1 max-w-2xl">
+                Subscription dog-walking for busy Bangalore pet parents with GPS-tracked walks.
+              </p>
+              <span
+                class="inline-block mt-2 px-2 py-0.5 rounded text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                >Awaiting gate · Stage 1</span
+              >
+            </div>
+            <button
+              class="px-3 py-2 rounded-lg border border-red-500/40 text-red-300 text-sm hover:bg-red-500/10"
+            >
+              Cancel build
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <div
+              class="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-500/20 border border-violet-500/40 text-xs"
+            >
+              <span
+                class="w-6 h-6 rounded-full bg-violet-500 flex items-center justify-center text-white font-bold"
+                >1</span
+              >
+              Validate
+            </div>
+            <div
+              class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-500"
+            >
+              2 Architecture
+            </div>
+            <div
+              class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-500"
+            >
+              3 Build
+            </div>
+            <div
+              class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-500"
+            >
+              4 Deploy
+            </div>
+            <div
+              class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-500"
+            >
+              5 Launch
+            </div>
+          </div>
+          <div class="grid lg:grid-cols-3 gap-4">
+            <a
+              href="validation-studio.html"
+              class="lg:col-span-1 rounded-xl border border-violet-500/30 bg-violet-500/10 p-4 hover:bg-violet-500/15 transition"
+            >
+              <p class="text-violet-300 font-medium text-sm">Validation Studio →</p>
+              <p class="text-xs text-slate-400 mt-1">Lean Canvas ready · Viability 72</p>
+            </a>
+            <a
+              href="architecture-studio.html"
+              class="rounded-xl border border-slate-800 bg-slate-900/50 p-4 opacity-50 pointer-events-none"
+            >
+              <p class="text-slate-400 font-medium text-sm">Architecture Studio</p>
+              <p class="text-xs text-slate-500 mt-1">Locked until validation approved</p>
+            </a>
+            <a
+              href="code-review.html"
+              class="rounded-xl border border-slate-800 bg-slate-900/50 p-4 opacity-50 pointer-events-none"
+            >
+              <p class="text-slate-400 font-medium text-sm">Code Review</p>
+              <p class="text-xs text-slate-500 mt-1">Not started</p>
+            </a>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+            <h2 class="text-sm font-medium text-slate-300 mb-3">Live activity</h2>
+            <div class="font-mono text-xs space-y-2 text-slate-400 max-h-48 overflow-y-auto">
+              <p>
+                <span class="text-cyan-500">10:14:22</span>
+                <span class="text-slate-500">validation.synthesis</span> Lean Canvas generated
+              </p>
+              <p>
+                <span class="text-cyan-500">10:12:08</span>
+                <span class="text-slate-500">validation.research</span> Analyzing competitors in
+                Bangalore…
+              </p>
+              <p>
+                <span class="text-cyan-500">10:10:05</span>
+                <span class="text-slate-500">validation.research</span> Market sizing complete (TAM
+                ₹420 Cr)
+              </p>
+              <p>
+                <span class="text-amber-400">10:15:00</span>
+                <span class="text-amber-300">gate.required</span> Waiting for your validation
+                approval
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
-  </div>
-</body>
+      </main>
+    </div>
+  </body>
 </html>

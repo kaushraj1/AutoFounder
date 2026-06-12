@@ -73,8 +73,18 @@
     "rationale": "Price 10–15% above informal walkers while undercutting per-walk marketplace rates for recurring users."
   },
   "go_to_market": {
-    "channels": ["Instagram geo-ads", "Apartment society partnerships", "Pet influencer collabs", "Google Local SEO"],
-    "launch_sequence": ["Waitlist in HSR Layout", "50 founding walkers onboarded", "Paid pilot with 200 households", "Expand to Koramangala"],
+    "channels": [
+      "Instagram geo-ads",
+      "Apartment society partnerships",
+      "Pet influencer collabs",
+      "Google Local SEO"
+    ],
+    "launch_sequence": [
+      "Waitlist in HSR Layout",
+      "50 founding walkers onboarded",
+      "Paid pilot with 200 households",
+      "Expand to Koramangala"
+    ],
     "cac_target_inr": 450,
     "ltv_target_inr": 8400
   },
