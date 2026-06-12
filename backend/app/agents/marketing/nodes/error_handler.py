@@ -72,10 +72,12 @@ async def _send_slack_alert(
     }
     if errors:
         error_text = "\n".join(f"• {e}" for e in errors[:10])
-        message["blocks"].append({  # type: ignore[arg-type]
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": f"*Errors:*\n```{error_text}```"},
-        })
+        message["blocks"].append(
+            {  # type: ignore[arg-type]
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": f"*Errors:*\n```{error_text}```"},
+            }
+        )
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:

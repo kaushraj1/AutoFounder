@@ -21,14 +21,25 @@ class TestHallucinationCheckNode:
         """Hallucination check passes when critical_count == 0."""
         state = _base_state()
 
-        mock_response = json.dumps({
-            "critical_count": 0,
-            "warning_count": 1,
-            "passed": True,
-            "findings": [{"claim": "Fast setup", "severity": "WARNING", "reason": "implied", "corrected_claim": ""}]
-        })
+        mock_response = json.dumps(
+            {
+                "critical_count": 0,
+                "warning_count": 1,
+                "passed": True,
+                "findings": [
+                    {
+                        "claim": "Fast setup",
+                        "severity": "WARNING",
+                        "reason": "implied",
+                        "corrected_claim": "",
+                    }
+                ],
+            }
+        )
 
-        with patch("app.agents.marketing.nodes.hallucination_check.call_llm", new_callable=AsyncMock) as mock_llm:
+        with patch(
+            "app.agents.marketing.nodes.hallucination_check.call_llm", new_callable=AsyncMock
+        ) as mock_llm:
             mock_llm.return_value = (json.loads(mock_response), 500)
             result = await hallucination_check(state)
 
@@ -40,17 +51,26 @@ class TestHallucinationCheckNode:
         """T5 setup: Hallucination fails when critical_count > 0."""
         state = _base_state()
 
-        mock_response = json.dumps({
-            "critical_count": 2,
-            "warning_count": 1,
-            "passed": False,
-            "findings": [
-                {"claim": "Supports unlimited projects", "source_node": "landing_page",
-                 "severity": "CRITICAL", "reason": "Not in feature list", "corrected_claim": ""}
-            ]
-        })
+        mock_response = json.dumps(
+            {
+                "critical_count": 2,
+                "warning_count": 1,
+                "passed": False,
+                "findings": [
+                    {
+                        "claim": "Supports unlimited projects",
+                        "source_node": "landing_page",
+                        "severity": "CRITICAL",
+                        "reason": "Not in feature list",
+                        "corrected_claim": "",
+                    }
+                ],
+            }
+        )
 
-        with patch("app.agents.marketing.nodes.hallucination_check.call_llm", new_callable=AsyncMock) as mock_llm:
+        with patch(
+            "app.agents.marketing.nodes.hallucination_check.call_llm", new_callable=AsyncMock
+        ) as mock_llm:
             mock_llm.return_value = (json.loads(mock_response), 500)
             result = await hallucination_check(state)
 
@@ -62,7 +82,9 @@ class TestHallucinationCheckNode:
         """On LLM failure, hallucination check passes with WARNING (non-fatal)."""
         state = _base_state()
 
-        with patch("app.agents.marketing.nodes.hallucination_check.call_llm", new_callable=AsyncMock) as mock_llm:
+        with patch(
+            "app.agents.marketing.nodes.hallucination_check.call_llm", new_callable=AsyncMock
+        ) as mock_llm:
             mock_llm.side_effect = RuntimeError("LLM timeout")
             result = await hallucination_check(state)
 
@@ -76,11 +98,13 @@ class TestHallucinationCheckNode:
         state = _base_state()
         state["hallucination_retry_count"] = 1
 
-        mock_response = json.dumps({
-            "critical_count": 0, "warning_count": 0, "passed": True, "findings": []
-        })
+        mock_response = json.dumps(
+            {"critical_count": 0, "warning_count": 0, "passed": True, "findings": []}
+        )
 
-        with patch("app.agents.marketing.nodes.hallucination_check.call_llm", new_callable=AsyncMock) as mock_llm:
+        with patch(
+            "app.agents.marketing.nodes.hallucination_check.call_llm", new_callable=AsyncMock
+        ) as mock_llm:
             mock_llm.return_value = (json.loads(mock_response), 100)
             result = await hallucination_check(state)
 
@@ -102,17 +126,25 @@ class TestStandaloneHallucinationValidator:
         claims = ["Supports unlimited storage"]
         feature_list = {"features": ["10GB storage per account"]}
 
-        mock_response = json.dumps({
-            "critical_count": 1,
-            "warning_count": 0,
-            "passed": False,
-            "findings": [
-                {"claim": "Supports unlimited storage", "severity": "CRITICAL",
-                 "reason": "Feature list says 10GB limit", "corrected_claim": "10GB storage per account"}
-            ]
-        })
+        mock_response = json.dumps(
+            {
+                "critical_count": 1,
+                "warning_count": 0,
+                "passed": False,
+                "findings": [
+                    {
+                        "claim": "Supports unlimited storage",
+                        "severity": "CRITICAL",
+                        "reason": "Feature list says 10GB limit",
+                        "corrected_claim": "10GB storage per account",
+                    }
+                ],
+            }
+        )
 
-        with patch("app.agents.marketing.nodes.hallucination_check.call_llm", new_callable=AsyncMock) as mock_llm:
+        with patch(
+            "app.agents.marketing.nodes.hallucination_check.call_llm", new_callable=AsyncMock
+        ) as mock_llm:
             mock_llm.return_value = (json.loads(mock_response), 300)
             result = await validate_claims_against_features(claims, feature_list)
 
@@ -124,11 +156,13 @@ class TestStandaloneHallucinationValidator:
         claims = ["Encrypted secret vault"]
         feature_list = {"features": ["Encrypted secret vault", "RBAC", "CLI integration"]}
 
-        mock_response = json.dumps({
-            "critical_count": 0, "warning_count": 0, "passed": True, "findings": []
-        })
+        mock_response = json.dumps(
+            {"critical_count": 0, "warning_count": 0, "passed": True, "findings": []}
+        )
 
-        with patch("app.agents.marketing.nodes.hallucination_check.call_llm", new_callable=AsyncMock) as mock_llm:
+        with patch(
+            "app.agents.marketing.nodes.hallucination_check.call_llm", new_callable=AsyncMock
+        ) as mock_llm:
             mock_llm.return_value = (json.loads(mock_response), 200)
             result = await validate_claims_against_features(claims, feature_list)
 
@@ -142,7 +176,7 @@ def _base_state() -> dict:
         "feature_list": {
             "features": ["Auth", "Payments", "Email"],
             "integrations": ["Stripe"],
-            "pricing_tiers": [{"name": "Free"}, {"name": "Pro", "price": "$12/mo"}]
+            "pricing_tiers": [{"name": "Free"}, {"name": "Pro", "price": "$12/mo"}],
         },
         "landing_page": {
             "hero_headline": "Ship fast",
@@ -159,7 +193,14 @@ def _base_state() -> dict:
             "linkedin_post": "Excited to launch!",
         },
         "email_sequences": {
-            "onboarding": [{"subject": "Welcome!", "preview_text": "Get started", "body_html": "<p>Hi</p>", "body_text": "Hi"}],
+            "onboarding": [
+                {
+                    "subject": "Welcome!",
+                    "preview_text": "Get started",
+                    "body_html": "<p>Hi</p>",
+                    "body_text": "Hi",
+                }
+            ],
             "reactivation": [],
         },
         "errors": [],

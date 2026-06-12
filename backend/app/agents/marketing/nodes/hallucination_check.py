@@ -28,9 +28,7 @@ _MAX_RETRIES = 2
 async def hallucination_check(state: MarketerState) -> MarketerState:
     """LangGraph node: cross-reference all generated copy against FeatureList."""
     retry_count = state.get("hallucination_retry_count", 0)
-    logger.info(
-        "[marketing] hallucination_check — start (retry=%d/%d)", retry_count, _MAX_RETRIES
-    )
+    logger.info("[marketing] hallucination_check — start (retry=%d/%d)", retry_count, _MAX_RETRIES)
 
     list(state.get("errors", []))
     feature_list = state.get("feature_list", {})

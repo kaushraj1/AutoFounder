@@ -65,7 +65,5 @@ async def tavily_search(
         )
         return result
     except Exception as exc:
-        logger.warning(
-            "[marketing/tavily] search failed (using LLM fallback): %s", exc
-        )
+        logger.warning("[marketing/tavily] search failed (using LLM fallback): %s", exc)
         return {"results": [], "fallback": True, "error": str(exc)}

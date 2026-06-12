@@ -36,19 +36,88 @@ def _build_initial_state(fixture: dict) -> dict:
     }
 
 
-_BRAND = ({"brand_voice": "tech", "positioning_statement": "P", "unique_value_proposition": "V",
-            "seo_keyword_targets": [], "competitor_gaps": [], "target_audience_summary": "T"}, 50)
-_LP = ({"hero_headline": "H", "hero_subheadline": "S", "hero_cta_text": "Go", "hero_cta_url": "https://x.com",
-         "features_section": [], "social_proof_section": "", "pricing_section": [], "faq_section": [],
-         "cta_footer_text": "", "meta_tags": None, "status": "draft"}, 80)
-_BLOGS = ({"blogs": [{"title": "B", "target_keyword": "k", "secondary_keywords": [],
-                       "body_markdown": "Body", "meta_description": "M", "word_count": 5, "status": "draft"}]}, 80)
-_PH = ({"tagline": "Go fast", "description": "SaaS.", "first_comment": "Hi!",
-         "maker_note": "Built.", "gallery_captions": [], "topics": [], "status": "draft"}, 60)
+_BRAND = (
+    {
+        "brand_voice": "tech",
+        "positioning_statement": "P",
+        "unique_value_proposition": "V",
+        "seo_keyword_targets": [],
+        "competitor_gaps": [],
+        "target_audience_summary": "T",
+    },
+    50,
+)
+_LP = (
+    {
+        "hero_headline": "H",
+        "hero_subheadline": "S",
+        "hero_cta_text": "Go",
+        "hero_cta_url": "https://x.com",
+        "features_section": [],
+        "social_proof_section": "",
+        "pricing_section": [],
+        "faq_section": [],
+        "cta_footer_text": "",
+        "meta_tags": None,
+        "status": "draft",
+    },
+    80,
+)
+_BLOGS = (
+    {
+        "blogs": [
+            {
+                "title": "B",
+                "target_keyword": "k",
+                "secondary_keywords": [],
+                "body_markdown": "Body",
+                "meta_description": "M",
+                "word_count": 5,
+                "status": "draft",
+            }
+        ]
+    },
+    80,
+)
+_PH = (
+    {
+        "tagline": "Go fast",
+        "description": "SaaS.",
+        "first_comment": "Hi!",
+        "maker_note": "Built.",
+        "gallery_captions": [],
+        "topics": [],
+        "status": "draft",
+    },
+    60,
+)
 _SOCIAL = ({"x_thread": ["T1"], "linkedin_post": "LI", "show_hn_post": "HN", "status": "draft"}, 60)
-_EMAIL = ({"onboarding": [{"subject": "W", "preview_text": "P", "body_html": "<p>H</p>",
-                             "body_text": "H", "send_at_days_offset": 0}], "reactivation": [], "status": "draft"}, 80)
-_VISUAL = ({"logo": None, "og_image": None, "social_card": None, "email_banner": None, "total_generated": 0}, 20)
+_EMAIL = (
+    {
+        "onboarding": [
+            {
+                "subject": "W",
+                "preview_text": "P",
+                "body_html": "<p>H</p>",
+                "body_text": "H",
+                "send_at_days_offset": 0,
+            }
+        ],
+        "reactivation": [],
+        "status": "draft",
+    },
+    80,
+)
+_VISUAL = (
+    {
+        "logo": None,
+        "og_image": None,
+        "social_card": None,
+        "email_banner": None,
+        "total_generated": 0,
+    },
+    20,
+)
 _HALL_PASS = ({"critical_count": 0, "warning_count": 0, "passed": True, "findings": []}, 80)
 
 
@@ -68,24 +137,42 @@ class TestApprovalTimeout:
                 "approval_status": "timed_out",
                 "approved_content_types": [],
                 "rejected_content_types": [],
-                "errors": list(state.get("errors", [])) + ["launch_control_center: approval timed out after 30 minutes"],
+                "errors": list(state.get("errors", []))
+                + ["launch_control_center: approval timed out after 30 minutes"],
             }
 
         with (
             patch("app.agents.marketing.nodes.analyse_brand.call_llm", return_value=_BRAND),
             patch("app.agents.marketing.nodes.generate_landing_page.call_llm", return_value=_LP),
             patch("app.agents.marketing.nodes.generate_seo_blogs.call_llm", return_value=_BLOGS),
-            patch("app.agents.marketing.nodes.generate_product_hunt_kit.call_llm", return_value=_PH),
-            patch("app.agents.marketing.nodes.generate_social_posts.call_llm", return_value=_SOCIAL),
-            patch("app.agents.marketing.nodes.generate_email_sequences.call_llm", return_value=_EMAIL),
-            patch("app.agents.marketing.nodes.generate_visual_assets.call_llm", return_value=_VISUAL),
-            patch("app.agents.marketing.nodes.hallucination_check.call_llm", return_value=_HALL_PASS),
-            patch("app.agents.marketing.nodes.analyse_brand.tavily_search", return_value={"results": []}),
-            patch("app.agents.marketing.nodes.generate_visual_assets.dalle_generate",
-                  return_value={"generated_url": None, "status": "failed"}),
+            patch(
+                "app.agents.marketing.nodes.generate_product_hunt_kit.call_llm", return_value=_PH
+            ),
+            patch(
+                "app.agents.marketing.nodes.generate_social_posts.call_llm", return_value=_SOCIAL
+            ),
+            patch(
+                "app.agents.marketing.nodes.generate_email_sequences.call_llm", return_value=_EMAIL
+            ),
+            patch(
+                "app.agents.marketing.nodes.generate_visual_assets.call_llm", return_value=_VISUAL
+            ),
+            patch(
+                "app.agents.marketing.nodes.hallucination_check.call_llm", return_value=_HALL_PASS
+            ),
+            patch(
+                "app.agents.marketing.nodes.analyse_brand.tavily_search",
+                return_value={"results": []},
+            ),
+            patch(
+                "app.agents.marketing.nodes.generate_visual_assets.dalle_generate",
+                return_value={"generated_url": None, "status": "failed"},
+            ),
             patch("app.agents.marketing.nodes.error_handler.httpx.AsyncClient") as mock_http,
             # Inject the timeout simulation directly into the graph's LCC node
-            patch("app.agents.marketing.graph.launch_control_center", side_effect=fake_lcc_timed_out),
+            patch(
+                "app.agents.marketing.graph.launch_control_center", side_effect=fake_lcc_timed_out
+            ),
         ):
             mock_http.return_value.__aenter__.return_value.post = AsyncMock(
                 return_value=MagicMock(raise_for_status=MagicMock())

@@ -46,9 +46,7 @@ async def schedule_posts(state: MarketerState) -> MarketerState:
         if linkedin_post:
             result = await buffer_schedule(linkedin_post, channel="linkedin")
             scheduled["linkedin"] = result
-            logger.info(
-                "[marketing] schedule_posts — LinkedIn: status=%s", result.get("status")
-            )
+            logger.info("[marketing] schedule_posts — LinkedIn: status=%s", result.get("status"))
 
     # ---- Email Day-0 via Resend ----
     if "email_sequences" in approved:
@@ -64,9 +62,7 @@ async def schedule_posts(state: MarketerState) -> MarketerState:
                 tags=[{"name": "sequence", "value": "onboarding_day0"}],
             )
             scheduled["email_day0"] = result
-            logger.info(
-                "[marketing] schedule_posts — Email day0: status=%s", result.get("status")
-            )
+            logger.info("[marketing] schedule_posts — Email day0: status=%s", result.get("status"))
 
     # ---- Product Hunt — always manual ----
     if "product_hunt_kit" in approved:
@@ -76,9 +72,7 @@ async def schedule_posts(state: MarketerState) -> MarketerState:
         }
         logger.info("[marketing] schedule_posts — Product Hunt: manual reminder set")
 
-    logger.info(
-        "[marketing] schedule_posts — done, channels=%s", list(scheduled.keys())
-    )
+    logger.info("[marketing] schedule_posts — done, channels=%s", list(scheduled.keys()))
 
     return {
         **state,

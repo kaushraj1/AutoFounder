@@ -68,10 +68,12 @@ class TestFeatureListHandoff:
 
     def test_empty_featurelist_triggers_fatal_error(self, base_state):
         """If compose_featurelist returns empty features, errors list must contain FATAL."""
+
         def _fake_empty_featurelist(prompt, **_):
             return {"features": [], "integrations": [], "pricing_tiers": []}, 0
 
         from unittest.mock import patch as mock_patch
+
         # patch_llm() is outer (all nodes); inner override wins for compose_featurelist
         with patch_llm():
             with mock_patch(

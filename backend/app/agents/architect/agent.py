@@ -1,5 +1,5 @@
 """ArchitectAgent — Pillar 2 (AF-040).
-  
+
 Implements the five-method BaseAgent loop around the LangGraph StateGraph.
 
 Standalone usage (no platform):
@@ -107,23 +107,23 @@ class ArchitectAgent(BaseAgent[Any, ArchitectOutput]):
         verify_result = await self.verify(output)
 
         if not verify_result.passed:
-            logger.warning(
-                "[architect] run=%s — verify issues: %s", run_id, verify_result.issues
-            )
+            logger.warning("[architect] run=%s — verify issues: %s", run_id, verify_result.issues)
 
         # ---- learn (emit trace) ------------------------------------
         elapsed = time.monotonic() - start_time
-        await self.learn({
-            "run_id": run_id,
-            "organization_id": organization_id,
-            "pillar": self.PILLAR,
-            "elapsed_seconds": round(elapsed, 2),
-            "tokens_used": final_state.get("llm_tokens_used", 0),
-            "errors": final_state.get("errors", []),
-            "verify_passed": verify_result.passed,
-            "verify_issues": verify_result.issues,
-            "approval_status": final_state.get("approval_status"),
-        })
+        await self.learn(
+            {
+                "run_id": run_id,
+                "organization_id": organization_id,
+                "pillar": self.PILLAR,
+                "elapsed_seconds": round(elapsed, 2),
+                "tokens_used": final_state.get("llm_tokens_used", 0),
+                "errors": final_state.get("errors", []),
+                "verify_passed": verify_result.passed,
+                "verify_issues": verify_result.issues,
+                "approval_status": final_state.get("approval_status"),
+            }
+        )
 
         logger.info(
             "[architect] run=%s — done in %.1fs, tokens=%d, approval=%s",
@@ -157,16 +157,18 @@ class ArchitectAgent(BaseAgent[Any, ArchitectOutput]):
 
     async def plan(self, intent: Intent) -> Plan:
         """Decompose the intent into the 9-node execution plan."""
-        return Plan(steps=[
-            "extract_requirements",
-            "design_erd || design_api_contract || select_stack",
-            "design_join",
-            "auth_strategy",
-            "scaling_plan",
-            "cost_forecast",
-            "compose_featurelist",
-            "hitl_gate",
-        ])
+        return Plan(
+            steps=[
+                "extract_requirements",
+                "design_erd || design_api_contract || select_stack",
+                "design_join",
+                "auth_strategy",
+                "scaling_plan",
+                "cost_forecast",
+                "compose_featurelist",
+                "hitl_gate",
+            ]
+        )
 
     async def execute(  # type: ignore[override]
         self, plan: Plan, *, state: ArchitectState

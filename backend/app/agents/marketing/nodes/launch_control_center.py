@@ -81,9 +81,7 @@ async def launch_control_center(state: MarketerState) -> MarketerState:
             value = await client.get(redis_key)
             if value:
                 status = value.strip().lower()
-                logger.info(
-                    "[marketing] launch_control_center — Founder responded: %s", status
-                )
+                logger.info("[marketing] launch_control_center — Founder responded: %s", status)
                 await client.aclose()
                 return _build_approval_state(state, status)
 
@@ -92,9 +90,7 @@ async def launch_control_center(state: MarketerState) -> MarketerState:
 
         # Timeout reached
         await client.aclose()
-        logger.warning(
-            "[marketing] launch_control_center — TIMED_OUT after %ds", _TIMEOUT_SECONDS
-        )
+        logger.warning("[marketing] launch_control_center — TIMED_OUT after %ds", _TIMEOUT_SECONDS)
         return _build_approval_state(state, "timed_out")
 
     except Exception as exc:

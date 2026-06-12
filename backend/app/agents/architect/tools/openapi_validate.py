@@ -113,7 +113,13 @@ class OpenAPIValidateTool:
                     continue
                 for method in methods:
                     if method.lower() not in {
-                        "get", "post", "put", "patch", "delete", "head", "options",
+                        "get",
+                        "post",
+                        "put",
+                        "patch",
+                        "delete",
+                        "head",
+                        "options",
                     }:
                         warnings.append(f"Unexpected HTTP method '{method}' on '{path}'")
 
@@ -127,6 +133,7 @@ class OpenAPIValidateTool:
         spec_str = json.dumps(spec)
         if '"$ref"' in spec_str:
             import re
+
             refs = re.findall(r'"#/([^"]+)"', spec_str)
             for ref in refs:
                 parts = ref.split("/")

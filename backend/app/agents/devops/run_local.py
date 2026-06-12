@@ -5,6 +5,7 @@ Run from the backend/ directory (so the `app` package resolves):
   .venv\\Scripts\\python.exe -m app.agents.devops.run_local \
       --input ..\\.claude\\specs\\pillar5-dummy-input.json
 """
+
 from __future__ import annotations
 
 import argparse

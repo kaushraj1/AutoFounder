@@ -1,4 +1,5 @@
 """enforce_node_sla decorator: per-node timeout via asyncio.wait_for."""
+
 from __future__ import annotations
 
 import asyncio

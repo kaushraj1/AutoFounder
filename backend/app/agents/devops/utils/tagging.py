@@ -1,4 +1,5 @@
 """Build the mandatory resource tag set. Tag key 'Tenant' is preserved (Option B)."""
+
 from __future__ import annotations
 
 from uuid import UUID

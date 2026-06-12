@@ -37,26 +37,106 @@ def _build_initial_state(fixture: dict) -> dict:
 
 
 _CLEAN_HALL = ({"critical_count": 0, "warning_count": 0, "passed": True, "findings": []}, 100)
-_FAIL_HALL = ({"critical_count": 1, "warning_count": 0, "passed": False,
-               "findings": [{"claim": "Unlimited storage", "source_node": "landing_page",
-                             "severity": "CRITICAL", "reason": "Not in feature list", "corrected_claim": ""}]}, 100)
+_FAIL_HALL = (
+    {
+        "critical_count": 1,
+        "warning_count": 0,
+        "passed": False,
+        "findings": [
+            {
+                "claim": "Unlimited storage",
+                "source_node": "landing_page",
+                "severity": "CRITICAL",
+                "reason": "Not in feature list",
+                "corrected_claim": "",
+            }
+        ],
+    },
+    100,
+)
 
-_BRAND = ({"brand_voice": "technical", "positioning_statement": "Pos",
-            "unique_value_proposition": "UVP", "seo_keyword_targets": [{"keyword": "saas"}],
-            "competitor_gaps": [], "target_audience_summary": "Devs"}, 50)
-_LP = ({"hero_headline": "Ship Fast", "hero_subheadline": "Sub",
-         "hero_cta_text": "Start", "hero_cta_url": "https://x.com",
-         "features_section": [], "social_proof_section": "", "pricing_section": [],
-         "faq_section": [], "cta_footer_text": "", "meta_tags": None, "status": "draft"}, 100)
-_BLOGS = ({"blogs": [{"title": "B", "target_keyword": "k", "secondary_keywords": [],
-                       "body_markdown": "Body", "meta_description": "M", "word_count": 10, "status": "draft"}]}, 100)
-_PH = ({"tagline": "Ship fast", "description": "SaaS boilerplate.",
-         "first_comment": "Hello PH!", "maker_note": "Built.",
-         "gallery_captions": [], "topics": [], "status": "draft"}, 100)
+_BRAND = (
+    {
+        "brand_voice": "technical",
+        "positioning_statement": "Pos",
+        "unique_value_proposition": "UVP",
+        "seo_keyword_targets": [{"keyword": "saas"}],
+        "competitor_gaps": [],
+        "target_audience_summary": "Devs",
+    },
+    50,
+)
+_LP = (
+    {
+        "hero_headline": "Ship Fast",
+        "hero_subheadline": "Sub",
+        "hero_cta_text": "Start",
+        "hero_cta_url": "https://x.com",
+        "features_section": [],
+        "social_proof_section": "",
+        "pricing_section": [],
+        "faq_section": [],
+        "cta_footer_text": "",
+        "meta_tags": None,
+        "status": "draft",
+    },
+    100,
+)
+_BLOGS = (
+    {
+        "blogs": [
+            {
+                "title": "B",
+                "target_keyword": "k",
+                "secondary_keywords": [],
+                "body_markdown": "Body",
+                "meta_description": "M",
+                "word_count": 10,
+                "status": "draft",
+            }
+        ]
+    },
+    100,
+)
+_PH = (
+    {
+        "tagline": "Ship fast",
+        "description": "SaaS boilerplate.",
+        "first_comment": "Hello PH!",
+        "maker_note": "Built.",
+        "gallery_captions": [],
+        "topics": [],
+        "status": "draft",
+    },
+    100,
+)
 _SOCIAL = ({"x_thread": ["T1"], "linkedin_post": "LI", "show_hn_post": "HN", "status": "draft"}, 50)
-_EMAIL = ({"onboarding": [{"subject": "W", "preview_text": "P", "body_html": "<p>H</p>",
-                             "body_text": "H", "send_at_days_offset": 0}], "reactivation": [], "status": "draft"}, 100)
-_VISUAL = ({"logo": None, "og_image": None, "social_card": None, "email_banner": None, "total_generated": 0}, 30)
+_EMAIL = (
+    {
+        "onboarding": [
+            {
+                "subject": "W",
+                "preview_text": "P",
+                "body_html": "<p>H</p>",
+                "body_text": "H",
+                "send_at_days_offset": 0,
+            }
+        ],
+        "reactivation": [],
+        "status": "draft",
+    },
+    100,
+)
+_VISUAL = (
+    {
+        "logo": None,
+        "og_image": None,
+        "social_card": None,
+        "email_banner": None,
+        "total_generated": 0,
+    },
+    30,
+)
 _GTM = ("# GTM Report", 100)
 
 
@@ -81,19 +161,50 @@ class TestHallucinationRetry:
 
         with (
             patch("app.agents.marketing.nodes.analyse_brand.call_llm", return_value=_BRAND) as _,
-            patch("app.agents.marketing.nodes.generate_landing_page.call_llm", return_value=_LP) as _,
-            patch("app.agents.marketing.nodes.generate_seo_blogs.call_llm", return_value=_BLOGS) as _,
-            patch("app.agents.marketing.nodes.generate_product_hunt_kit.call_llm", return_value=_PH) as _,
-            patch("app.agents.marketing.nodes.generate_social_posts.call_llm", return_value=_SOCIAL) as _,
-            patch("app.agents.marketing.nodes.generate_email_sequences.call_llm", return_value=_EMAIL) as _,
-            patch("app.agents.marketing.nodes.generate_visual_assets.call_llm", return_value=_VISUAL) as _,
-            patch("app.agents.marketing.nodes.hallucination_check.call_llm", side_effect=hall_effect),
-            patch("app.agents.marketing.nodes.render_gtm_report.call_llm_text", return_value=_GTM) as _,
-            patch("app.agents.marketing.nodes.analyse_brand.tavily_search", return_value={"results": []}) as _,
-            patch("app.agents.marketing.nodes.generate_visual_assets.dalle_generate", return_value={"generated_url": None, "status": "failed"}) as _,
-            patch("app.agents.marketing.nodes.schedule_posts.typefully_schedule", return_value={"thread_id": "t1", "status": "scheduled", "channel": "x"}) as _,
-            patch("app.agents.marketing.nodes.schedule_posts.buffer_schedule", return_value={"post_id": "b1", "status": "scheduled", "channel": "linkedin"}) as _,
-            patch("app.agents.marketing.nodes.schedule_posts.resend_broadcast", return_value={"email_id": "r1", "status": "sent"}) as _,
+            patch(
+                "app.agents.marketing.nodes.generate_landing_page.call_llm", return_value=_LP
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.generate_seo_blogs.call_llm", return_value=_BLOGS
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.generate_product_hunt_kit.call_llm", return_value=_PH
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.generate_social_posts.call_llm", return_value=_SOCIAL
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.generate_email_sequences.call_llm", return_value=_EMAIL
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.generate_visual_assets.call_llm", return_value=_VISUAL
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.hallucination_check.call_llm", side_effect=hall_effect
+            ),
+            patch(
+                "app.agents.marketing.nodes.render_gtm_report.call_llm_text", return_value=_GTM
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.analyse_brand.tavily_search",
+                return_value={"results": []},
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.generate_visual_assets.dalle_generate",
+                return_value={"generated_url": None, "status": "failed"},
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.schedule_posts.typefully_schedule",
+                return_value={"thread_id": "t1", "status": "scheduled", "channel": "x"},
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.schedule_posts.buffer_schedule",
+                return_value={"post_id": "b1", "status": "scheduled", "channel": "linkedin"},
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.schedule_posts.resend_broadcast",
+                return_value={"email_id": "r1", "status": "sent"},
+            ) as _,
         ):
             graph = build_marketer_graph()
             final_state = await graph.ainvoke(initial)
@@ -114,15 +225,36 @@ class TestHallucinationRetry:
 
         with (
             patch("app.agents.marketing.nodes.analyse_brand.call_llm", return_value=_BRAND) as _,
-            patch("app.agents.marketing.nodes.generate_landing_page.call_llm", return_value=_LP) as _,
-            patch("app.agents.marketing.nodes.generate_seo_blogs.call_llm", return_value=_BLOGS) as _,
-            patch("app.agents.marketing.nodes.generate_product_hunt_kit.call_llm", return_value=_PH) as _,
-            patch("app.agents.marketing.nodes.generate_social_posts.call_llm", return_value=_SOCIAL) as _,
-            patch("app.agents.marketing.nodes.generate_email_sequences.call_llm", return_value=_EMAIL) as _,
-            patch("app.agents.marketing.nodes.generate_visual_assets.call_llm", return_value=_VISUAL) as _,
-            patch("app.agents.marketing.nodes.hallucination_check.call_llm", return_value=hall_always_fail) as _,
-            patch("app.agents.marketing.nodes.analyse_brand.tavily_search", return_value={"results": []}) as _,
-            patch("app.agents.marketing.nodes.generate_visual_assets.dalle_generate", return_value={"generated_url": None, "status": "failed"}) as _,
+            patch(
+                "app.agents.marketing.nodes.generate_landing_page.call_llm", return_value=_LP
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.generate_seo_blogs.call_llm", return_value=_BLOGS
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.generate_product_hunt_kit.call_llm", return_value=_PH
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.generate_social_posts.call_llm", return_value=_SOCIAL
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.generate_email_sequences.call_llm", return_value=_EMAIL
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.generate_visual_assets.call_llm", return_value=_VISUAL
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.hallucination_check.call_llm",
+                return_value=hall_always_fail,
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.analyse_brand.tavily_search",
+                return_value={"results": []},
+            ) as _,
+            patch(
+                "app.agents.marketing.nodes.generate_visual_assets.dalle_generate",
+                return_value={"generated_url": None, "status": "failed"},
+            ) as _,
             patch("app.agents.marketing.nodes.error_handler.httpx.AsyncClient") as _,
         ):
             graph = build_marketer_graph()

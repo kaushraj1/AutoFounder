@@ -96,9 +96,7 @@ class LandingPage(BaseModel):
     hero_subheadline: str
     hero_cta_text: str
     hero_cta_url: str
-    features_section: list[dict[str, str]] = Field(
-        default_factory=list
-    )  # [{title, description}]
+    features_section: list[dict[str, str]] = Field(default_factory=list)  # [{title, description}]
     social_proof_section: str = ""
     pricing_section: list[dict[str, Any]] = Field(default_factory=list)
     faq_section: list[dict[str, str]] = Field(default_factory=list)
@@ -185,9 +183,7 @@ class EmailMessage(BaseModel):
 
 
 class EmailSequences(BaseModel):
-    onboarding: list[EmailMessage] = Field(
-        default_factory=list
-    )  # Day 0, 1, 3, 7, 14
+    onboarding: list[EmailMessage] = Field(default_factory=list)  # Day 0, 1, 3, 7, 14
     reactivation: list[EmailMessage] = Field(default_factory=list)  # 3 emails
     status: str = "draft"
 

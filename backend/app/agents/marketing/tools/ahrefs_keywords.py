@@ -45,6 +45,7 @@ async def ahrefs_keywords(
     results: list[dict[str, Any]] = []
 
     for keyword in keywords[:10]:  # cap at 10 to preserve daily quota
+
         async def _call(kw: str = keyword) -> dict[str, Any]:
             async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
                 response = await client.get(
@@ -62,23 +63,27 @@ async def ahrefs_keywords(
 
         try:
             data = await retry_async(_call, max_retries=3, label=f"ahrefs:{keyword}")
-            results.append({
-                "keyword": keyword,
-                "monthly_volume": data.get("volume", 0),
-                "keyword_difficulty": data.get("difficulty", 0),
-                "cpc_usd": data.get("cpc", 0.0),
-                "source": "ahrefs",
-            })
+            results.append(
+                {
+                    "keyword": keyword,
+                    "monthly_volume": data.get("volume", 0),
+                    "keyword_difficulty": data.get("difficulty", 0),
+                    "cpc_usd": data.get("cpc", 0.0),
+                    "source": "ahrefs",
+                }
+            )
         except Exception as exc:
             logger.warning("[marketing/ahrefs] keyword=%r failed: %s", keyword, exc)
-            results.append({
-                "keyword": keyword,
-                "monthly_volume": None,
-                "keyword_difficulty": None,
-                "cpc_usd": None,
-                "source": "fallback",
-                "error": str(exc),
-            })
+            results.append(
+                {
+                    "keyword": keyword,
+                    "monthly_volume": None,
+                    "keyword_difficulty": None,
+                    "cpc_usd": None,
+                    "source": "fallback",
+                    "error": str(exc),
+                }
+            )
 
     return results
 

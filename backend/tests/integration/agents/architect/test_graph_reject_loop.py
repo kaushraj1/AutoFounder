@@ -42,11 +42,12 @@ class TestRejectLoop:
         def _fake_route_after_hitl(state):
             call_count["hitl"] += 1
             if call_count["hitl"] == 1:
-                return "select_stack"   # first call → rejected, re-design
-            return "end"               # second call → approved
+                return "select_stack"  # first call → rejected, re-design
+            return "end"  # second call → approved
 
         with patch_llm():
             from unittest.mock import patch as mock_patch
+
             with mock_patch(
                 "app.agents.architect.graph.route_after_hitl",
                 side_effect=_fake_route_after_hitl,

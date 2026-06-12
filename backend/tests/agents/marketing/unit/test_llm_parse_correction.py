@@ -38,9 +38,7 @@ class TestParseWithCorrection:
         raw = '{"key": "unclosed string'
         corrected = {"key": "corrected value"}
 
-        with patch(
-            "app.agents.marketing.llm.call_llm", new_callable=AsyncMock
-        ) as mock_llm:
+        with patch("app.agents.marketing.llm.call_llm", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = (corrected, 50)
             result = await parse_with_correction(raw, "original prompt")
 
@@ -59,9 +57,7 @@ class TestParseWithCorrection:
         """If the correction LLM call also fails, raises ValueError."""
         raw = "{bad json}"
 
-        with patch(
-            "app.agents.marketing.llm.call_llm", new_callable=AsyncMock
-        ) as mock_llm:
+        with patch("app.agents.marketing.llm.call_llm", new_callable=AsyncMock) as mock_llm:
             mock_llm.side_effect = RuntimeError("LLM timeout")
             with pytest.raises(ValueError, match="correction also failed"):
                 await parse_with_correction(raw, "original prompt", max_correction_attempts=1)

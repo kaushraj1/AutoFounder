@@ -1,4 +1,5 @@
 """DevOpsState and sub-models. Ported from devops-agent.md sec.2."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -9,6 +10,7 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, ConfigDict, Field
 
 # Enums --------------------------------------------------------------------
+
 
 class NodeStatus(StrEnum):
     PENDING = "pending"
@@ -54,6 +56,7 @@ class DeployStatus(StrEnum):
 
 # Input from Coder Agent ---------------------------------------------------
 
+
 class ServiceManifest(BaseModel):
     name: str
     image_uri: str
@@ -71,6 +74,7 @@ class ServiceManifest(BaseModel):
 
 # Networking ---------------------------------------------------------------
 
+
 class VPCConfig(BaseModel):
     vpc_id: str | None = None
     cidr_block: str = "10.0.0.0/16"
@@ -86,6 +90,7 @@ class VPCConfig(BaseModel):
 
 
 # Compute (ECS Fargate) ----------------------------------------------------
+
 
 class ECSService(BaseModel):
     service_name: str
@@ -109,6 +114,7 @@ class ECSCluster(BaseModel):
 
 
 # Data layer ---------------------------------------------------------------
+
 
 class RDSInstance(BaseModel):
     # Supabase is reserved for the AutoFounder control-plane; tenant MVPs use RDS.
@@ -156,6 +162,7 @@ class S3Bucket(BaseModel):
 
 # Secrets ------------------------------------------------------------------
 
+
 class SecretRef(BaseModel):
     secret_name: str
     secret_arn: str | None = None
@@ -163,6 +170,7 @@ class SecretRef(BaseModel):
 
 
 # ECS task defs / CodeDeploy ----------------------------------------------
+
 
 class ECSTaskDef(BaseModel):
     service_name: str
@@ -185,6 +193,7 @@ class CodeDeployApp(BaseModel):
 
 # DNS / TLS ----------------------------------------------------------------
 
+
 class DNSRecord(BaseModel):
     hosted_zone_id: str | None = None
     record_name: str
@@ -201,6 +210,7 @@ class TLSCertificate(BaseModel):
 
 
 # Monitoring ---------------------------------------------------------------
+
 
 class CloudWatchAlarm(BaseModel):
     alarm_name: str
@@ -223,6 +233,7 @@ class MonitoringConfig(BaseModel):
 
 # CI/CD --------------------------------------------------------------------
 
+
 class CICDConfig(BaseModel):
     workflow_file_path: str
     workflow_yaml: str
@@ -231,6 +242,7 @@ class CICDConfig(BaseModel):
 
 
 # Smoke test ---------------------------------------------------------------
+
 
 class SmokeTestResult(BaseModel):
     endpoint: str
@@ -241,6 +253,7 @@ class SmokeTestResult(BaseModel):
 
 
 # Execution metadata -------------------------------------------------------
+
 
 class NodeTrace(BaseModel):
     node: str
@@ -258,6 +271,7 @@ class RetryPolicy(BaseModel):
 
 
 # Root state ---------------------------------------------------------------
+
 
 class DevOpsState(BaseModel):
     """LangGraph state threaded through every node in the DevOps subgraph."""

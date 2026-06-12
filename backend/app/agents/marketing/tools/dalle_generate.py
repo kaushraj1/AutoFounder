@@ -95,9 +95,7 @@ async def dalle_generate(
 
 def _prompt_only(prompt: str, asset_type: str, reason: str = "") -> dict[str, Any]:
     """Return prompt-only result (graceful degradation)."""
-    logger.info(
-        "[marketing/dalle] %s degraded to prompt-only (reason=%s)", asset_type, reason
-    )
+    logger.info("[marketing/dalle] %s degraded to prompt-only (reason=%s)", asset_type, reason)
     return {
         "asset_type": asset_type,
         "dall_e_prompt": prompt,

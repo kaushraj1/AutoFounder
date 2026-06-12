@@ -58,6 +58,7 @@ class TestHappyPath:
 
     def test_erd_present_and_valid(self, initial_state):
         from app.agents.architect.tools.mermaid import MermaidTool
+
         with patch_llm():
             result = build_architect_graph().invoke(initial_state)
 
@@ -68,6 +69,7 @@ class TestHappyPath:
 
     def test_openapi_present_and_valid(self, initial_state):
         from app.agents.architect.tools.openapi_validate import OpenAPIValidateTool
+
         with patch_llm():
             result = build_architect_graph().invoke(initial_state)
 

@@ -147,16 +147,18 @@ class MarketingAgent(_BaseAgentStub):
         elapsed = time.monotonic() - start_time
 
         # 7. Learn
-        await self.learn({
-            "run_id": run_id,
-            "organization_id": org_id,
-            "pillar": self.PILLAR,
-            "elapsed_seconds": round(elapsed, 2),
-            "tokens_used": final_state.get("llm_tokens_used", 0),
-            "images_generated": final_state.get("images_generated", 0),
-            "approval_status": final_state.get("approval_status"),
-            "errors": final_state.get("errors", []),
-        })
+        await self.learn(
+            {
+                "run_id": run_id,
+                "organization_id": org_id,
+                "pillar": self.PILLAR,
+                "elapsed_seconds": round(elapsed, 2),
+                "tokens_used": final_state.get("llm_tokens_used", 0),
+                "images_generated": final_state.get("images_generated", 0),
+                "approval_status": final_state.get("approval_status"),
+                "errors": final_state.get("errors", []),
+            }
+        )
 
         logger.info(
             "[marketing] run=%s — done in %.1fs tokens=%d images=%d approval=%s",

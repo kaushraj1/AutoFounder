@@ -144,8 +144,7 @@ class AWSPricingTool:
         """Estimate monthly ECS Fargate cost for one task definition."""
         p = prices or _STATIC_PRICES["ecs_fargate"]
         return round(
-            (vcpus * p["vcpu_per_hour"] + memory_gb * p["gb_memory_per_hour"])
-            * hours_per_month,
+            (vcpus * p["vcpu_per_hour"] + memory_gb * p["gb_memory_per_hour"]) * hours_per_month,
             2,
         )
 

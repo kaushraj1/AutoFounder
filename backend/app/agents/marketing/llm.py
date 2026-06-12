@@ -42,9 +42,7 @@ async def call_llm(
     try:
         import google.generativeai as genai
     except ImportError as exc:
-        raise RuntimeError(
-            "google-generativeai not installed. Run: uv sync"
-        ) from exc
+        raise RuntimeError("google-generativeai not installed. Run: uv sync") from exc
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:

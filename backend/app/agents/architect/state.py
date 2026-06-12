@@ -33,7 +33,7 @@ class ArchitectState(TypedDict, total=False):
     # ------------------------------------------------------------------
     # Node 1 — extract_requirements
     # ------------------------------------------------------------------
-    requirements: list[dict[str, Any]]   # list[Requirement]
+    requirements: list[dict[str, Any]]  # list[Requirement]
     use_cases: list[dict[str, Any]]
 
     # ------------------------------------------------------------------
@@ -78,17 +78,17 @@ class ArchitectState(TypedDict, total=False):
     # Node 6 — cost_forecast
     # ------------------------------------------------------------------
     cost_estimate: dict[str, Any]
-    pricing_source: str   # "live" | "static_fallback"
+    pricing_source: str  # "live" | "static_fallback"
 
     # ------------------------------------------------------------------
     # Node 7 — compose_featurelist
     # ------------------------------------------------------------------
-    feature_list: dict[str, Any]   # FeatureList shape
+    feature_list: dict[str, Any]  # FeatureList shape
 
     # ------------------------------------------------------------------
     # HITL gate
     # ------------------------------------------------------------------
-    approval_status: str   # "pending" | "approved" | "rejected"
+    approval_status: str  # "pending" | "approved" | "rejected"
     rejection_comment: str | None
 
     # ------------------------------------------------------------------

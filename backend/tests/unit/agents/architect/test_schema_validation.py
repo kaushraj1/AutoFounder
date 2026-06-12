@@ -17,6 +17,7 @@ from app.agents.architect.schema import ArchitectOutput, FeatureList, Requiremen
 # FeatureList
 # ---------------------------------------------------------------------------
 
+
 class TestFeatureList:
     def test_valid_feature_list(self, valid_feature_list):
         fl = FeatureList(**valid_feature_list)
@@ -42,6 +43,7 @@ class TestFeatureList:
 # Requirement
 # ---------------------------------------------------------------------------
 
+
 class TestRequirement:
     def test_valid_fr(self):
         r = Requirement(id="FR-001", kind="FR", description="Users can sign up", priority="P0")
@@ -54,7 +56,9 @@ class TestRequirement:
     def test_missing_required_field_raises(self):
         with pytest.raises(ValidationError):
             Requirement(  # type: ignore[call-arg]
-                id="FR-001", kind="FR", priority="P0"  # missing description
+                id="FR-001",
+                kind="FR",
+                priority="P0",  # missing description
             )
 
 
@@ -62,10 +66,7 @@ class TestRequirement:
 # ArchitectOutput
 # ---------------------------------------------------------------------------
 
-_SAMPLE_ERD = (
-    "erDiagram\n"
-    "    USER { uuid id PK\n datetime created_at\n datetime updated_at }"
-)
+_SAMPLE_ERD = "erDiagram\n    USER { uuid id PK\n datetime created_at\n datetime updated_at }"
 _SAMPLE_OPENAPI = {
     "openapi": "3.1.0",
     "info": {"title": "Test", "version": "1.0.0"},
