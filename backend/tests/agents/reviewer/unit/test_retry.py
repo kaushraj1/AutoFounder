@@ -5,10 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 from prometheus_client import REGISTRY
-from tests.agents.reviewer.conftest import make_state
 
 from app.agents.reviewer.schema import NodeStatus, RetryPolicy
 from app.agents.reviewer.utils.retry import with_retry
+from tests.agents.reviewer.conftest import make_state
 
 
 async def test_exhaustion_returns_failed_trace_without_raising() -> None:
