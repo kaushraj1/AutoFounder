@@ -3,9 +3,9 @@
 > **Owner**: Purnima
 > **Task IDs**: AF-045 (LLMOps Agent), AF-048 (Prompt Registry), AF-049 (LiteLLM Router + RAG), AF-050 (Eval harness)
 > **Branches**: `feature/llmops-agent`, `feature/prompt-registry`, `feature/model-router-rag`, `feature/eval-harness`
-> **Status**: 🟡 Shared plumbing startable now; the LLMOps agent itself runs **last**
+> **Status**: 🟢 Shared plumbing fully unblocked — foundation delivered (AF-036 BaseAgent · AF-027 UDAL · AF-025 migrations · AF-014 Supabase pgvector). **AF-048 Prompt Registry / AF-049 Router+RAG / AF-050 Eval are now the team's top blocker** (they gate every agent's prompts/routing) — prioritise. The LLMOps **agent** (AF-045) still runs last (needs all agents live; 4/9 so far). All 4 tasks ❌ not built yet.
 > **Date**: 2026-06-04 · **Version**: 1.0.0
-> **Depends on**: AF-036 (BaseAgent) + **all agents running** (for AF-045)
+> **Depends on**: AF-036 (BaseAgent) ✅ delivered · for AF-045 only: **all agents running** (🟡 4/9 live)
 > **SLA / Cadence**: Weekly Step Functions optimization cycle; eval CI gate blocks prompt promotion on > 2% regression
 > **Ground truth**: [CLAUDE.md](../CLAUDE.md) §7.10/§30/§31/§33/§36 · [llmops-agent.md](../../docs/architecture/Agents-Architecture/llmops-agent.md)
 
@@ -69,11 +69,11 @@ Pillar 7 is the **learning loop** — and Purnima also owns the **shared LLM plu
 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
-| BaseAgent ABC | AF-036 | Asit | LLMOps Agent subclasses it | 🔴 Blocked |
+| BaseAgent ABC | AF-036 | Asit | LLMOps Agent subclasses it | ✅ Done |
 | UDAL | AF-027 | Somesh | Read/write registries + pgvector RAG | ✅ Done |
 | Migrations (platform) | AF-025 | Somesh | `prompt_registry`, `model_registry` tables | ✅ Done |
-| Supabase pgvector | AF-014 | Asit | RAG retrieval store | 🟡 |
-| **All agents running** | AF-037–044 | Pillar owners | AF-045 needs live traces (so it runs LAST) | 🔴 |
+| Supabase pgvector | AF-014 | Asit | RAG retrieval store | ✅ Done |
+| **All agents running** | AF-037–044 | Pillar owners | AF-045 needs live traces (so it runs LAST) | 🟡 Partial — 4/9 live (AF-037/038/039 Pillar 1 + AF-042 Reviewer); AF-040/041/043/044 pending |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
 
@@ -361,9 +361,9 @@ class LLMOpsOutput(BaseModel):
 |---|---|---|---|
 | 1 | **AF-050 Eval harness** + Promptfoo golden-set runner scaffold | `eval/` | 🟢 Start now |
 | 1 | **AF-049 LiteLLM Router rules** + RAG (hybrid BM25+ANN, rerank, citation) | `llm/router.py`, `rag/` | 🟢 Start now |
-| 2 | **AF-048 Prompt Registry** loader + versioning + canary split | `prompts/registry.py` | 🟡 Needs AF-025 |
+| 2 | **AF-048 Prompt Registry** loader + versioning + canary split | `prompts/registry.py` | 🟢 Ready (AF-025 done) |
 | 2 | Drift monitoring (TruLens/Evidently) + FinOps report logic | `llmops/drift.py`, `finops.py` | 🟢 Start now |
-| 3 | **AF-045 LLMOps Agent** wired to BaseAgent (runs once agents are live) | `agent.py` | 🔴 Needs agents running |
+| 3 | **AF-045 LLMOps Agent** wired to BaseAgent (runs once agents are live) | `agent.py` | 🟡 BaseAgent ready; awaits remaining agents (4/9 live) |
 
 ### Phase 2 (Weeks 4–6)
 LangSmith integration; canary automation; drift dashboards; LLMOps Dashboard contract (AF-060).

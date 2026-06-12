@@ -1,0 +1,7 @@
+{
+  "name": "lint_errors",
+  "languages": ["python"],
+  "seeded_defects": ["unused import", "undefined name", "inconsistent formatting"],
+  "expected_verdict": "approved",
+  "expected_heal_cycles": 1
+}

@@ -76,7 +76,7 @@ The mobile app is the **founder-on-the-go** companion — submit an idea, watch 
 | Mobile scaffold | AF-006 | Team | `mobile-app/` workspace | ✅ Done |
 | REST endpoints | AF-030 | Somesh | Real data | ✅ Done |
 | Realtime | AF-031 | Somesh | Live run updates | ✅ Done |
-| SNS topic | AF-017 | Asit | Push notifications (AF-064) | 🔴 |
+| SNS topic | AF-017 | Asit | Push notifications (AF-064) | ✅ Done (messaging module shipped; Confluent Kafka = follow-up) |
 | HITL gate manager | AF-034 | Somesh | Gate approval (AF-068) | ✅ Done |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)

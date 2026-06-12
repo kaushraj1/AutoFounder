@@ -2,9 +2,9 @@
 
 > **Owner**: Kartik Mogalapalli
 > **Task ID**: AF-041 · **Branch**: `feature/coder-agent`
-> **Status**: 🟡 Partially startable (offline work)
+> **Status**: 🟡 Platform unblocked (AF-036 BaseAgent · AF-027 UDAL · AF-047 Tool Registry delivered) — but still **blocked on AF-040 Architect output** (Kaushlendra) for the spec, plus AF-048/049 (Purnima). Agent ❌ not built yet.
 > **Date**: 2026-06-04 · **Version**: 1.0.0
-> **Depends on**: AF-036 (BaseAgent), AF-040 (Architect ERD + OpenAPI + FeatureList)
+> **Depends on**: AF-036 (BaseAgent) ✅, AF-040 (Architect ERD + OpenAPI + FeatureList) ❌ pending
 > **SLA**: Code generation < 15 min; zero lint errors; TypeScript strict; mypy clean
 > **Ground truth**: [CLAUDE.md](../CLAUDE.md) §7.6 · [coder-agent.md](../../docs/architecture/Agents-Architecture/coder-agent.md)
 
@@ -71,11 +71,11 @@ Pillar 3 is the **factory floor** — it turns the approved architecture (ERD + 
 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
-| BaseAgent ABC | AF-036 | Asit | CoderAgent subclasses it | 🔴 Blocked |
+| BaseAgent ABC | AF-036 | Asit | CoderAgent subclasses it | ✅ Done |
 | UDAL | AF-027 | Somesh | Read architecture, write repo artifact refs | ✅ Done |
-| Architect output | AF-040 | Kaushlendra | ERD + OpenAPI + FeatureList = the spec | 🟡 |
-| Prompt Registry / Router | AF-048/049 | Purnima | Code-gen prompts + Gemini routing | 🟡 |
-| Tool Registry | AF-047 | Asit | GitHub + Stripe tools | 🟡 |
+| Architect output | AF-040 | Kaushlendra | ERD + OpenAPI + FeatureList = the spec | ❌ Pending (Kaushlendra) — **the live blocker** |
+| Prompt Registry / Router | AF-048/049 | Purnima | Code-gen prompts + Gemini routing | ❌ Pending (Purnima) |
+| Tool Registry | AF-047 | Asit | GitHub + Stripe tools | ✅ Done (shell; add entries) |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
 
@@ -190,8 +190,17 @@ class CoderAgent(BaseAgent[CoderState, CoderState]):
 |             +--------+---------+                                        |
 |                      v                                                  |
 |             +------------------+   +------------------+                 |
-|             | gen_cicd         |-->| open_pr (GitHub) |--> Pillar 4    |
-|             +------------------+   +------------------+                 |
+|             | gen_cicd         |--> open_pr (GitHub)                    |
+|             +------------------+        |                              |
+|                                          v                              |
+|                              +------------------------+                 |
+|                              | wait_for_image_push    |  (poll cd.yml,  |
+|                              |  (Variant A — owns ECR |   download      |
+|                              |   image_uri resolution)|   images.json)  |
+|                              +------------------------+                 |
+|                                          |                              |
+|                                          v                              |
+|                              CoderOutput (with services[]) --> Pillar 4 |
 +--------------------------------------------------------------------------+
 ```
 
@@ -209,7 +218,8 @@ class CoderAgent(BaseAgent[CoderState, CoderState]):
 | 8 | `gen_admin_panel` | Auto CRUD admin | Gemini 3.5 Flash | < 2 min |
 | 9 | `style_enforce` | Prettier + ESLint + Black + Ruff `--fix` | — | < 1 min |
 | 10 | `gen_cicd` | GitHub Actions workflow | Gemini 3.5 Flash | < 1 min |
-| 11 | `open_pr` | Commit + open PR with checks | — (GitHub API) | < 1 min |
+| 11 | `open_pr` | Commit + open PR with checks; commit also triggers `cd.yml` | — (GitHub API) | < 1 min |
+| 12 | `wait_for_image_push` | Poll GitHub Actions API for the `cd.yml` run; wait for `docker build` + `docker push` to ECR; download the `images.json` artifact uploaded by `cd.yml`; populate `state.services[]` with resolved ECR `image_uri`. Variant A — owns the Coder ↔ DevOps contract; DevOps never builds. | — (GitHub API) | < 8 min |
 
 ---
 
@@ -223,9 +233,10 @@ Step 2: PARALLEL GENERATION -- gen_frontend || gen_backend (against ERD + OpenAP
 Step 3: JOIN -- merge FE + BE
 Step 4: SHARED LAYERS (parallel) -- gen_db_layer || gen_auth || gen_stripe || gen_admin_panel
 Step 5: STYLE ENFORCE -- run Prettier/ESLint/Black/Ruff --fix; regenerate offenders once
-Step 6: CI/CD -- generate GitHub Actions workflow
-Step 7: PR -- commit to feature branch, open PR with checks, produce deployed preview
-Step 8: EMIT -- CoderOutput (repo_url, pr_number, branch, coder_run_id, manifest) -> Pillar 4
+Step 6: CI/CD -- generate GitHub Actions workflow (cd.yml: ECR login + docker build/push + upload images.json artifact)
+Step 7: PR -- commit to feature branch, open PR with checks (the push triggers cd.yml)
+Step 8: WAIT FOR IMAGE PUSH -- poll cd.yml; download images.json; resolve services[].image_uri (Variant A)
+Step 9: EMIT -- CoderOutput (repo_url, pr_number, branch, coder_run_id, stack_manifest, services[]) -> Pillar 4
 ```
 
 ### 4.2 Orchestration Sequence (Mermaid)
@@ -249,9 +260,11 @@ sequenceDiagram
     FE-->>Cod: frontend files
     BE-->>Cod: backend files
     Cod->>Cod: db + auth + stripe + admin -> style_enforce -> cicd
-    Cod->>GH: commit branch + open PR with checks
+    Cod->>GH: commit branch + open PR with checks (push triggers cd.yml)
     GH-->>Cod: pr_number, repo_url
-    Cod-->>Rev: CoderOutput (repo_url, pr_number, branch, coder_run_id)
+    Cod->>GH: poll cd.yml run (wait_for_image_push)
+    GH-->>Cod: cd.yml success + images.json artifact (services[].image_uri)
+    Cod-->>Rev: CoderOutput (repo_url, pr_number, branch, coder_run_id, services[])
 ```
 
 ### 4.3 Data Passed Between Nodes
@@ -266,8 +279,9 @@ scaffold_repo -> repo_skeleton, configs
                 gen_admin_panel -> admin_module
    -> style_enforce -> formatted_repo (zero lint errors)
    -> gen_cicd -> github_actions_workflow
-   -> open_pr -> repo_url, pr_number, branch
-   -> CoderOutput{repo_url, pr_number, branch, coder_run_id, stack_manifest} -> Pillar 4
+   -> open_pr -> repo_url, pr_number, branch (commit also triggers cd.yml)
+   -> wait_for_image_push -> services[].image_uri (poll cd.yml, download images.json artifact)
+   -> CoderOutput{repo_url, pr_number, branch, coder_run_id, stack_manifest, services[]} -> Pillar 4
 ```
 
 ---
@@ -283,13 +297,14 @@ scaffold_repo -> repo_skeleton, configs
 | Schema/Migration Agent | ✅ **Node** → `gen_db_layer` | SQLAlchemy + Alembic |
 | Integration Agent | ✅ **Nodes** → `gen_auth`, `gen_stripe` | Auth + payments |
 | Repo Manager | ✅ **Node** → `open_pr` | GitHub commit + PR |
+| CI Image Watcher | ✅ **Node** → `wait_for_image_push` | Polls `cd.yml`, resolves `services[].image_uri` (Variant A) |
 | Admin Panel Generator | ✅ **Node** → `gen_admin_panel` | CRUD scaffolding |
 | Docs Generator | 🔶 **Merged into scaffold/PR** | README in scaffold; expand Phase 2 |
 | Mobile Code Gen | 🔶 **Phase 2 (Pillar 8)** | Out of scope for MVP |
 
 ### 5.2 Final Agent Architecture
 
-**Phase 1:** 11 nodes (scaffold → FE||BE → db/auth/stripe/admin → style → CI/CD → PR).
+**Phase 1:** 12 nodes (scaffold → FE||BE → db/auth/stripe/admin → style → CI/CD → PR → wait_for_image_push).
 **Phase 2:** docs generation, e2e test scaffolds, deployed-preview wiring, more integrations.
 **Phase 3:** mobile code gen (Pillar 8), multi-language backends, design-token theming.
 
@@ -302,6 +317,7 @@ scaffold_repo -> repo_skeleton, configs
 | Node | Tool | Service | Purpose | Env Variable |
 |---|---|---|---|---|
 | open_pr | GitHub API | github.com | Commit + open PR | `GITHUB_TOKEN` |
+| wait_for_image_push | GitHub Actions API | github.com | Poll workflow run; download `images.json` artifact; resolve `services[].image_uri` | `GITHUB_TOKEN` |
 | gen_stripe | Stripe | stripe.com | Billing scaffolding | `STRIPE_SECRET_KEY` |
 | gen_frontend | npm | registry | Resolve FE deps | — |
 | gen_backend | PyPI | index | Resolve BE deps | — |
@@ -341,8 +357,16 @@ scaffold_repo -> repo_skeleton, configs
 class CodeArtifact(BaseModel):
     file_path: str; language: str; content: str; size_bytes: int
 
+class ServiceManifest(BaseModel):
+    """Populated by wait_for_image_push; consumed by DevOps (Pillar 5)."""
+    name: str                            # logical service name
+    image_uri: str                       # <acct>.dkr.ecr.<region>.amazonaws.com/<repo>:<sha>
+    port: int                            # container listen port
+    health_check_path: str = "/health"
+    env_secret_refs: list[str] = []
+
 class CoderOutput(BaseModel):
-    """Consumed by the Reviewer (Pillar 4)."""
+    """Consumed by the Reviewer (Pillar 4) and relayed to DevOps (Pillar 5)."""
     run_id: UUID; organization_id: str
     repo_url: str; pr_number: int; branch: str
     coder_run_id: UUID
@@ -352,6 +376,9 @@ class CoderOutput(BaseModel):
     typescript_strict: bool; mypy_clean: bool
     preview_url: str | None = None
     total_llm_tokens_used: int = 0
+    # Variant A: image build/push happens inside Coder; DevOps consumes these as-is.
+    services: list[ServiceManifest] = []
+    cd_workflow_run_id: int | None = None
 ```
 
 ---
@@ -364,9 +391,9 @@ class CoderOutput(BaseModel):
 |---|---|---|---|
 | 1 | Code-gen prompt templates (Next.js, FastAPI, db, auth, stripe, admin, CI/CD) | `prompts/*.j2` | 🟢 Start now |
 | 1 | Repo scaffolding templates + GitHub/Stripe tool wrappers | `templates/`, `tools/*.py` | 🟢 Start now |
-| 2 | StateGraph + 11 nodes (FE||BE parallel) + routers | `graph.py`, `nodes/` | 🟡 Needs BaseAgent |
+| 2 | StateGraph + 12 nodes (FE||BE parallel; `wait_for_image_push` poll loop) + routers | `graph.py`, `nodes/` | 🟢 Ready (AF-036 done) |
 | 2 | Style-enforce pipeline (Prettier/ESLint/Black/Ruff) | `nodes/style_enforce.py` | 🟢 Start now |
-| 3 | Wire CoderAgent to BaseAgent; CoderOutput contract | `agent.py` | 🔴 Needs AF-036 |
+| 3 | Wire CoderAgent to BaseAgent; CoderOutput contract (incl. `services[]`) | `agent.py` | 🟡 BaseAgent ready; needs AF-040 spec |
 | 3 | Golden evals (compile-clean, lint-clean) + mocked tests | `tests/golden/` | 🟢 Start now |
 
 ### Phase 2 (Weeks 4–6)
@@ -506,6 +533,16 @@ message CoderOutput {
   bool   lint_clean = 8; bool typescript_strict = 9; bool mypy_clean = 10;
   string preview_url = 11;
   int32  total_llm_tokens_used = 12;
+  // Variant A — image build/push owned by Coder via wait_for_image_push.
+  repeated ServiceManifest services = 13;
+  int64  cd_workflow_run_id = 14;
+}
+message ServiceManifest {
+  string name = 1;                      // logical service name
+  string image_uri = 2;                 // <acct>.dkr.ecr.<region>.amazonaws.com/<repo>:<sha>
+  int32  port = 3;                      // container listen port
+  string health_check_path = 4;         // e.g. "/health"
+  repeated string env_secret_refs = 5;  // Secrets Manager names
 }
 ```
 
@@ -520,6 +557,8 @@ message CoderOutput {
 | 5 | **Agree ERD/OpenAPI/FeatureList input with Kaushlendra** | P0 | 1 hr | shared contract |
 | 6 | **Agree CoderOutput contract with Vishal** | P0 | 1 hr | shared contract |
 | 7 | Golden evals (compile-clean, lint-clean) + mocked tests | P1 | 5 hrs | `tests/golden/` |
+| 8 | `cd.yml` template: ECR login → build → push → upload `images.json` artifact (one JSON entry per service) | P0 | 3 hrs | `templates/cicd/cd.yml.j2` |
+| 9 | `wait_for_image_push` node: GH Actions polling + artifact download + `services[]` population | P0 | 4 hrs | `nodes/wait_for_image_push.py` |
 
 **Total offline work ~26 hrs — all doable before BaseAgent lands.**
 
@@ -534,6 +573,7 @@ message CoderOutput {
 | D3 | Generated stack | Next.js 14 + FastAPI + Supabase + Stripe | CLAUDE.md §7.6 default |
 | D4 | PR with checks | Open PR, not just push | Reviewer + humans get a diff surface |
 | D5 | Mobile code gen | Phase 2/Pillar 8 | Out of MVP scope |
+| D6 | Image build & push ownership (Coder ↔ DevOps) | **Variant A — Coder owns it.** `cd.yml` builds and pushes to ECR on commit; `wait_for_image_push` polls the run and populates `services[].image_uri` before emitting `CoderOutput`. DevOps consumes the URI as-is and fails fast at `ingest_input` if absent. | Keeps DevOps purely Terraform + AWS SDK; matches `pillar5-dummy-input.json` and `devops-agent.md` contract; build runs in parallel with `attach_foundation_network` so the < 10 min SLA holds. |
 
 ## Appendix B: Risk Register
 
@@ -551,8 +591,8 @@ message CoderOutput {
 |---|---|---|---|
 | **Kaushlendra (Pillar 2)** | Agree ERD + OpenAPI + FeatureList input shape | Immediately | ⬜ Pending |
 | **Vishal (Pillar 4)** | Agree CoderOutput (`repo_url`/`pr_number`/`branch`/`coder_run_id`/manifest) | Immediately | ⬜ Pending |
-| **Prasenjit (Pillar 5)** | Confirm Dockerfile + preview expectations | Soon | ⬜ Pending |
-| **Asit (Platform)** | BaseAgent + UDAL + GitHub/Stripe tool registration | When AF-036 starts | ⬜ Pending |
+| **Prasenjit (Pillar 5)** | Confirm Dockerfile + preview expectations | Soon | ✅ Resolved — Variant A (see Appendix A, D6): Coder owns image build/push + `services[].image_uri`; DevOps consumes as-is |
+| **Asit (Platform)** | BaseAgent + UDAL + GitHub/Stripe tool registration | When AF-036 starts | ✅ BaseAgent + UDAL + Tool Registry shell delivered (add GitHub/Stripe entries) |
 | **Purnima (Pillar 7)** | Register coder prompts (AF-048) + routing | When shells exist | ⬜ Pending |
 | **Raunak (Frontend)** | Code Review Studio source-diff contract (AF-057) | When mock data ready | ⬜ Pending |
 

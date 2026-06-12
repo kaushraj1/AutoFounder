@@ -1,0 +1,8 @@
+{
+  "name": "sql_injection",
+  "languages": ["python"],
+  "seeded_defects": ["OWASP A03:2021 SQL injection via string interpolation (CWE-89)"],
+  "expected_verdict": "escalate",
+  "expected_owasp": ["A03:2021-Injection"],
+  "note": "Critical, not auto-fixable → hard block. Never approve regardless of heal cycle."
+}

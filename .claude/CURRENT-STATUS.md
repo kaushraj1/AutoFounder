@@ -37,7 +37,7 @@ Legend: ✅ done · 🟫 partial · 🟪 scaffold-only (stub, compiles, no logic
 | **2 — Infra & Cloud** | AF-012..024 | ❌ ~all | **0 done.** AF-012–021,014,024 ❌ · AF-022 🟫 (CI done, CD inert) · AF-023 🟫 (JSON logs done, OTel unused) |
 | **3a — Core API/Data** | AF-025..032 | ✅ 7 / ❌ 1 | AF-025/026/027/028/029 ✅ · **AF-030 🟫 (overstated)** · **AF-031 🟪 (overstated)** · AF-032 ⏳ in PR #12 |
 | **3b — Orchestrator** | AF-033..035 | ❌ | ⏳ **delivered by PR #12** (in `dev`, engine.py is still a stub) |
-| **3c — Agents** | AF-036..045 | ❌ | AF-036 🟫 (contract only, no error-hierarchy/circuit-breakers) · AF-037/038/039 🟪 · AF-040..045 ❌ |
+| **3c — Agents** | AF-036..045 | ❌ | AF-036 🟫 (contract only, no error-hierarchy/circuit-breakers) · AF-037/038/039 🟪 · AF-040 🟪 (nodes/graph/schema/tools/prompts done; 60 tests ✅; pending BaseAgent wiring) · AF-041..045 ❌ |
 | **3d — Guardrails/Reg/Router/Eval** | AF-046..050 | ❌ | AF-046 🟫 (1/6 stages, `run()` raises) · AF-047/048/049/050 ❌ (DB tables only) |
 | **4 — Frontend** | AF-051..062 | ❌ | 🟪 scaffold-only (`placeholder.ts`, no Next/React/Tailwind) |
 | **5 — Mobile** | AF-063..071 | ❌ | 🟪 scaffold-only (no Expo deps) |
@@ -123,7 +123,7 @@ Reassigned to you from Asit (per Somesh, 2026-06-06). **Status: ~greenfield Terr
 
 > **Sequencing:** `AF-012 → AF-019/020/021 (parallel) → AF-013 → AF-015/016/017 → AF-018`, then close the CD loop (AF-022) and observability (AF-023/024). Coordinate with **Prasenjit (AF-043 DevOps agent)** — his product-Terraform mirrors your platform-Terraform; share modules.
 
-**Your own assignment, `AF-042` (Reviewer/Self-Healer agent), is ❌ not-started and blocked on `AF-036` (BaseAgent) + `AF-041` (Coder agent).** You can still build its offline pieces now (sandbox runner, Trivy/Semgrep/Snyk wrappers, self-heal state machine) per the task doc.
+**Your own assignment, `AF-042` (Reviewer/Self-Healer agent), is ✅ delivered (2026-06-09) on `feature/reviewer-agent` — see §10.** Built against the `AF-036` BaseAgent + `AF-041` Coder contract with the plan's intended fallbacks; ruff/mypy/pytest green. _(This §5 line reflected the pre-build state.)_
 
 ---
 
@@ -165,3 +165,29 @@ Since the snapshot above was written:
   - Wired into `pnpm-workspace.yaml` (it was missing); `.gitignore` updated for `*.vsix` + the extension's committed `.vscode/`.
   - **Verified green:** `tsc --noEmit`, ESLint, Prettier, **35** `node:test` unit tests, esbuild bundle (`dist/extension.js`), and `vsce package` (clean 32 KB `.vsix`).
 - **Honest scope note:** built against the AF-030 REST + AF-031 Realtime + AF-034 HITL contract. Because AF-031 Realtime is scaffold-only and AF-041 Coder Agent isn't built, the extension uses the plan's **intended fallbacks** (REST polling instead of live WS; a labelled placeholder for code-gen) — these activate automatically once the backend lands, no client change needed.
+
+---
+
+## 10. Update — 2026-06-09 (Pillar 4 Reviewer / Self-Healer complete)
+
+- **`AF-042` Reviewer / Self-Healer Agent (Pillar 4) delivered** by Vishal on `feature/reviewer-agent` (was ❌ not-started per §5). A 14-node LangGraph `ReviewerAgent` (subclasses `BaseAgent`): `ingest → ephemeral sandbox → 5 parallel gates → LLM-judge → deterministic triage → bounded self-heal loop (max 5) → teardown → report`, with a central `error_handler` sink. Gates: ESLint/Prettier · Ruff/Black · Jest · pytest · Playwright · Trivy/Semgrep/Bandit/Snyk/Gitleaks · SonarQube.
+  - **Safety-first triage:** OWASP CRITICAL/HIGH non-fixable hard-block (severity fail-safe), coverage ≥ 80% gate, source-only heal patches (never tests).
+  - **Outputs:** flat `ReviewerOutput` (+ protobuf) → DevOps Agent (AF-043); UDAL report + scan-JSON persistence; PR comment; Prometheus metrics (incl. per-node SLA); Slack escalation.
+  - **Security hardening** (from an adversarial multi-agent self-review, 20 findings fixed): path-boundary heal-write guard, git arg-injection guard, credential redaction, crashed-gate-can't-approve guard, OWASP fail-safe.
+- **Honest scope note:** built against the `AF-036` BaseAgent + `AF-041` Coder contract with the plan's **intended fallbacks** — scanners degrade to SKIP when a binary/token is absent; MVP runs gates **host-side** (full in-container exec is Phase 2). These activate automatically once Docker/scanners/Coder land, no change needed.
+- **Verified green:** `ruff` + `ruff format` + `mypy` (196 files) + full `pytest` suite. Unit + integration tests (no Docker/scanners/network) + 5 sample repos. Plan: [`developer-plans/05-vishal-pillar-4-testing-plan.md`](developer-plans/05-vishal-pillar-4-testing-plan.md).
+- Trackers synced: [`.claude/TASKS.md`](TASKS.md), [`.claude/task_assigned.md`](task_assigned.md), [`.claude/developer-plans/00-INDEX.md`](developer-plans/00-INDEX.md).
+
+---
+
+## 11. Update — 2026-06-09 (Asit's platform foundation closed out: AF-047 Tool Registry + AF-046 Guardrails)
+
+Completing **Asit's** remaining Phase-3 platform gaps (Vishal exec, on `feat/platform/guardrails-tool-registry` off `dev`). Both were the genuine ❌ items from §2 line "3d — AF-046 🟫 (1/6 stages, `run()` raises) · AF-047 ❌".
+
+- **`AF-047` Tool Registry shell delivered** — new `backend/app/tools/` with a `ToolRegistry` singleton (`register`/`get`/`call`, Pydantic **and** JSON-schema arg validation, auth-scope enforcement, `CostClass` per-call USD estimates → maps to `platform.tool_registry`). Satisfies `ToolRegistryProtocol`, so it is injectable into any `BaseAgent`. Distinct from the per-agent local registries (Local/Research/No/Reviewer) — this is the **shared platform allow-list**; per-pillar tool *entries* remain each pillar's job by design.
+- **`AF-046` 6-stage Guardrails pipeline delivered (MVP)** — replaces the `GuardrailPipeline.run()` `NotImplementedError` stub with `before_llm` / `around_tool` / `after_llm` + immutable lineage. Stages: **policy** (OPA, reuses AF-029 client) · **input** (regex PII redaction + heuristic injection, fail-closed) · **instruction** (static validators) · **execution** (Tool-Registry allow-list + schema + scope + rate + cost-cap) · **output** (toxicity lexicon + citation + 3-strike escalate, open+flag) · **monitoring** (refusal + length-drift). Security stages fail closed; quality stages fail open with flags. `audit.emit_lineage` → `platform.audit_log` (+ optional S3 Object Lock), never raises.
+- **Additively wired into `BaseAgent`** — new opt-in `guardrails=` constructor param (default `None`). `_call_llm` runs `before_llm` (blocks → `LLMError`; uses sanitized prompt), `_call_tool` runs `around_tool` (blocks → `ToolError`). **All 4 existing agents (strategy/research/product_planner/reviewer) are byte-for-byte unaffected** — they pass no pipeline.
+- **Honest scope note (the `*` follow-ups):** the stages use the plan's mandated **fallbacks** because Presidio / Llama Guard / TruLens / Evidently / the OPA sidecar are not packaged. Swapping them in + deploying the S3 Object-Lock audit bucket is the Phase-2 wiring — flip the config env vars, no pipeline change needed.
+- **Verified green:** `ruff` + `ruff format` + `mypy` (**210 files**) + **full `pytest` (369 passed, +127 new)**. Commits on the branch: `feat(platform): AF-047 …`, `feat(guardrails): AF-046 …`, `feat(agents): optionally wrap BaseAgent …`.
+- **Net effect:** Asit's platform foundation (infra AF-012–024 · BaseAgent AF-036 · VS Code AF-072–078 · **Tool Registry AF-047** · **Guardrails AF-046**) is now **fully delivered**; the only Asit work left is the **Phase-4-deferred** Finance + Ops/Risk agents (plan 13).
+- Trackers synced: [`.claude/TASKS.md`](TASKS.md), [`.claude/task_assigned.md`](task_assigned.md), [`.claude/developer-plans/00-INDEX.md`](developer-plans/00-INDEX.md), [`developer-plans/11-asit-guardrails-pipeline-plan.md`](developer-plans/11-asit-guardrails-pipeline-plan.md), [`developer-plans/01-asit-platform-foundation-plan.md`](developer-plans/01-asit-platform-foundation-plan.md).

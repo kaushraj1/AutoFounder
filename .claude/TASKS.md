@@ -10,13 +10,13 @@
 |-------|-------------|-------|---------|-----------|
 | Phase 1 | Monorepo & Boilerplate Setup | 11 | 11 | 0 |
 | Phase 2 | Infrastructure & Cloud | 13 | 13 | 0 |
-| Phase 3 | Backend — FastAPI + Agents | 26 | 15 | 11 |
+| Phase 3 | Backend — FastAPI + Agents | 26 | 18 | 8 |
 | Phase 4 | Frontend — Next.js 14 | 12 | 0 | 12 |
 | Phase 5 | Mobile — Expo React Native | 9 | 0 | 9 |
 | Phase 6 | VS Code Extension | 7 | 7 | 0 |
-| **Total** | | **78** | **46** | **32** |
+| **Total** | | **78** | **49** | **29** |
 
-> Phase 2: **13/13 merged to `dev`** (PR #13). Phase 3: **15/26** done — AF-025–039 (foundation + orchestrator + BaseAgent + Pillar-1 agents); AF-040–050 pending. **Phase 6: 7/7** done (`feature/vscode-extension`) — full TypeScript VS Code extension (esbuild-bundled, `tsc`+ESLint+Prettier clean, 35 unit tests, `vsce package` verified); built against the AF-030/031/034 contract with graceful fallbacks where AF-031 Realtime / AF-041 Coder are still landing. Documented Phase-2 follow-ups: AF-017 (Confluent), AF-018 (CloudFront/Shield), AF-022 (blue/green canary), AF-023 (FireLens sidecar), AF-024 (deployed Prometheus/Grafana + live LangSmith) — see footnotes.
+> Phase 2: **13/13 merged to `dev`** (PR #13). Phase 3: **18/26** done — AF-025–039 (foundation + orchestrator + BaseAgent + Pillar-1 agents) + AF-042 Reviewer + **AF-046 Guardrails + AF-047 Tool Registry** (`feat/platform/guardrails-tool-registry`); AF-040/041/043/044/045/048/049/050 pending. **Phase 6: 7/7** done (`feature/vscode-extension`) — full TypeScript VS Code extension (esbuild-bundled, `tsc`+ESLint+Prettier clean, 35 unit tests, `vsce package` verified); built against the AF-030/031/034 contract with graceful fallbacks where AF-031 Realtime / AF-041 Coder are still landing. Documented Phase-2 follow-ups: AF-017 (Confluent), AF-018 (CloudFront/Shield), AF-022 (blue/green canary), AF-023 (FireLens sidecar), AF-024 (deployed Prometheus/Grafana + live LangSmith) — see footnotes.
 
 ---
 
@@ -104,9 +104,9 @@
 | AF-037 | Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability score 0–100, bias audit, 3 pivot options; SLA < 30 min | `feature/strategy-agent` | ✅ Completed |
 | AF-038 | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb tool fan-out, synthesis, citation groundedness check | `feature/research-agent` | ✅ Completed |
 | AF-039 | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | ✅ Completed |
-| AF-040 | Architect Agent (Pillar 2) — FRs/NFRs extraction, ERD, OpenAPI contract, stack selection, microservice boundary analysis, cost forecast; HITL approval gate | `feature/architect-agent` | ❌ Pending |
+| AF-040 | Architect Agent (Pillar 2) — FRs/NFRs extraction, ERD, OpenAPI contract, stack selection, microservice boundary analysis, cost forecast; HITL approval gate | `feature/architect-agent` | 🟪 Implementation complete — nodes/graph/schema/tools/prompts done; 60 tests ✅ passing. Pending: BaseAgent wiring + schema coordination with Somesh/Kartik/Pallavi |
 | AF-041 | Coder Agent (Pillar 3) — Frontend Specialist (Next.js 14 + Tailwind + shadcn/ui) ∥ Backend Specialist (FastAPI + SQLAlchemy + Supabase Auth + Stripe); Alembic DB migrations; zero lint errors; CI/CD scaffold | `feature/coder-agent` | ❌ Pending |
-| AF-042 | Reviewer / Self-Healer Agent (Pillar 4) — static analysis, unit + integration test gen, security scans (Trivy/Semgrep/Snyk), sandbox execution, AST-aware patching, LLM-as-judge; max 5 cycles; coverage ≥ 80% | `feature/reviewer-agent` | ❌ Pending |
+| AF-042 | Reviewer / Self-Healer Agent (Pillar 4) — static analysis, unit + integration test gen, security scans (Trivy/Semgrep/Snyk), sandbox execution, AST-aware patching, LLM-as-judge; max 5 cycles; coverage ≥ 80% | `feature/reviewer-agent` | ✅ Completed |
 | AF-043 | DevOps Agent (Pillar 5) — multi-stage Dockerfile, Terraform plan + apply, ECS provisioning, Route 53 + ACM, monitoring setup, smoke test; SLA < 10 min; infra-spend HITL gate | `feature/devops-agent` | ❌ Pending |
 | AF-044 | Marketing Agent (Pillar 6) — brand kit (DALL-E 3), landing page, SEO content engine (10 blog drafts), email drip sequences, social posts; feature-list hallucination cross-ref; Launch Control Center HITL gate | `feature/marketing-agent` | ❌ Pending |
 | AF-045 | LLMOps Agent (Pillar 7) — trace analysis, DSPy prompt optimisation, Promptfoo regression, LiteLLM routing updates, TruLens drift monitoring, A/B experiments, FinOps report; weekly Step Functions cycle | `feature/llmops-agent` | ❌ Pending |
@@ -115,8 +115,8 @@
 
 | ID | Task | Branch | Status |
 |----|------|--------|--------|
-| AF-046 | 6-stage Guardrails Pipeline — OPA policy, Presidio PII + Llama Guard input, prompt constraint validators, tool schema + cost-cap execution guard, TruLens + citation output guard, Evidently AI monitoring; immutable audit log | `feature/guardrails-pipeline` | ❌ Pending |
-| AF-047 | Tool Registry + tools — `ToolRegistry` singleton; research tools (Tavily, SerpAPI, Crunchbase, G2); engineering tools (GitHub, Stripe, AWS Pricing API); marketing tools (X, LinkedIn, Resend, ProductHunt) | `feature/tool-registry` | ❌ Pending |
+| AF-046 | 6-stage Guardrails Pipeline — OPA policy, Presidio PII + Llama Guard input, prompt constraint validators, tool schema + cost-cap execution guard, TruLens + citation output guard, Evidently AI monitoring; immutable audit log | `feat/platform/guardrails-tool-registry` | ✅ Completed (MVP; real services = Phase-2 follow-up) |
+| AF-047 | Tool Registry shell — `ToolRegistry` singleton (register/get/call, JSON-schema + Pydantic validation, auth scope, cost class). Per-pillar tool *entries* (Tavily, GitHub, Stripe, …) remain each pillar's job | `feat/platform/guardrails-tool-registry` | ✅ Completed |
 | AF-048 | Prompt Registry — versioned Jinja2 templates in `prompt_registry` table + S3; `get()` resolves active/canary; deterministic canary split; strict variable validation; all agent prompt templates | `feature/prompt-registry` | ❌ Pending |
 | AF-049 | LiteLLM Model Router + RAG Pipeline — task-class → model routing rules (Gemini 3.5 Flash for all tasks; gemini-embedding-2 768-dim for all collections); hybrid BM25 + ANN retrieval on Supabase pgvector; Cohere reranking; context compression; citation check | `feature/model-router-rag` | ❌ Pending |
 | AF-050 | Eval harness — Promptfoo golden sets per agent, LangSmith batch eval runner, CI gate blocking prompt promotion on score regression > 2% | `feature/eval-harness` | ❌ Pending |

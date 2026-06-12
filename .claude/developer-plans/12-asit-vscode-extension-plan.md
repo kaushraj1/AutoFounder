@@ -3,7 +3,7 @@
 > **Owner**: Asit Piri (delegate to Raunak — TS/UI overlap — if overloaded)
 > **Task IDs**: AF-072 → AF-078 (entire Phase 6, 7 tasks)
 > **Branches**: `feature/vscode-extension-core`, `feature/vscode-sidebar`, `feature/vscode-gate-notifications`, `feature/vscode-code-gen`, `feature/vscode-streaming-panel`, `feature/vscode-artifact-viewer`, `feature/vscode-publish`
-> **Status**: 🟢 AF-072 startable now; rest depend on Phase 3
+> **Status**: ✅ **Delivered 2026-06-07** by Vishal (exec for Asit) — AF-072 → AF-078 (7/7) shipped on `feature/vscode-extension` (not the per-task branches below). Real bundled TypeScript extension: PKCE auth + SecretStorage, sidebar tree, gate banners, code-gen commands, live streaming `WebviewPanel`, artifact quick-open, `vsce` publish workflow. Verified green: `tsc --noEmit` + ESLint + Prettier + 35 unit tests + esbuild bundle + `vsce package`. Built against the AF-030/031/034/041 contract with the plan's intended fallbacks (REST polling, code-gen placeholder) that auto-activate once the backend lands. See [TASKS.md](../TASKS.md) §Phase 6 + [CURRENT-STATUS.md](../CURRENT-STATUS.md) §9.
 > **Date**: 2026-06-04 · **Version**: 1.0.0
 > **Depends on**: Phase 1 (done) for AF-072; AF-030 REST + AF-031 Realtime + AF-034 HITL + AF-041 Coder for the rest
 > **Scope note**: Reassigned to Asit 2026-06-04 (was unassigned, Part D gap A).
@@ -75,7 +75,7 @@ The extension brings AutoFounder AI **into the developer's IDE** — monitor run
 | REST endpoints | AF-030 | Somesh | Run/artifact/gate data | ✅ Done |
 | Realtime | AF-031 | Somesh | Sidebar + streaming panel | ✅ Done |
 | HITL gate manager | AF-034 | Somesh | Gate notifications (AF-074) | ✅ Done |
-| Coder Agent | AF-041 | Kartik | Code-gen commands (AF-075) | 🔴 |
+| Coder Agent | AF-041 | Kartik | Code-gen commands (AF-075) | ❌ Pending (Kartik) — AF-075 shipped with a labelled placeholder fallback; auto-activates when AF-041 lands |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
 
@@ -331,12 +331,12 @@ export interface CodeGenRequest { kind: "component"|"api_endpoint"; spec: string
 
 | Week | Task | Deliverable | Status |
 |---|---|---|---|
-| 1 | **AF-072 Extension core** + Auth PKCE + SecretStorage | `extension.ts`, `auth.ts` | 🟢 Start now |
-| 1 | UI shells on mock data (sidebar, stream, gate banner) | `sidebar.ts`, `stream.ts` | 🟢 Start now |
-| 1 | AF-078 publish pipeline scaffold (vsce in GitHub Actions) | `.github/workflows/vscode-publish.yml` | 🟢 Start now |
-| 2 | AF-073 Sidebar + AF-076 Streaming (mock → real) | TreeView, WebviewPanel | 🟡 Needs AF-030/031 |
-| 3 | AF-074 Gate notifications + AF-077 Artifact quick-open | gates, artifacts | 🔴 Needs AF-034/030 |
-| 3 | AF-075 Code-gen commands | codegen | 🔴 Needs AF-041 |
+| 1 | **AF-072 Extension core** + Auth PKCE + SecretStorage | `extension.ts`, `auth.ts` | ✅ Done |
+| 1 | UI shells on mock data (sidebar, stream, gate banner) | `sidebar.ts`, `stream.ts` | ✅ Done |
+| 1 | AF-078 publish pipeline scaffold (vsce in GitHub Actions) | `.github/workflows/vscode-publish.yml` | ✅ Done |
+| 2 | AF-073 Sidebar + AF-076 Streaming (mock → real) | TreeView, WebviewPanel | ✅ Done (WS + polling fallback) |
+| 3 | AF-074 Gate notifications + AF-077 Artifact quick-open | gates, artifacts | ✅ Done |
+| 3 | AF-075 Code-gen commands | codegen | ✅ Done (placeholder until AF-041 lands) |
 
 ### Phase 2 (Weeks 4–6)
 Wire all to real REST/Realtime/HITL/Coder; AF-078 marketplace publish; error handling + reconnection.

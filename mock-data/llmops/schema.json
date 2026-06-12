@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://autofounder.ai/schemas/agents/llmops-output.json",
+  "title": "LLMOpsAgentOutput",
+  "description": "Weekly cycle output from LLMOps Agent (Pillar 7). Aligns with LLMOpsOutput contract.",
+  "type": "object",
+  "required": [
+    "cycle_id",
+    "prompts_promoted",
+    "prompts_blocked",
+    "routing_updates",
+    "per_tenant_cost"
+  ],
+  "properties": {
+    "cycle_id": { "type": "string", "format": "uuid" },
+    "organization_id": { "type": "string" },
+    "cycle_window": {
+      "type": "object",
+      "properties": {
+        "start": { "type": "string", "format": "date-time" },
+        "end": { "type": "string", "format": "date-time" }
+      }
+    },
+    "prompts_promoted": { "type": "array", "items": { "type": "string" } },
+    "prompts_blocked": { "type": "array", "items": { "type": "string" } },
+    "prompts_retired": { "type": "array", "items": { "type": "string" } },
+    "routing_updates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_class", "model", "max_cost_per_1k", "quality_slo"],
+        "properties": {
+          "task_class": { "type": "string" },
+          "model": { "type": "string" },
+          "max_cost_per_1k": { "type": "number", "minimum": 0 },
+          "quality_slo": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "eval_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["agent", "golden_set", "score", "baseline", "regression_pct", "passed"],
+        "properties": {
+          "agent": { "type": "string" },
+          "golden_set": { "type": "string" },
+          "score": { "type": "number", "minimum": 0, "maximum": 1 },
+          "baseline": { "type": "number", "minimum": 0, "maximum": 1 },
+          "regression_pct": { "type": "number" },
+          "passed": { "type": "boolean" }
+        }
+      }
+    },
+    "drift_alerts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "agent": { "type": "string" },
+          "metric": { "type": "string" },
+          "baseline": { "type": "number" },
+          "current": { "type": "number" },
+          "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+          "action": { "type": "string" }
+        }
+      }
+    },
+    "per_tenant_cost": {
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": 0 }
+    },
+    "cost_breakdown_usd": {
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": 0 }
+    },
+    "total_savings_usd": { "type": "number", "default": 0 },
+    "savings_notes": { "type": "string" },
+    "canary_deployments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "prompt": { "type": "string" },
+          "canary_pct": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "status": { "type": "string", "enum": ["active", "promoted", "rolled_back"] },
+          "started_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "rag_health": { "type": "object" },
+    "dashboard_url": { "type": "string", "format": "uri" },
+    "generated_at": { "type": "string", "format": "date-time" }
+  }
+}

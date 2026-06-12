@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://autofounder.ai/schemas/agents/architect-output.json",
+  "title": "ArchitectAgentOutput",
+  "description": "Structured output from the Architect Agent (Pillar 2).",
+  "type": "object",
+  "required": [
+    "run_id",
+    "organization_id",
+    "product_name",
+    "architecture_style",
+    "tech_stack",
+    "confidence_score"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": { "type": "string", "format": "uuid" },
+    "organization_id": { "type": "string" },
+    "product_name": { "type": "string" },
+    "architecture_style": {
+      "type": "string",
+      "enum": ["monolith", "modular_monolith", "microservices", "serverless"]
+    },
+    "tech_stack": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "system_context": {
+      "type": "object",
+      "properties": {
+        "actors": { "type": "array", "items": { "type": "string" } },
+        "external_systems": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "c4_containers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type", "technology"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "technology": { "type": "string" },
+          "responsibilities": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "bounded_context"],
+        "properties": {
+          "name": { "type": "string" },
+          "bounded_context": { "type": "string" },
+          "entities": { "type": "array", "items": { "type": "string" } },
+          "apis": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "data_model_summary": { "type": "object" },
+    "api_contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "method", "path"],
+        "properties": {
+          "name": { "type": "string" },
+          "method": { "type": "string" },
+          "path": { "type": "string" },
+          "request_schema": { "type": "string" },
+          "response_schema": { "type": "string" },
+          "message_schema": { "type": "string" }
+        }
+      }
+    },
+    "non_functional_requirements": { "type": "object" },
+    "security_design": { "type": "array", "items": { "type": "string" } },
+    "deployment_topology": { "type": "object" },
+    "architecture_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "status": { "type": "string", "enum": ["proposed", "accepted", "deprecated"] },
+          "rationale": { "type": "string" }
+        }
+      }
+    },
+    "diagram_artifacts": {
+      "type": "object",
+      "properties": {
+        "context_diagram_s3_uri": { "type": "string", "format": "uri" },
+        "container_diagram_s3_uri": { "type": "string", "format": "uri" },
+        "erd_s3_uri": { "type": "string", "format": "uri" },
+        "openapi_spec_s3_uri": { "type": "string", "format": "uri" }
+      }
+    },
+    "lld_document_s3_uri": { "type": "string" },
+    "confidence_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "total_llm_tokens_used": { "type": "integer", "minimum": 0 },
+    "generated_at": { "type": "string", "format": "date-time" }
+  }
+}

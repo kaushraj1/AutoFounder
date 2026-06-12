@@ -2,9 +2,9 @@
 
 > **Owner**: Kaushlendra Kumar Gupta
 > **Task ID**: AF-040 · **Branch**: `feature/architect-agent`
-> **Status**: 🟡 Partially startable (offline work)
+> **Status**: 🟪 Implementation complete (nodes, graph, schema, tools, prompts, LangGraph state fix, 60 unit+integration tests ✅ all passing). Soft-waits on AF-048/049 (Prompt Registry + LLM Router, Purnima) and real BaseAgent wiring (base_stub.py still used).
 > **Date**: 2026-06-04 · **Version**: 1.0.0
-> **Depends on**: AF-036 (BaseAgent), AF-039 (Product Planner output)
+> **Depends on**: AF-036 (BaseAgent) ✅, AF-039 (Product Planner output) ✅ — both delivered
 > **SLA**: Architecture design + HITL approval within the validation→build window
 > **Ground truth**: [CLAUDE.md](../CLAUDE.md) §7.5 · [architect-agent.md](../../docs/architecture/Agents-Architecture/architect-agent.md)
 
@@ -71,10 +71,10 @@ Pillar 2 is the **system architect**. It takes the validated idea (Lean Canvas +
 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
-| BaseAgent ABC | AF-036 | Asit | ArchitectAgent subclasses it | 🔴 Blocked |
+| BaseAgent ABC | AF-036 | Asit | ArchitectAgent subclasses it | ✅ Done |
 | UDAL | AF-027 | Somesh | Read PRD, write ERD/OpenAPI artifacts | ✅ Done |
-| Product Planner output | AF-039 | Somesh | The PRD is the input | 🟡 |
-| Prompt Registry / Router | AF-048/049 | Purnima | Templated prompts + Gemini routing | 🟡 |
+| Product Planner output | AF-039 | Somesh | The PRD is the input | ✅ Done |
+| Prompt Registry / Router | AF-048/049 | Purnima | Templated prompts + Gemini routing | ❌ Pending (Purnima) |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
 
@@ -370,8 +370,8 @@ class ArchitectOutput(BaseModel):
 |---|---|---|---|
 | 1 | Schemas + Jinja2 prompts (FR/NFR, ERD, OpenAPI, stack, auth, cost, FeatureList) | `schema.py`, `prompts/*.j2` | 🟢 Start now |
 | 1 | ERD (Mermaid) + OpenAPI generators; AWS Pricing wrapper | `tools/*.py` | 🟢 Start now |
-| 2 | StateGraph + 9 nodes + routers + Founder gate | `graph.py`, `nodes/` | 🟡 Needs BaseAgent |
-| 3 | Wire ArchitectAgent to BaseAgent; OpenAPI validation | `agent.py` | 🔴 Needs AF-036 |
+| 2 | StateGraph + 9 nodes + routers + Founder gate | `graph.py`, `nodes/` | 🟢 Ready (AF-036 done) |
+| 3 | Wire ArchitectAgent to BaseAgent; OpenAPI validation | `agent.py` | 🟢 Ready (AF-036 done) |
 | 3 | Golden evals + mocked tests | `tests/` | 🟢 Start now |
 
 ### Phase 2 (Weeks 4–6)
@@ -425,15 +425,15 @@ cd backend && npx promptfoo eval --config tests/golden/architect/promptfoo.yaml
 
 ### 9.5 Key Test Scenarios
 
-| # | Scenario | Type | Pass Criteria |
-|---|---|---|---|
-| T1 | PRD → full architecture → approve | Integration | ERD + OpenAPI + FeatureList present; `approved` |
-| T2 | Generated OpenAPI is valid 3.1 | Unit | passes `openapi-spec-validator` |
-| T3 | Every entity has id + timestamps | Unit | ERD completeness check passes |
-| T4 | FeatureList shape matches P3+P6 contract | Integration | `features[]`, `integrations[]`, `pricing_tiers[]` |
-| T5 | Founder rejects → re-plan | Integration | loops with rejection comment |
-| T6 | AWS Pricing down → static fallback | Integration | cost forecast marked "estimate" |
-| T7 | Empty FeatureList blocks downstream | Unit | FATAL flag; P6 refuses |
+| # | Scenario | Type | Pass Criteria | Status |
+|---|---|---|---|---|
+| T1 | PRD → full architecture → approve | Integration | ERD + OpenAPI + FeatureList present; `approved` | ✅ Passing |
+| T2 | Generated OpenAPI is valid 3.1 | Unit | passes `openapi-spec-validator` | ✅ Passing |
+| T3 | Every entity has id + timestamps | Unit | ERD completeness check passes | ✅ Passing |
+| T4 | FeatureList shape matches P3+P6 contract | Integration | `features[]`, `integrations[]`, `pricing_tiers[]` | ✅ Passing |
+| T5 | Founder rejects → re-plan | Integration | loops with rejection comment | ✅ Passing |
+| T6 | AWS Pricing down → static fallback | Integration | cost forecast marked "estimate" | ✅ Passing |
+| T7 | Empty FeatureList blocks downstream | Unit | FATAL flag; P6 refuses | ✅ Passing |
 
 ---
 
@@ -518,17 +518,18 @@ message ArchitectOutput {
 
 ### 10.8 Immediate Action Items (🟢 Start Today)
 
-| # | Task | Priority | Est. | Output |
-|---|---|---|---|---|
-| 1 | Jinja2 prompts (FR/NFR, ERD, OpenAPI, stack, auth, cost, FeatureList) | P0 | 6 hrs | `prompts/*.j2` |
-| 2 | ERD (Mermaid) + OpenAPI generators + validator | P0 | 4 hrs | `tools/*.py` |
-| 3 | **FeatureList Pydantic schema** (two downstream consumers) | P0 | 2 hrs | `schema.py` |
-| 4 | AWS Pricing wrapper | P1 | 3 hrs | `tools/aws_pricing.py` |
-| 5 | **Agree FeatureList contract with Kartik + Pallavi** | P0 | 1 hr | shared contract |
-| 6 | **Agree input schema with Somesh** | P0 | 1 hr | shared contract |
-| 7 | Golden evals + mocked tests | P1 | 4 hrs | `tests/` |
+| # | Task | Priority | Est. | Output | Status |
+|---|---|---|---|---|---|
+| 1 | Jinja2 prompts (FR/NFR, ERD, OpenAPI, stack, auth, cost, FeatureList) | P0 | 6 hrs | `prompts/*.j2` | ✅ Done |
+| 2 | ERD (Mermaid) + OpenAPI generators + validator | P0 | 4 hrs | `tools/*.py` | ✅ Done |
+| 3 | **FeatureList Pydantic schema** (two downstream consumers) | P0 | 2 hrs | `schema.py` | ✅ Done |
+| 4 | AWS Pricing wrapper (static fallback) | P1 | 3 hrs | `tools/aws_pricing.py` | ✅ Done (static fallback; live API = Phase 2) |
+| 5 | **Agree FeatureList contract with Kartik + Pallavi** | P0 | 1 hr | shared contract | ⬜ Pending |
+| 6 | **Agree input schema with Somesh** | P0 | 1 hr | shared contract | ⬜ Pending |
+| 7 | Golden evals + mocked tests | P1 | 4 hrs | `tests/` | ✅ Done — 60 tests passing (unit + integration) |
+| 8 | Wire to real BaseAgent (replace base_stub.py) | P1 | — | `agent.py` | ⬜ Pending (awaits AF-036 error hierarchy) |
 
-**Total offline work ~21 hrs — all doable before BaseAgent lands.**
+**Total offline work ~21 hrs — implementation complete. Remaining: schema coordination + BaseAgent wiring.**
 
 ---
 
@@ -560,7 +561,7 @@ message ArchitectOutput {
 | **Kartik (Pillar 3)** | Agree the ERD + OpenAPI + FeatureList output contract | Immediately | ⬜ Pending |
 | **Pallavi (Pillar 6)** | Agree the FeatureList shape (hallucination ground truth) | Immediately | ⬜ Pending |
 | **Prasenjit (Pillar 5)** | Share stack + scaling plan for infra sizing | Soon | ⬜ Pending |
-| **Asit (Platform)** | BaseAgent + UDAL + AWS Pricing tool registration | When AF-036 starts | ⬜ Pending |
+| **Asit (Platform)** | BaseAgent + UDAL + AWS Pricing tool registration | When AF-036 starts | ✅ BaseAgent + UDAL + Tool Registry delivered |
 | **Purnima (Pillar 7)** | Register architect prompts (AF-048) + routing | When shells exist | ⬜ Pending |
 
 ---

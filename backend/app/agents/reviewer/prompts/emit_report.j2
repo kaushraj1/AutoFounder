@@ -1,0 +1,32 @@
+You are writing the final code-review report for an AI-generated MVP. Produce a
+clear, GitHub-flavoured Markdown report that a founder and the DevOps agent can
+act on. Be factual — summarise only what the gates actually found.
+
+## Run
+- repo: {{ repo_url }} (branch `{{ branch }}`)
+- decision: **{{ review_decision }}**
+- heal cycles used: {{ heal_cycle }}
+{% if escalation_reason %}- escalation reason: {{ escalation_reason }}{% endif %}
+
+## Data
+- Lint: {% for l in lint_results %}{{ l.tool }}={{ l.status }}(err {{ l.error_count }}) {% endfor %}
+- Unit: {% if unit_test_result %}{{ unit_test_result.passed }}/{{ unit_test_result.total }} passed, coverage {{ unit_test_result.coverage_pct }}%{% else %}n/a{% endif %}
+- E2E: {% if e2e_test_result %}{{ e2e_test_result.passed }}/{{ e2e_test_result.total }} passed{% else %}n/a{% endif %}
+- Quality gate: {% if sonarqube_metrics %}{{ sonarqube_metrics.quality_gate_passed }} (bugs {{ sonarqube_metrics.bugs }}, vulns {{ sonarqube_metrics.vulnerabilities }}){% else %}skipped{% endif %}
+- Judge: {% if llm_judge_score %}overall {{ llm_judge_score.overall }} (read {{ llm_judge_score.readability }}, maint {{ llm_judge_score.maintainability }}, sec {{ llm_judge_score.security_posture }}){% else %}n/a{% endif %}
+- Security findings ({{ security_findings | length }}):
+{% for f in security_findings %}  - [{{ f.severity }}] {{ f.tool }}:{{ f.rule_id }} {{ f.file_path }} — {{ f.message }}
+{% endfor %}
+- Self-heal history:
+{% for h in heal_history %}  - cycle {{ h.cycle }}: {{ h.issues_targeted | length }} issues → {{ h.outcome }} ({{ h.files_patched | join(', ') }})
+{% endfor %}
+
+## Required report sections
+1. **Verdict** — one line: approved or escalated, and why.
+2. **Test Summary** — lint / unit (+coverage) / e2e.
+3. **Security Audit** — findings grouped by severity; call out any OWASP hard-blocks.
+4. **Quality** — SonarQube + judge scores.
+5. **Self-Heal Log** — what was fixed per cycle.
+6. **Next Steps** — for the founder (if escalated) or DevOps (if approved).
+
+Return the Markdown report only (no JSON, no code fences around the whole thing).

@@ -41,12 +41,13 @@ jobs:
       - name: Build and push image (immutable sha + prod-latest)
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE_TAG: sha-${{ github.sha }}-${{ github.run_attempt }}
         run: |
           docker build --platform linux/amd64 \
-            -t "$REGISTRY/$ECR_REPOSITORY:sha-${{ github.sha }}" \
+            -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
             -t "$REGISTRY/$ECR_REPOSITORY:prod-latest" \
             ./backend
-          docker push "$REGISTRY/$ECR_REPOSITORY:sha-${{ github.sha }}"
+          docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker push "$REGISTRY/$ECR_REPOSITORY:prod-latest"
 
       - name: Render task definition with new image
@@ -55,7 +56,7 @@ jobs:
         with:
           task-definition-family: ${{ env.TASK_FAMILY }}
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
+          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}-${{ github.run_attempt }}
 
       - name: Deploy (rolling, circuit-breaker rollback)
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2

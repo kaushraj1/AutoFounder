@@ -59,7 +59,12 @@ packages = ["app"]
 target-version = "py312"
 line-length = 100
 src = ["app", "tests"]
-extend-exclude = ["alembic", "*_pb2.py", "*_pb2_grpc.py"]
+extend-exclude = [
+  "alembic",
+  "*_pb2.py",
+  "*_pb2_grpc.py",
+  "tests/agents/reviewer/fixtures",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
@@ -78,7 +83,7 @@ ignore_missing_imports = true
 check_untyped_defs = true
 warn_unused_ignores = true
 warn_redundant_casts = true
-exclude = ["alembic/", "agent_worker_pb2.*"]
+exclude = ["alembic/", "agent_worker_pb2.*", "tests/agents/reviewer/fixtures/"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

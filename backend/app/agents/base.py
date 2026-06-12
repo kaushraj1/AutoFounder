@@ -257,6 +257,22 @@ class LLMRouterProtocol(Protocol):
         ...
 
 
+class GuardrailPipelineProtocol(Protocol):
+    """The AF-046 guardrail wrapper (optional). Duck-typed to keep base decoupled."""
+
+    async def before_llm(self, ctx: Any, payload: dict[str, Any]) -> Any:
+        """Policy/Input/Instruction checks before an LLM call."""
+        ...
+
+    async def around_tool(self, ctx: Any, tool_call: dict[str, Any]) -> Any:
+        """Execution-guard check around a tool call."""
+        ...
+
+    async def after_llm(self, ctx: Any, output: Any) -> Any:
+        """Output/Monitoring checks after generation."""
+        ...
+
+
 # BaseAgent
 
 
@@ -300,6 +316,7 @@ class BaseAgent(ABC, Generic[TIn, TOut]):
         *,
         breaker_failure_threshold: int = 5,
         breaker_reset_timeout: float = 30.0,
+        guardrails: GuardrailPipelineProtocol | None = None,
     ) -> None:
         # Re-check during instantiation just in case
         for attr, attr_type in [("PILLAR", int), ("AGENT_ID", str), ("SLA_SECONDS", int)]:
@@ -316,6 +333,9 @@ class BaseAgent(ABC, Generic[TIn, TOut]):
         self.tools = tool_registry
         self.prompts = prompt_registry
         self.llm = llm_router
+        # AF-046 guardrails are optional: None => no wrapping (existing agents).
+        self.guardrails = guardrails
+        self._current_run_id: str | None = None
         self._llm_breaker = CircuitBreaker(
             name=f"{self.AGENT_ID}.llm",
             failure_threshold=breaker_failure_threshold,
@@ -327,8 +347,31 @@ class BaseAgent(ABC, Generic[TIn, TOut]):
             reset_timeout=breaker_reset_timeout,
         )
 
+    def _guard_context(self) -> Any:
+        """Build a per-call GuardrailContext from the current tenant + run."""
+        from app.guardrails.schema import GuardrailContext
+
+        return GuardrailContext(
+            organization_id=get_tenant_context() or "unknown",
+            run_id=self._current_run_id,
+            agent_id=self.AGENT_ID,
+        )
+
     async def _call_llm(self, *, task_class: str, prompt: str, **kw: Any) -> str:
-        """Guarded LLM call wrapper using circuit breaker."""
+        """Guarded LLM call wrapper using circuit breaker (+ optional AF-046 guardrails)."""
+        if self.guardrails is not None:
+            verdict = await self.guardrails.before_llm(
+                self._guard_context(),
+                {"prompt": prompt, "task_class": task_class, "input": prompt},
+            )
+            if getattr(verdict, "blocked", False):
+                raise LLMError(
+                    f"Guardrail blocked LLM call: {getattr(verdict, 'reason', None)}",
+                    agent_id=self.AGENT_ID,
+                )
+            sanitized = getattr(verdict, "sanitized_payload", None)
+            if isinstance(sanitized, dict) and isinstance(sanitized.get("prompt"), str):
+                prompt = sanitized["prompt"]
         try:
             return await self._llm_breaker.call(
                 self.llm.complete, task_class=task_class, prompt=prompt, **kw
@@ -340,7 +383,16 @@ class BaseAgent(ABC, Generic[TIn, TOut]):
             raise LLMError(f"LLM call failed: {e}", agent_id=self.AGENT_ID, cause=e) from e
 
     async def _call_tool(self, tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
-        """Guarded tool call wrapper using circuit breaker."""
+        """Guarded tool call wrapper using circuit breaker (+ optional AF-046 guardrails)."""
+        if self.guardrails is not None:
+            verdict = await self.guardrails.around_tool(
+                self._guard_context(), {"name": tool_name, "args": args}
+            )
+            if getattr(verdict, "blocked", False):
+                raise ToolError(
+                    f"Guardrail blocked tool '{tool_name}': {getattr(verdict, 'reason', None)}",
+                    agent_id=self.AGENT_ID,
+                )
         try:
             return await self._tool_breaker.call(self.tools.call, tool_name=tool_name, args=args)
         except CircuitOpenError as e:
@@ -390,6 +442,9 @@ class BaseAgent(ABC, Generic[TIn, TOut]):
             run_id = str(input.get("run_id", "")) or None
             if not org_id:
                 org_id = str(input.get("organization_id", "")) or None
+
+        # Expose the run id to the guarded LLM/tool wrappers for lineage context.
+        self._current_run_id = run_id
 
         trace: dict[str, Any] = {
             "agent_id": self.AGENT_ID,

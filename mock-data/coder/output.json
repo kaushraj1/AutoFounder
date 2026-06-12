@@ -1,0 +1,78 @@
+{
+  "run_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "organization_id": "org_pawtrail_demo",
+  "product_name": "PawTrail",
+  "repository_url": "https://github.com/pawtrail-demo/pawtrail-mvp",
+  "default_branch": "main",
+  "scaffold_type": "full_stack",
+  "files_generated": 142,
+  "lines_of_code": 9847,
+  "languages": {
+    "TypeScript": 62,
+    "Python": 28,
+    "SQL": 6,
+    "YAML": 4
+  },
+  "project_structure": {
+    "frontend/": "Next.js owner + walker apps",
+    "backend/app/": "FastAPI modules (identity, scheduling, billing, tracking)",
+    "backend/alembic/": "DB migrations",
+    "infra/terraform/": "ECS + RDS + S3",
+    ".github/workflows/": "CI pipelines"
+  },
+  "key_implementations": [
+    {
+      "module": "scheduling",
+      "files": ["backend/app/scheduling/router.py", "backend/app/scheduling/service.py"],
+      "status": "complete",
+      "test_coverage_pct": 78
+    },
+    {
+      "module": "tracking",
+      "files": ["backend/app/tracking/ws.py", "backend/app/tracking/gps_ingest.py"],
+      "status": "complete",
+      "test_coverage_pct": 71
+    },
+    {
+      "module": "billing",
+      "files": ["backend/app/billing/razorpay_webhook.py"],
+      "status": "partial",
+      "notes": "Webhook handler stubbed; needs Razorpay test keys"
+    },
+    {
+      "module": "owner-app",
+      "files": ["frontend/src/app/(owner)/dashboard/page.tsx", "frontend/src/app/(owner)/walks/[id]/live/page.tsx"],
+      "status": "complete",
+      "test_coverage_pct": 45
+    }
+  ],
+  "dependencies_installed": {
+    "frontend": ["next@15.2.0", "@clerk/nextjs@6.12.0", "mapbox-gl@3.9.0"],
+    "backend": ["fastapi@0.115.0", "sqlalchemy@2.0.36", "redis@5.2.0", "razorpay@1.4.2"]
+  },
+  "environment_template": ".env.example",
+  "setup_commands": [
+    "cp .env.example .env",
+    "docker compose up -d postgres redis",
+    "cd backend && pip install -r requirements.txt && alembic upgrade head",
+    "cd frontend && npm install && npm run dev"
+  ],
+  "test_results": {
+    "unit_tests": { "passed": 84, "failed": 2, "skipped": 3 },
+    "integration_tests": { "passed": 12, "failed": 1, "skipped": 0 },
+    "e2e_tests": { "passed": 6, "failed": 0, "skipped": 2 },
+    "overall_status": "partial_pass"
+  },
+  "known_gaps": [
+    "Razorpay subscription webhook not wired to credit balance",
+    "Walker KYC upload UI placeholder only",
+    "E2E tests skipped without Google Maps API key"
+  ],
+  "artifact_bundle_s3_uri": "s3://autofounder-artifacts/org_pawtrail_demo/a1b2c3d4/code/pawtrail-mvp.tar.gz",
+  "commit_sha": "f3a9c21b8e4d7f6012a5b9c3e8d1f4a7b2c6e90",
+  "build_status": "success",
+  "build_duration_seconds": 187,
+  "confidence_score": 0.79,
+  "total_llm_tokens_used": 89420,
+  "generated_at": "2026-06-08T15:08:44Z"
+}

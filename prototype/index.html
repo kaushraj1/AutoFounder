@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoFounder AI — Sign in</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <style>body{font-family:Inter,sans-serif}.hero-glow{background:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(139,92,246,.35),transparent)}</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen hero-glow">
+  <div class="min-h-screen flex flex-col items-center justify-center px-4">
+    <div class="w-full max-w-md">
+      <div class="flex items-center justify-center gap-3 mb-8">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 flex items-center justify-center font-bold text-slate-950">AF</div>
+        <span class="text-2xl font-semibold tracking-tight">AutoFounder <span class="text-violet-400">AI</span></span>
+      </div>
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-8 shadow-2xl shadow-violet-500/10 backdrop-blur">
+        <h1 class="text-xl font-semibold mb-1">Welcome back</h1>
+        <p class="text-slate-400 text-sm mb-6">Your AI co-founder team — from idea to launch.</p>
+        <a href="dashboard.html" class="block w-full text-center py-3 rounded-lg bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 font-medium text-white mb-3 transition">Continue to portal →</a>
+        <button type="button" class="w-full py-3 rounded-lg border border-slate-700 bg-slate-800/50 text-slate-300 text-sm mb-3 hover:bg-slate-800">Continue with Google</button>
+        <button type="button" class="w-full py-3 rounded-lg border border-slate-700 bg-slate-800/50 text-slate-300 text-sm hover:bg-slate-800">Continue with GitHub</button>
+        <p class="text-xs text-slate-500 text-center mt-6">Prototype — no real authentication</p>
+      </div>
+      <p class="text-center text-slate-500 text-sm mt-6">New here? <a href="idea-intake.html" class="text-cyan-400 hover:underline">Submit your first idea</a></p>
+    </div>
+  </div>
+</body>
+</html>

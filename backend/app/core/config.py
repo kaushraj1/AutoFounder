@@ -38,6 +38,15 @@ class Settings(BaseSettings):
     # Authorization & OPA
     opa_url: str = "http://localhost:8181"
 
+    # Guardrails (AF-046) — the 6-stage safety pipeline wrapping every agent call
+    guardrails_enabled: bool = True
+    guardrail_block_on_audit_failure: bool = False  # prod-only fail-closed on durable audit write
+    guardrail_tool_cost_cap_usd: float | None = None  # default per-tenant tool spend cap (USD)
+    aws_s3_audit_bucket: str = ""  # S3 Object Lock bucket for immutable lineage (7-yr)
+    llama_guard_endpoint: str = ""  # optional hosted injection/safety classifier
+    prompt_armor_key: str = ""  # optional injection-defense API
+    posthog_key: str = ""  # optional abuse/anomaly analytics
+
     # AWS & Messaging (AF-034)
     aws_region: str = "us-east-1"
     eventbridge_bus_name: str = "autofounder-platform"
@@ -60,6 +69,17 @@ class Settings(BaseSettings):
     crunchbase_api_key: str = ""
     g2_api_key: str = ""
     similarweb_api_key: str = ""
+
+    # Pillar 4 — Reviewer / Self-Healer (AF-042)
+    reviewer_model: str = "gemini-2.5-flash"
+    semgrep_app_token: str = ""
+    snyk_token: str = ""
+    sonarqube_url: str = ""
+    sonarqube_token: str = ""
+    sonarqube_project_key: str = ""
+    github_token: str = ""
+    slack_webhook_reviewer: str = ""
+    aws_s3_artifacts_bucket: str = ""
 
     # Observability (AF-023 OTel · AF-024 Prometheus/LangSmith)
     otel_enabled: bool = False
