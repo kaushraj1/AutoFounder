@@ -24,7 +24,15 @@ async def main():
     print("\n==================================================")
     print("        STRATEGY OUTPUT / RESEARCH REPORT         ")
     print("==================================================")
-    print(state.get("strategy_output"))
+    if state is None:
+        print("Error: The run failed or did not generate any state.")
+        print("Please check the console logs above for LLM or database errors.")
+    else:
+        strategy_output = state.get("strategy_output")
+        if strategy_output:
+            print(strategy_output)
+        else:
+            print("No strategy output found in the run state.")
     print("==================================================")
 
 if __name__ == "__main__":
