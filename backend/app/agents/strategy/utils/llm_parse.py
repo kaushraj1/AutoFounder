@@ -34,6 +34,20 @@ async def parse_with_correction(
             data = json.loads(cleaned)
             return schema.model_validate(data)
         except (json.JSONDecodeError, ValidationError) as exc:
+            # Try to recover if the LLM wrapped a list inside a dict (e.g. {"personas": [...]})
+            if isinstance(exc, ValidationError) and 'data' in locals() and isinstance(data, dict):
+                for key, val in data.items():
+                    if isinstance(val, list):
+                        try:
+                            return schema.model_validate(val)
+                        except ValidationError:
+                            continue
+                # Try wrapping a single dict in a list if the schema expects a list
+                try:
+                    return schema.model_validate([data])
+                except ValidationError:
+                    pass
+
             if attempt >= max_corrections:
                 logger.error("LLM output failed validation after %d corrections: %s", attempt, exc)
                 raise
