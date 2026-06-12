@@ -50,7 +50,7 @@ def route_after_hallucination(state: MarketerState) -> str:
             _MAX_HALLUCINATION_RETRIES,
         )
         # Increment retry count in state for the next hallucination_check pass
-        state["hallucination_retry_count"] = retry_count + 1  # type: ignore[literal-required]
+        state["hallucination_retry_count"] = retry_count + 1
         return "generate_landing_page"  # re-runs all 6 generators via fan-out
 
     logger.error(

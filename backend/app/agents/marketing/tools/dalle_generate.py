@@ -62,9 +62,9 @@ async def dalle_generate(
             response = await client.images.generate(
                 model="dall-e-3",
                 prompt=prompt,
-                size=size,  # type: ignore[arg-type]
-                quality=quality,  # type: ignore[arg-type]
-                style=style,  # type: ignore[arg-type]
+                size=size,
+                quality=quality,
+                style=style,
                 n=1,
             )
             url = response.data[0].url

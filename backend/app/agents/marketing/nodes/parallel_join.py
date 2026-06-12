@@ -35,7 +35,7 @@ async def parallel_join(state: MarketerState) -> MarketerState:
     errors: list[str] = list(state.get("errors", []))
 
     for name, field in _GENERATOR_FIELDS.items():
-        value = state.get(field)  # type: ignore[literal-required]
+        value = state.get(field)
         if value:
             completed.append(name)
         else:

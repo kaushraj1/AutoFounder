@@ -80,6 +80,8 @@ async def launch_control_center(state: MarketerState) -> MarketerState:
         while elapsed < _TIMEOUT_SECONDS:
             value = await client.get(redis_key)
             if value:
+                if isinstance(value, bytes):
+                    value = value.decode("utf-8")
                 status = value.strip().lower()
                 logger.info("[marketing] launch_control_center — Founder responded: %s", status)
                 await client.aclose()
