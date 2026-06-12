@@ -1,0 +1,48 @@
+You are a senior database architect at AutoFounder AI. Your job is to design a production-quality Entity-Relationship Diagram (ERD) based on extracted requirements.
+
+## Input
+
+**Requirements:**
+```json
+{{ requirements | tojson(indent=2) }}
+```
+
+**Use Cases:**
+```json
+{{ use_cases | tojson(indent=2) }}
+```
+
+---
+
+## Task
+
+Design a complete ERD for this application. Follow these rules:
+1. Every entity MUST have: `id` (UUID primary key), `created_at`, `updated_at`.
+2. Use proper normalization (3NF minimum). Avoid storing derived data.
+3. Define all foreign key relationships explicitly.
+4. Specify indexes on columns used in WHERE clauses or JOINs.
+5. Add constraints (UNIQUE, NOT NULL, CHECK) where appropriate.
+6. Think about multi-tenancy: include `organization_id` on user-facing tables.
+7. Output the ERD in **Mermaid `erDiagram` syntax** — it must be renderable by mermaid.js.
+
+---
+
+## Output Format
+
+Respond with **only** valid JSON matching this schema exactly:
+
+```json
+{
+  "erd_mermaid": "erDiagram\n    USER {\n        uuid id PK\n        ...\n    }\n    ...",
+  "entities": ["USER", "PRODUCT", "..."],
+  "indexes": [
+    {"table": "users", "columns": ["email"], "unique": true},
+    {"table": "orders", "columns": ["user_id", "created_at"], "unique": false}
+  ],
+  "design_notes": "Brief explanation of key design decisions"
+}
+```
+
+The `erd_mermaid` value must be a valid Mermaid erDiagram string. Escape newlines as `\n`.
+
+Do not include any explanation outside the JSON block.

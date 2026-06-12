@@ -1,0 +1,62 @@
+You are a senior API architect at AutoFounder AI. Your job is to design a complete OpenAPI 3.1 REST contract for this application.
+
+## Input
+
+**Requirements:**
+```json
+{{ requirements | tojson(indent=2) }}
+```
+
+**ERD Entities:**
+{{ entities | join(", ") }}
+
+**ERD (Mermaid):**
+```
+{{ erd_mermaid }}
+```
+
+---
+
+## Task
+
+Design a complete OpenAPI 3.1 specification. Follow these rules:
+1. Use RESTful conventions: plural nouns, proper HTTP verbs (GET/POST/PUT/PATCH/DELETE).
+2. Every endpoint must have: summary, description, operationId, request body (if applicable), response schemas (200, 400, 401, 404, 422, 500).
+3. Use `$ref` to reuse schemas — define all models in `components/schemas`.
+4. Include authentication via Bearer JWT in `components/securitySchemes`.
+5. Every response envelope must follow: `{ "data": ..., "meta": {...}, "error": null }`.
+6. Include pagination (limit/offset) for all list endpoints.
+7. Version the API under `/v1/`.
+8. Cover all major CRUD operations for core entities derived from the ERD.
+
+---
+
+## Output Format
+
+Respond with **only** valid JSON that is a complete OpenAPI 3.1 object:
+
+```json
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "...",
+    "version": "1.0.0",
+    "description": "..."
+  },
+  "servers": [{"url": "/v1"}],
+  "security": [{"BearerAuth": []}],
+  "paths": { ... },
+  "components": {
+    "schemas": { ... },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
+```
+
+Do not include any explanation outside the JSON block.
