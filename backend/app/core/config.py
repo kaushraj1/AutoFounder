@@ -64,6 +64,9 @@ class Settings(BaseSettings):
 
     # Pillar 1 — Strategy / Research (AF-037 / AF-038 / AF-039)
     gemini_api_key: str = ""
+    euri_api_key: str = ""
+    euri_base_url: str = "https://api.euron.one/api/v1/euri"
+    euri_model: str = "gpt-5.4-mini"
     strategy_model: str = "gemini-2.5-flash"
     tavily_api_key: str = ""
     serpapi_key: str = ""
