@@ -1,0 +1,73 @@
+{
+  "_fixture": "petconnect",
+  "_domain": "petcare-healthtech",
+  "_description": "A pet health management app with vet appointment booking, vaccination tracking, and diet plans.",
+
+  "run_id": "00000000-0000-0000-0000-000000000005",
+  "organization_id": "org-petconnect",
+  "idea_normalised": "A pet health companion app with vet appointment booking, vaccination and medication reminders, diet planning, and a symptom checker for dogs and cats.",
+  "approval_status": "approved",
+
+  "brand_config": {
+    "product_name": "PetConnect",
+    "tagline": "Your pet's health, simplified",
+    "logo_concept": "A paw print with a heart or medical cross overlay",
+    "primary_color": "#FF8C69",
+    "tone": "casual",
+    "target_audience": "Dog and cat owners aged 22-45 who treat pets as family members",
+    "website_url": "https://petconnect.app"
+  },
+
+  "feature_list": {
+    "features": [
+      "Vet appointment booking with in-app video consultation",
+      "Vaccination and medication reminders",
+      "Digital health records and vet history",
+      "AI symptom checker for dogs and cats",
+      "Personalised diet and nutrition plans",
+      "Weight and growth tracking",
+      "Pet insurance integration",
+      "Community forum for pet owners",
+      "Lost pet alert with QR code tag",
+      "Grooming and training service booking"
+    ],
+    "integrations": ["Google Maps (vet finder)", "Stripe", "PetSure insurance", "iCal"],
+    "pricing_tiers": [
+      {"name": "Free", "price": "$0", "description": "1 pet, basic reminders, symptom checker"},
+      {"name": "Plus", "price": "$4.99/month", "description": "Up to 3 pets, diet plans, video consults"},
+      {"name": "Family", "price": "$9.99/month", "description": "Unlimited pets, full feature access"}
+    ]
+  },
+
+  "lean_canvas_json": {
+    "problem": [
+      "Pet owners forget vaccinations and medications, risking pet health",
+      "Finding a vet quickly in an emergency is stressful",
+      "Pet health data is scattered across paper records and emails"
+    ],
+    "solution": "A single app that centralises pet health records, reminders, and vet access",
+    "unique_value_proposition": "Everything your pet needs, in one place — from vaccines to vets to diet",
+    "unfair_advantage": "AI symptom checker + local vet marketplace + digital records — competitors have only 1 of these",
+    "customer_segments": ["Millennial and Gen Z pet owners", "Multi-pet households", "First-time pet owners"],
+    "key_metrics": ["Pets registered", "Appointment bookings", "Reminder completion rate", "MAU"],
+    "channels": ["App Store", "Instagram", "Pet influencers", "Vet clinic partnerships"],
+    "cost_structure": ["AWS", "Vet API integration", "Insurance API", "Content (diet plans)"],
+    "revenue_streams": ["Premium subscriptions", "Vet appointment commission", "Insurance referral fee"],
+    "competitors": ["PetDesk", "VetPort", "Pawlly", "My Pets"],
+    "viability_score": 80
+  },
+
+  "personas": [
+    {
+      "name": "Emma",
+      "role": "Marketing Executive",
+      "company_size": "50",
+      "pain_points": ["Missed vaccination appointments", "Emergency vet panic", "Multiple apps for different needs"],
+      "goals": ["Never miss a pet health milestone", "Get vet advice from home", "Keep Milo's records organised"],
+      "willingness_to_pay_usd": 5,
+      "preferred_channels": ["Instagram", "App Store"]
+    }
+  ],
+
+  "live_url": "https://petconnect.app"
+}

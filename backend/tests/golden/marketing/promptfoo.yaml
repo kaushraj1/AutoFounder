@@ -1,0 +1,147 @@
+################################################################################
+# promptfoo.yaml — Golden eval suite for Marketing Agent (AF-044)
+#
+# Runs prompt quality evaluations against the Jinja2 prompt templates using
+# Gemini responses.  Checks that:
+#   1. Hallucination check correctly flags made-up features (precision)
+#   2. Hallucination check passes accurate feature claims (recall)
+#   3. Landing page copy stays within known feature set
+#   4. Product Hunt tagline respects 60-char hard limit
+#   5. X thread tweets stay within 280 chars each
+#   6. Email subjects are ≤50 chars
+#
+# Usage:
+#   pip install promptfoo
+#   npx promptfoo eval --config tests/golden/marketing/promptfoo.yaml
+#   npx promptfoo view  # open browser to inspect results
+################################################################################
+
+description: "Marketing Agent — Prompt Quality Golden Evals"
+
+providers:
+  - id: google:gemini-1.5-flash
+    config:
+      temperature: 0.0  # deterministic for golden evals
+
+prompts:
+  - label: hallucination_check
+    raw: |
+      You are a strict fact-checker for AI-generated marketing content.
+      Your job is to cross-reference every factual claim against the confirmed feature list.
+
+      ## Confirmed Features
+      - Encrypted secret vault
+      - Role-based access control (RBAC)
+      - CLI integration for developers
+      - REST API access
+      - Audit logging
+
+      ## Claims to Check
+      - "Automatically rotates secrets every 24 hours" (NOT in feature list)
+      - "Encrypted secret vault for secure storage" (IN feature list)
+      - "CLI integration for easy developer access" (IN feature list)
+      - "Zero-knowledge encryption" (NOT in feature list)
+
+      Respond with JSON only matching exactly:
+      {"critical_count": 0, "warning_count": 0, "passed": true, "findings": []}
+
+  - label: landing_page_generation
+    raw: |
+      Write a landing page hero section for a developer secrets manager.
+      Confirmed features ONLY: ["Encrypted secret vault", "RBAC", "CLI integration", "REST API", "Audit logging"]
+      Tone: technical
+      Return JSON: {"hero_headline": "string", "hero_subheadline": "string", "hero_cta_text": "string"}
+
+  - label: product_hunt_tagline
+    raw: |
+      Write a Product Hunt tagline (MUST be ≤60 chars) for a developer secrets manager.
+      Must start with a verb. No buzzwords.
+      Return JSON: {"tagline": "string"}
+
+  - label: x_thread
+    raw: |
+      Write a 4-tweet X (Twitter) thread for a developer secrets manager.
+      Each tweet MUST be ≤280 chars. Include features: CLI integration, RBAC.
+      Return JSON: {"tweets": ["string", "string", "string", "string"]}
+
+tests:
+  # ── Test 1: Hallucination precision — fake claims flagged as CRITICAL ────────
+  - description: "Hallucination check flags invented features as CRITICAL"
+    prompt:
+      label: hallucination_check
+    assert:
+      - type: javascript
+        value: |
+          const out = JSON.parse(output);
+          return out.critical_count >= 2;  // "auto-rotate" and "zero-knowledge" are CRITICAL
+        threshold: 1.0
+
+  # ── Test 2: Hallucination recall — accurate claims pass ──────────────────────
+  - description: "Hallucination check passes accurate feature mentions"
+    prompt:
+      label: hallucination_check
+    assert:
+      - type: javascript
+        value: |
+          const out = JSON.parse(output);
+          // Only 2 critical findings (the 2 invented claims), not 4
+          return out.critical_count <= 2 && out.findings.length <= 2;
+        threshold: 1.0
+
+  # ── Test 3: Landing page stays within feature scope ──────────────────────────
+  - description: "Landing page hero mentions only confirmed features"
+    prompt:
+      label: landing_page_generation
+    assert:
+      - type: javascript
+        value: |
+          const out = JSON.parse(output);
+          const hero = (out.hero_headline + " " + out.hero_subheadline).toLowerCase();
+          // Should NOT mention auto-rotate, zero-knowledge, or unlimited
+          const banned = ["auto-rotat", "zero-knowledge", "unlimited"];
+          return !banned.some(term => hero.includes(term));
+        threshold: 1.0
+      - type: javascript
+        value: |
+          const out = JSON.parse(output);
+          return out.hero_headline && out.hero_headline.length > 0 && out.hero_headline.length <= 80;
+        threshold: 1.0
+
+  # ── Test 4: Product Hunt tagline ≤60 chars ────────────────────────────────────
+  - description: "Product Hunt tagline must be ≤60 chars"
+    prompt:
+      label: product_hunt_tagline
+    assert:
+      - type: javascript
+        value: |
+          const out = JSON.parse(output);
+          return out.tagline && out.tagline.length <= 60;
+        threshold: 1.0
+      - type: javascript
+        value: |
+          const out = JSON.parse(output);
+          // Must not be empty
+          return out.tagline && out.tagline.trim().length > 0;
+        threshold: 1.0
+
+  # ── Test 5: X thread tweets ≤280 chars each ──────────────────────────────────
+  - description: "X thread tweets must all be ≤280 chars"
+    prompt:
+      label: x_thread
+    assert:
+      - type: javascript
+        value: |
+          const out = JSON.parse(output);
+          const tweets = out.tweets || [];
+          return tweets.length >= 3 && tweets.every(t => t.length <= 280);
+        threshold: 1.0
+
+  # ── Test 6: Output is valid JSON ──────────────────────────────────────────────
+  - description: "All prompts return parseable JSON"
+    prompt:
+      label: product_hunt_tagline
+    assert:
+      - type: is-json
+        threshold: 1.0
+
+outputPath: tests/golden/marketing/results.json

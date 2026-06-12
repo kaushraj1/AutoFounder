@@ -26,6 +26,7 @@ from app.agents.base import (
     VerifyError,
     VerifyResult,
 )
+from app.agents.marketing import MarketingAgent, MarketerInput, MarketerOutput  # noqa: F401 — Pillar 6
 
 __all__ = [
     "Agent",
@@ -52,4 +53,8 @@ __all__ = [
     "ToolRegistryProtocol",
     "PromptRegistryProtocol",
     "LLMRouterProtocol",
+    # Pillar 6 — Marketing & Launch Automation (AF-044)
+    "MarketingAgent",
+    "MarketerInput",
+    "MarketerOutput",
 ]
