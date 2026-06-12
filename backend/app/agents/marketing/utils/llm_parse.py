@@ -57,7 +57,9 @@ async def parse_with_correction(
             raise ValueError(f"LLM JSON parse failed: {original_exc}") from original_exc
 
         # Ask the LLM to correct its own output
-        from app.agents.marketing import llm as _llm_module  # allows patching via `app.agents.marketing.llm.call_llm`
+        from app.agents.marketing import (
+            llm as _llm_module,  # allows patching via `app.agents.marketing.llm.call_llm`
+        )
 
         correction_prompt = (
             f"The following JSON output is invalid. Fix ONLY the JSON syntax — "

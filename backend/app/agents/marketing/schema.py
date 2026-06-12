@@ -19,7 +19,6 @@ from pydantic import BaseModel, Field, field_validator
 # Re-export FeatureList from Architect so downstream can import from one place.
 from app.agents.architect.schema import FeatureList  # noqa: F401
 
-
 # ---------------------------------------------------------------------------
 # Brand Config (input from Founder / brand setup)
 # ---------------------------------------------------------------------------

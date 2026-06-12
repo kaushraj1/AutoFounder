@@ -9,7 +9,6 @@ Writes: gtm_report_markdown, gtm_report_s3_uri
 
 from __future__ import annotations
 
-import json
 import logging
 
 from app.agents.marketing.llm import call_llm_text

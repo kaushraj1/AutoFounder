@@ -28,7 +28,7 @@ async def generate_visual_assets(state: MarketerState) -> MarketerState:
     """LangGraph node: generate DALL-E 3 prompts + optionally call the API."""
     logger.info("[marketing] generate_visual_assets — start")
 
-    errors: list[str] = list(state.get("errors", []))
+    list(state.get("errors", []))
 
     # ---- Step 1: Generate DALL-E prompts via Gemini ----
     prompt = render(

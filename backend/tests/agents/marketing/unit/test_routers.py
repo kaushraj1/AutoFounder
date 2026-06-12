@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from app.agents.marketing.routers import (
     route_after_hallucination,
     route_after_hitl,

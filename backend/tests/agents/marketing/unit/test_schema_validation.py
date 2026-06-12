@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
+
 import pytest
 from pydantic import ValidationError
 
@@ -11,7 +13,6 @@ from app.agents.marketing.schema import (
     MarketerInput,
     ProductHuntKit,
 )
-from uuid import uuid4
 
 
 class TestFeatureListValidation:

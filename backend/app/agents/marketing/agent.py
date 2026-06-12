@@ -40,17 +40,9 @@ from prometheus_client import Counter, Histogram
 
 from app.agents.marketing.graph import build_marketer_graph
 from app.agents.marketing.schema import (
-    BrandVoiceSummary,
-    EmailSequences,
     HallucinationReport,
-    LandingPage,
     MarketerInput,
     MarketerOutput,
-    ProductHuntKit,
-    ScheduledPostIds,
-    SEOBlogDraft,
-    SocialPostBundle,
-    VisualAssetBundle,
 )
 from app.agents.marketing.state import MarketerState
 
@@ -140,7 +132,7 @@ class MarketingAgent(_BaseAgentStub):
         plan = await self.plan(intent)
 
         # 3. Execute
-        initial_state = plan["initial_state"]
+        plan["initial_state"]
         final_state: MarketerState = await self.execute(plan)
 
         # 4. Convert to output
@@ -193,7 +185,6 @@ class MarketingAgent(_BaseAgentStub):
 
     async def plan(self, intent: dict[str, Any]) -> dict[str, Any]:
         """Decompose intent into initial LangGraph state."""
-        from app.agents.marketing.schema import MarketerInput
 
         # We pass the raw intent back — actual input is retrieved from caller context
         # The real state is built in execute()
@@ -215,7 +206,8 @@ class MarketingAgent(_BaseAgentStub):
 
         if output.hallucination_report and not output.hallucination_report.passed:
             issues.append(
-                f"Hallucination check not passed: {output.hallucination_report.critical_count} critical"
+                f"Hallucination check not passed: "
+                f"{output.hallucination_report.critical_count} critical"
             )
 
         if not output.approved_content_types and output.approval_status not in (

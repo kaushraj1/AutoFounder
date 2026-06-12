@@ -23,7 +23,7 @@ async def generate_email_sequences(state: MarketerState) -> MarketerState:
     """LangGraph node: onboarding + reactivation email drip sequences."""
     logger.info("[marketing] generate_email_sequences — start")
 
-    errors: list[str] = list(state.get("errors", []))
+    list(state.get("errors", []))
     prompt = render(
         "generate_email_sequences",
         brand_config=state.get("brand_config", {}),

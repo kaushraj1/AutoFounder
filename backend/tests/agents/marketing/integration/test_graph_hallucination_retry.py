@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -87,7 +87,7 @@ class TestHallucinationRetry:
             patch("app.agents.marketing.nodes.generate_social_posts.call_llm", return_value=_SOCIAL) as _,
             patch("app.agents.marketing.nodes.generate_email_sequences.call_llm", return_value=_EMAIL) as _,
             patch("app.agents.marketing.nodes.generate_visual_assets.call_llm", return_value=_VISUAL) as _,
-            patch("app.agents.marketing.nodes.hallucination_check.call_llm", side_effect=hall_effect) as mock_hall,
+            patch("app.agents.marketing.nodes.hallucination_check.call_llm", side_effect=hall_effect),
             patch("app.agents.marketing.nodes.render_gtm_report.call_llm_text", return_value=_GTM) as _,
             patch("app.agents.marketing.nodes.analyse_brand.tavily_search", return_value={"results": []}) as _,
             patch("app.agents.marketing.nodes.generate_visual_assets.dalle_generate", return_value={"generated_url": None, "status": "failed"}) as _,

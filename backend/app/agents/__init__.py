@@ -26,7 +26,11 @@ from app.agents.base import (
     VerifyError,
     VerifyResult,
 )
-from app.agents.marketing import MarketingAgent, MarketerInput, MarketerOutput  # noqa: F401 — Pillar 6
+from app.agents.marketing import (  # noqa: F401 — Pillar 6
+    MarketerInput,
+    MarketerOutput,
+    MarketingAgent,
+)
 
 __all__ = [
     "Agent",

@@ -32,7 +32,7 @@ async def hallucination_check(state: MarketerState) -> MarketerState:
         "[marketing] hallucination_check — start (retry=%d/%d)", retry_count, _MAX_RETRIES
     )
 
-    errors: list[str] = list(state.get("errors", []))
+    list(state.get("errors", []))
     feature_list = state.get("feature_list", {})
 
     # ---- Extract Day-0 email for quick check ----
