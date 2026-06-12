@@ -148,6 +148,66 @@ async def secrets_manager_create(
 # ---------------------------------------------------------------------------
 
 
+async def codedeploy_create_application(
+    *, app_name: str, compute_platform: str = "ECS"
+) -> dict[str, Any]:
+    """Idempotently create a CodeDeploy application."""
+    if _is_scaffold_mode():
+        return {"ok": True, "app_name": app_name, "compute_platform": compute_platform}
+
+    client = _boto3_client("codedeploy")
+
+    def _create() -> dict[str, Any]:
+        try:
+            return client.create_application(
+                applicationName=app_name, computePlatform=compute_platform
+            )
+        except client.exceptions.ApplicationAlreadyExistsException:
+            return {"applicationId": None, "existed": True}
+
+    resp = await asyncio.to_thread(_create)
+    return {
+        "ok": True,
+        "app_name": app_name,
+        "compute_platform": compute_platform,
+        "application_id": resp.get("applicationId"),
+        "existed": resp.get("existed", False),
+    }
+
+
+async def codedeploy_create_deployment_group(
+    *, app_name: str, deployment_group: str, service_role_arn: str
+) -> dict[str, Any]:
+    """Idempotently create a CodeDeploy deployment group."""
+    if _is_scaffold_mode():
+        return {
+            "ok": True,
+            "app_name": app_name,
+            "deployment_group": deployment_group,
+        }
+
+    client = _boto3_client("codedeploy")
+
+    def _create() -> dict[str, Any]:
+        try:
+            return client.create_deployment_group(
+                applicationName=app_name,
+                deploymentGroupName=deployment_group,
+                serviceRoleArn=service_role_arn,
+            )
+        except client.exceptions.DeploymentGroupAlreadyExistsException:
+            return {"deploymentGroupId": None, "existed": True}
+
+    resp = await asyncio.to_thread(_create)
+    return {
+        "ok": True,
+        "app_name": app_name,
+        "deployment_group": deployment_group,
+        "deployment_group_id": resp.get("deploymentGroupId"),
+        "existed": resp.get("existed", False),
+    }
+
+
 async def codedeploy_create_deployment(
     *, app_name: str, deployment_group: str
 ) -> dict[str, Any]:
@@ -380,6 +440,8 @@ async def http_health_check(*, endpoint: str) -> dict[str, Any]:
 _TOOL_DISPATCH = {
     "terraform_run": terraform_run,
     "secrets_manager_create": secrets_manager_create,
+    "codedeploy_create_application": codedeploy_create_application,
+    "codedeploy_create_deployment_group": codedeploy_create_deployment_group,
     "codedeploy_create_deployment": codedeploy_create_deployment,
     "route53_upsert": route53_upsert,
     "acm_request_certificate": acm_request_certificate,

@@ -78,6 +78,11 @@ async def test_secrets_manager_create_idempotent() -> None:
 
 async def test_codedeploy_create_deployment_real() -> None:
     cd = _aws("codedeploy")
+    try:
+        cd.list_applications()
+    except Exception as exc:
+        pytest.skip(f"CodeDeploy not available on this LocalStack edition: {exc}")
+
     app_name = f"af-test-app-{uuid.uuid4().hex[:8]}"
     group_name = f"{app_name}-dg"
     cd.create_application(applicationName=app_name, computePlatform="ECS")

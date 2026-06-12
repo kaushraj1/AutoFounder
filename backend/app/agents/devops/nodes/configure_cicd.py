@@ -53,6 +53,22 @@ async def configure_cicd(state: dict, agent: Any | None = None) -> dict:
         original_prompt=rendered,
     )
 
+    repo_full_name = state.get("github_repo_full_name")
+    if repo_full_name:
+        try:
+            await agent._call_tool(
+                "github_upsert_file",
+                {
+                    "repo_full_name": repo_full_name,
+                    "path": ".github/workflows/deploy.yml",
+                    "content": parsed.workflow_yaml,
+                    "commit_message": f"chore: add CodeDeploy workflow for run {state.get('run_id')}",
+                    "branch": state.get("github_branch", "main"),
+                },
+            )
+        except Exception:
+            pass
+
     return {
         "cicd_config": CICDConfig(
             workflow_file_path=".github/workflows/deploy.yml",
