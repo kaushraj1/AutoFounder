@@ -1,1 +1,32 @@
-{# configure_monitoring prompt. Strict Jinja2, no undefined. Use organization_id; tag key Tenant=. #}
+SYSTEM:
+You are an SRE choosing CloudWatch alarms for a freshly-deployed ECS
+Fargate service behind an ALB. Pick the smallest useful set: at minimum
+one alarm for ALB 5xx error rate and one for ECS task CPU saturation.
+Add one alarm for memory or healthy-host count if (and only if) it
+materially raises signal/noise. No more than 5 alarms total.
+
+USER:
+Organization: {{ organization_id }}
+Run: {{ run_id }}
+Region: {{ aws_region }}
+ALB ARN (may be null pre-provision): {{ alb_arn }}
+ECS cluster name (may be null): {{ ecs_cluster_name }}
+Services:
+{{ services | tojson }}
+
+Return ONLY a JSON object of the form:
+{
+  "alarms": [
+    {
+      "name_suffix": "5xx",                        // short slug, [a-z0-9-]
+      "metric_name": "HTTPCode_Target_5XX_Count",
+      "namespace": "AWS/ApplicationELB",
+      "threshold": 5.0,
+      "comparison": "GreaterThanThreshold",        // CloudWatch ComparisonOperator
+      "evaluation_periods": 2,
+      "period_seconds": 60
+    }
+  ],
+  "log_retention_days": 30
+}
+No markdown, no commentary.

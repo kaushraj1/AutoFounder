@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from functools import partial
+from typing import Any
+
 from langgraph.graph import END, StateGraph
 
 from app.agents.devops import nodes
@@ -21,7 +24,17 @@ async def _postdeploy_join(_: dict) -> dict:
 	return {}
 
 
-def build_devops_graph(checkpointer: object | None = None) -> object:
+def build_devops_graph(
+	agent: Any | None = None, checkpointer: object | None = None
+) -> object:
+	"""Build the DevOps StateGraph.
+
+	``agent`` is required for the four LLM-driven nodes
+	(build_task_defs, configure_cicd, configure_monitoring,
+	render_deploy_report). If None is passed, those nodes will raise at
+	runtime — keep this signature optional only for the run_local CLI's
+	non-execute dry inspect path.
+	"""
 	graph = StateGraph(DevOpsState)
 
 	graph.add_node("ingest_input", nodes.ingest_input)
@@ -31,16 +44,20 @@ def build_devops_graph(checkpointer: object | None = None) -> object:
 	graph.add_node("provision_data_layer", nodes.provision_data_layer)
 	graph.add_node("infra_join", _infra_join)
 	graph.add_node("provision_secrets", nodes.provision_secrets)
-	graph.add_node("build_task_defs", nodes.build_task_defs)
+	graph.add_node("build_task_defs", partial(nodes.build_task_defs, agent=agent))
 	graph.add_node("configure_codedeploy", nodes.configure_codedeploy)
 	graph.add_node("deploy_join", _deploy_join)
 	graph.add_node("deploy_application", nodes.deploy_application)
 	graph.add_node("configure_dns_ssl", nodes.configure_dns_ssl)
-	graph.add_node("configure_monitoring", nodes.configure_monitoring)
-	graph.add_node("configure_cicd", nodes.configure_cicd)
+	graph.add_node(
+		"configure_monitoring", partial(nodes.configure_monitoring, agent=agent)
+	)
+	graph.add_node("configure_cicd", partial(nodes.configure_cicd, agent=agent))
 	graph.add_node("postdeploy_join", _postdeploy_join)
 	graph.add_node("smoke_test", nodes.smoke_test)
-	graph.add_node("render_deploy_report", nodes.render_deploy_report)
+	graph.add_node(
+		"render_deploy_report", partial(nodes.render_deploy_report, agent=agent)
+	)
 	graph.add_node("error_handler", nodes.error_handler)
 
 	graph.set_entry_point("ingest_input")

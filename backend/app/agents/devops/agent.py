@@ -19,7 +19,7 @@ class DevOpsAgent(BaseAgent[Any, DevOpsState]):
 
 	def __init__(self, *args: object, **kwargs: object) -> None:
 		super().__init__(*args, **kwargs)
-		self.graph = build_devops_graph(self.checkpointer)
+		self.graph = build_devops_graph(self, self.checkpointer)
 
 	async def understand(self, input_data: Any) -> dict[str, Any]:
 		if isinstance(input_data, DevOpsState):

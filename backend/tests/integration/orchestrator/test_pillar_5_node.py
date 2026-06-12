@@ -26,6 +26,7 @@ import fakeredis.aioredis
 import pytest
 
 from app.agents.devops.schema import DeployStatus
+from app.agents.devops.tests._fakes import FakeDevOpsLLMRouter
 from app.core.config import get_settings
 
 FIXTURE = (
@@ -61,10 +62,10 @@ class _StubUDAL:
 
 class _StubGeminiRouter:
     def __init__(self, *a: Any, **k: Any) -> None:
-        pass
+        self._fake = FakeDevOpsLLMRouter()
 
-    async def complete(self, *a: Any, **k: Any) -> str:  # pragma: no cover
-        raise RuntimeError("scaffold must not call the LLM")
+    async def complete(self, *, task_class: str, prompt: str, **kw: Any) -> str:
+        return await self._fake.complete(task_class=task_class, prompt=prompt, **kw)
 
 
 def _load_code_output() -> dict[str, Any]:
@@ -129,6 +130,9 @@ def patched_pillar_5(monkeypatch: pytest.MonkeyPatch) -> Any:
         "DualCheckpointer",
         lambda *a, **k: MemorySaver(),
     )
+    # Force DevOps tool wrappers into scaffold mode so the test never
+    # hits AWS or PyGithub even if creds happen to be present in env.
+    monkeypatch.setattr(get_settings(), "devops_tools_mode", "scaffold")
     return importlib.import_module("app.orchestrator.nodes")
 
 

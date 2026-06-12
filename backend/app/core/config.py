@@ -103,6 +103,21 @@ class Settings(BaseSettings):
     devops_hitl_poll_interval_seconds: float = 60.0
     devops_hitl_timeout_seconds: float = 900.0
 
+    # DevOps tool execution mode. 'real' = boto3 / PyGithub / subprocess terraform.
+    # 'scaffold' = canned dict returns (Phase 1A behaviour) — used by unit suites
+    # that don't want to mock every AWS client.
+    devops_tools_mode: str = "real"
+    # Override AWS endpoint for LocalStack / motoserver / other test doubles.
+    # boto3 reads AWS_ENDPOINT_URL natively, but we surface a typed field here
+    # so devops tools.py can fall back to scaffold when endpoint+creds missing.
+    aws_endpoint_url: str | None = None
+    # Default-on safety: github_upsert_file logs the would-be commit instead of
+    # pushing. Flip to False (per-run or globally) once a throwaway-org PAT is in.
+    devops_github_dry_run: bool = True
+    # Resolved binary used by terraform_run. Override in env to point at a
+    # pinned 1.x install or a tfenv shim.
+    devops_terraform_binary: str = "terraform"
+
     # Observability (AF-023 OTel · AF-024 Prometheus/LangSmith)
     otel_enabled: bool = False
     otel_exporter_otlp_endpoint: str | None = None

@@ -44,7 +44,7 @@ def main() -> None:
         print(state.model_dump_json(indent=2))
         return
 
-    graph = build_devops_graph()
+    graph = build_devops_graph(agent=None)
     config = {"configurable": {"thread_id": str(state.run_id)}}
     result = asyncio.run(graph.ainvoke(state.model_dump(), config=config))
     print(DevOpsState.model_validate(result).model_dump_json(indent=2))
