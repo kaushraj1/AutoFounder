@@ -1,5 +1,5 @@
 """ArchitectAgent — Pillar 2 (AF-040).
-
+  
 Implements the five-method BaseAgent loop around the LangGraph StateGraph.
 
 Standalone usage (no platform):
