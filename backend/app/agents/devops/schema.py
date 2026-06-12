@@ -332,6 +332,11 @@ class DevOpsState(BaseModel):
 
     # Terraform
     terraform_plan_output: str | None = None
+
+    # Execution metadata
+    node_traces: list[NodeTrace] = Field(default_factory=list)
+    last_error: str | None = None
+    deployment_id: str | None = None
     terraform_state_s3_key: str | None = None
 
     # Execution metadata

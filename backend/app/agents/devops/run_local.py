@@ -9,9 +9,11 @@ Run from the backend/ directory (so the `app` package resolves):
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 from pathlib import Path
 
+from .graph import build_devops_graph
 from .schema import DevOpsState
 from .utils.cost import estimate_monthly_cost_usd
 
@@ -29,11 +31,23 @@ def main() -> None:
         description="Run the DevOps Agent locally against a CoderOutput JSON.",
     )
     parser.add_argument("--input", type=Path, required=True, help="Path to the CoderOutput JSON.")
+    parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="Execute the DevOps graph scaffold and print the final state.",
+    )
     args = parser.parse_args()
 
     payload = json.loads(args.input.read_text(encoding="utf-8"))
     state = _build_state(payload)
-    print(state.model_dump_json(indent=2))
+    if not args.execute:
+        print(state.model_dump_json(indent=2))
+        return
+
+    graph = build_devops_graph()
+    config = {"configurable": {"thread_id": str(state.run_id)}}
+    result = asyncio.run(graph.ainvoke(state.model_dump(), config=config))
+    print(DevOpsState.model_validate(result).model_dump_json(indent=2))
 
 
 if __name__ == "__main__":

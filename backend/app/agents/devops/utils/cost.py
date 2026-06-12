@@ -24,7 +24,12 @@ def estimate_monthly_cost_usd(services: list[ServiceManifest]) -> float:
     per_task = _HOURS_PER_MONTH * (
         _VCPU_PER_TASK * _FARGATE_PER_VCPU_HOUR + _GB_PER_TASK * _FARGATE_PER_GB_HOUR
     )
-    fargate = sum(s.replicas_baseline for s in services) * per_task
+    def _replicas(s: object) -> int:
+        if isinstance(s, dict):
+            return int(s.get("replicas_baseline", 0))
+        return int(getattr(s, "replicas_baseline", 0))
+
+    fargate = sum(_replicas(s) for s in services) * per_task
     return round(
         fargate
         + _NAT_GATEWAY_MONTH
