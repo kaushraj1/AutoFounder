@@ -167,3 +167,5 @@ vscode-extension/.vscode-test/
 .parcel-cache/
 .eslintcache
 .stylelintcache
+# Local terraform validation log (transient output of scripts/tf-validate.ps1)
+scripts/tf-validate.out
