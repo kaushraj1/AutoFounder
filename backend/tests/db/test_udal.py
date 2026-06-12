@@ -118,11 +118,13 @@ async def test_relational_sets_search_path() -> None:
     async with udal.relational() as db:
         assert db.session is session
         # Verify SET LOCAL was called with the correct org schema
-        call_args = session.execute.call_args
-        sql_text = str(call_args[0][0])
-        assert "org_org_rel" in sql_text
-        assert "SET LOCAL search_path" in sql_text
-        assert "SET LOCAL app.organization_id" in sql_text
+        calls = session.execute.call_args_list
+        assert len(calls) == 2
+        sql_text_1 = str(calls[0][0][0])
+        sql_text_2 = str(calls[1][0][0])
+        assert "org_org_rel" in sql_text_1
+        assert "SET LOCAL search_path" in sql_text_1
+        assert "SET LOCAL app.organization_id" in sql_text_2
 
 
 @pytest.mark.asyncio
