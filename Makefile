@@ -1,4 +1,4 @@
-.PHONY: install dev stack stack-down backend-lint backend-format backend-typecheck backend-test js-lint js-format quality
+.PHONY: install dev stack stack-down backend-lint backend-format backend-typecheck backend-test eval-gate js-lint js-format quality
 
 # Install JS workspaces (pnpm) and backend Python deps (uv)
 install:
@@ -28,6 +28,13 @@ backend-typecheck:
 
 backend-test:
 	cd backend && uv run pytest
+
+# AF-050 — run every agent's Promptfoo golden set through the regression gate
+eval-gate:
+	cd backend && for config in tests/golden/*/promptfoo.yaml; do \
+		agent=$$(basename "$$(dirname "$$config")"); \
+		uv run python -m app.eval "$$agent" "$$config" || exit 1; \
+	done
 
 js-lint:
 	pnpm lint

@@ -28,7 +28,8 @@
       "Bash(brew install *)",
       "Bash(pdftoppm -r 100 -png /tmp/landing-page.pdf /tmp/lp-page)",
       "Bash(pkill -f \"vite\")",
-      "Bash(pkill -f \"remote-debugging-port=9224\")"
+      "Bash(pkill -f \"remote-debugging-port=9224\")",
+      "PowerShell(Get-CimInstance Win32_Process -Filter \"Name='git.exe'\")"
     ]
   }
 }
