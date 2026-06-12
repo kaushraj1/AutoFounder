@@ -1,4 +1,4 @@
-# Work Report for Team Lead — Purnima
+# Work Report for Team  — Purnima
 
 > Prepared by: **Purnima** (sushe9sushe@gmail.com)
 > Role: Pillar 7 Owner — LLMOps & Continuous Learning + Shared Infrastructure
