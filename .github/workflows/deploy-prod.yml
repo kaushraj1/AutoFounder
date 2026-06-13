@@ -12,7 +12,7 @@ on:
 
 env:
   AWS_REGION: ap-south-1
-  ECR_REPOSITORY: autofounder-ai/backend
+  ECR_REPOSITORY: autofounderai/backend
   ECS_CLUSTER: autofounderai-cluster
   ECS_SERVICE: autofounderai-backend-prod
   TASK_FAMILY: autofounderai-backend-prod
@@ -38,10 +38,10 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push image (immutable sha + prod-latest)
+      - name: Build and push image (immutable v-sha + prod-latest)
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
-          IMAGE_TAG: sha-${{ github.sha }}-${{ github.run_attempt }}
+          IMAGE_TAG: v${{ github.sha }}-${{ github.run_attempt }}
         run: |
           docker build --platform linux/amd64 \
             -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
@@ -56,7 +56,7 @@ jobs:
         with:
           task-definition-family: ${{ env.TASK_FAMILY }}
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}-${{ github.run_attempt }}
+          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:v${{ github.sha }}-${{ github.run_attempt }}
 
       - name: Deploy (rolling, circuit-breaker rollback)
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
