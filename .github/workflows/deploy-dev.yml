@@ -15,7 +15,7 @@ env:
   ECR_REPOSITORY: autofounderai/backend
   ECS_CLUSTER: autofounderai-cluster
   ECS_SERVICE: autofounderai-backend-dev
-  TASK_FAMILY: autofounderai-backend
+  TASK_FAMILY: autofounderai-backend-dev
   CONTAINER_NAME: backend
 
 jobs:
