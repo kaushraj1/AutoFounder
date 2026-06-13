@@ -1,0 +1,406 @@
+################################################################################
+# promptfoo.yaml — Golden eval suite for Reviewer / Self-Healer Agent (AF-042)
+#
+# Regression-tests the three reasoning prompts that drive the review pipeline,
+# grounded in the live Jinja2 templates under
+# backend/app/agents/reviewer/prompts/ and the deterministic sample-repo
+# verdicts in the Pillar-4 plan §9.3. The prompts below are concrete
+# renderings of those templates (one scenario per prompt), so the asserts can
+# pin the exact JSON contracts each node parses.
+#
+# Suites:
+#   1. llm_judge        — scores code; approves ONLY when gates + thresholds pass
+#                         and there is no unresolved CRITICAL/HIGH finding (D4).
+#   2. triage_failures  — routes approved | heal | escalate by the §4 rules
+#                         (OWASP hard-block, coverage<80 escalate, fixable→heal).
+#   3. auto_heal        — emits minimal patches and NEVER touches test files (D5).
+#
+# Provider note: the platform routes these calls to "Gemini 3.5 Flash" (plan
+# §6.2); promptfoo runs them against google:gemini-1.5-flash, matching the
+# sibling suites (tests/golden/architect, tests/golden/marketing).
+#
+# Usage:
+#   npx promptfoo eval --config tests/golden/reviewer/promptfoo.yaml
+#   npx promptfoo view   # open browser to inspect results
+################################################################################
+
+description: "AF-042 Reviewer / Self-Healer Agent — golden prompt evals"
+
+providers:
+  - id: google:gemini-1.5-flash
+    config:
+      temperature: 0.0 # deterministic for golden evals
+      response_format: json_object
+
+prompts:
+  # ── llm_judge ───────────────────────────────────────────────────────────────
+  - id: judge_clean
+    label: "llm_judge · clean repo"
+    raw: |
+      You are a meticulous senior staff engineer performing a final code-quality review
+      of an AI-generated software repository. Score the code objectively. Be strict:
+      plausible-but-unverified AI code must earn its score.
+
+      ## Repository under review
+      - repo_url: https://github.com/acme/clean-nextjs-fastapi
+      - branch: feature/init
+      - languages: Python TypeScript/JavaScript
+      - heal_cycle: 0
+
+      ## Files (sample)
+      - backend/main.py (python, 48 loc)
+      - frontend/index.ts (typescript, 22 loc)
+
+      ## Objective gate results
+      - Lint: ruff=passed (errors=0) eslint=passed (errors=0)
+      - Unit tests: passed passed=24/24 coverage=87%
+      - E2E: passed passed=6/6
+      - Security findings: 0
+
+      ## Scoring rubric (0-100 each)
+      - readability: naming, structure, comments, consistency.
+      - maintainability: modularity, duplication, testability, separation of concerns.
+      - security_posture: handling of the findings above + general secure-coding hygiene.
+      - overall: holistic production-readiness.
+
+      Set "approved": true ONLY if readability>=70 AND maintainability>=70 AND
+      security_posture>=60 AND there are no unresolved CRITICAL/HIGH security findings.
+
+      Return ONLY this JSON, no markdown, no commentary:
+      {
+        "readability": <int 0-100>,
+        "maintainability": <int 0-100>,
+        "security_posture": <int 0-100>,
+        "overall": <int 0-100>,
+        "approved": <bool>,
+        "rationale": "<one paragraph>"
+      }
+
+  - id: judge_sqli
+    label: "llm_judge · unresolved CRITICAL finding"
+    raw: |
+      You are a meticulous senior staff engineer performing a final code-quality review
+      of an AI-generated software repository. Score the code objectively. Be strict:
+      plausible-but-unverified AI code must earn its score.
+
+      ## Repository under review
+      - repo_url: https://github.com/acme/sql-injection-demo
+      - branch: feature/init
+      - languages: Python
+      - heal_cycle: 0
+
+      ## Files (sample)
+      - db.py (python, 31 loc)
+
+      ## Objective gate results
+      - Lint: ruff=passed (errors=0)
+      - Unit tests: passed passed=10/10 coverage=84%
+      - E2E: not run
+      - Security findings: 1
+        - [CRITICAL] semgrep:python.lang.security.audit.formatted-sql-query db.py User-supplied input concatenated into a raw SQL query (OWASP A03:2021-Injection)
+
+      ## Scoring rubric (0-100 each)
+      - readability: naming, structure, comments, consistency.
+      - maintainability: modularity, duplication, testability, separation of concerns.
+      - security_posture: handling of the findings above + general secure-coding hygiene.
+      - overall: holistic production-readiness.
+
+      Set "approved": true ONLY if readability>=70 AND maintainability>=70 AND
+      security_posture>=60 AND there are no unresolved CRITICAL/HIGH security findings.
+
+      Return ONLY this JSON, no markdown, no commentary:
+      {
+        "readability": <int 0-100>,
+        "maintainability": <int 0-100>,
+        "security_posture": <int 0-100>,
+        "overall": <int 0-100>,
+        "approved": <bool>,
+        "rationale": "<one paragraph>"
+      }
+
+  # ── triage_failures ─────────────────────────────────────────────────────────
+  - id: triage_clean
+    label: "triage · all green"
+    raw: |
+      You are the triage controller for an autonomous code-review pipeline. Decide what
+      to do next based on the gate results from the current cycle.
+
+      ## Context
+      - heal_cycle: 0 of 5
+      - judge approved: True (overall=88)
+
+      ## Lint
+      - ruff: passed errors=0 fixable=0
+      - eslint: passed errors=0 fixable=0
+
+      ## Unit tests
+      passed passed=24/24 coverage=92%
+
+      ## E2E
+      passed passed=6/6
+
+      ## Security findings
+
+      ## Decision rules (follow exactly)
+      1. Any CRITICAL/HIGH security finding that is NOT auto_fixable → decision "escalate".
+      2. Unit-test coverage < 80% → decision "escalate" (net-new test generation is out of scope).
+      3. If there are fixable lint errors or failing unit/e2e tests AND heal_cycle < 5 → decision "heal".
+      4. If everything passes and the judge approved → decision "approved".
+      5. Otherwise → decision "escalate".
+
+      For "heal", patch ONLY source files — NEVER test files. List the concrete issues to fix.
+
+      Return ONLY this JSON, no markdown:
+      {
+        "decision": "approved" | "heal" | "escalate",
+        "reason": "<short justification>",
+        "failures": ["<concise description of each issue to fix>"]
+      }
+
+  - id: triage_fixable_lint
+    label: "triage · fixable lint, cycles left"
+    raw: |
+      You are the triage controller for an autonomous code-review pipeline. Decide what
+      to do next based on the gate results from the current cycle.
+
+      ## Context
+      - heal_cycle: 0 of 5
+      - judge approved: n/a
+
+      ## Lint
+      - ruff: failed errors=4 fixable=4
+
+      ## Unit tests
+      passed passed=18/18 coverage=90%
+
+      ## E2E
+      not run
+
+      ## Security findings
+
+      ## Decision rules (follow exactly)
+      1. Any CRITICAL/HIGH security finding that is NOT auto_fixable → decision "escalate".
+      2. Unit-test coverage < 80% → decision "escalate" (net-new test generation is out of scope).
+      3. If there are fixable lint errors or failing unit/e2e tests AND heal_cycle < 5 → decision "heal".
+      4. If everything passes and the judge approved → decision "approved".
+      5. Otherwise → decision "escalate".
+
+      For "heal", patch ONLY source files — NEVER test files. List the concrete issues to fix.
+
+      Return ONLY this JSON, no markdown:
+      {
+        "decision": "approved" | "heal" | "escalate",
+        "reason": "<short justification>",
+        "failures": ["<concise description of each issue to fix>"]
+      }
+
+  - id: triage_owasp_hard_block
+    label: "triage · CRITICAL not auto-fixable"
+    raw: |
+      You are the triage controller for an autonomous code-review pipeline. Decide what
+      to do next based on the gate results from the current cycle.
+
+      ## Context
+      - heal_cycle: 1 of 5
+      - judge approved: False (overall=58)
+
+      ## Lint
+      - ruff: passed errors=0 fixable=0
+
+      ## Unit tests
+      passed passed=10/10 coverage=88%
+
+      ## E2E
+      not run
+
+      ## Security findings
+      - [CRITICAL] semgrep:python.lang.security.audit.formatted-sql-query owasp=A03:2021-Injection fixable=False db.py: User-supplied input concatenated into a raw SQL query
+
+      ## Decision rules (follow exactly)
+      1. Any CRITICAL/HIGH security finding that is NOT auto_fixable → decision "escalate".
+      2. Unit-test coverage < 80% → decision "escalate" (net-new test generation is out of scope).
+      3. If there are fixable lint errors or failing unit/e2e tests AND heal_cycle < 5 → decision "heal".
+      4. If everything passes and the judge approved → decision "approved".
+      5. Otherwise → decision "escalate".
+
+      For "heal", patch ONLY source files — NEVER test files. List the concrete issues to fix.
+
+      Return ONLY this JSON, no markdown:
+      {
+        "decision": "approved" | "heal" | "escalate",
+        "reason": "<short justification>",
+        "failures": ["<concise description of each issue to fix>"]
+      }
+
+  - id: triage_low_coverage
+    label: "triage · coverage below 80%"
+    raw: |
+      You are the triage controller for an autonomous code-review pipeline. Decide what
+      to do next based on the gate results from the current cycle.
+
+      ## Context
+      - heal_cycle: 2 of 5
+      - judge approved: True (overall=81)
+
+      ## Lint
+      - ruff: passed errors=0 fixable=0
+
+      ## Unit tests
+      passed passed=12/12 coverage=62%
+
+      ## E2E
+      not run
+
+      ## Security findings
+
+      ## Decision rules (follow exactly)
+      1. Any CRITICAL/HIGH security finding that is NOT auto_fixable → decision "escalate".
+      2. Unit-test coverage < 80% → decision "escalate" (net-new test generation is out of scope).
+      3. If there are fixable lint errors or failing unit/e2e tests AND heal_cycle < 5 → decision "heal".
+      4. If everything passes and the judge approved → decision "approved".
+      5. Otherwise → decision "escalate".
+
+      For "heal", patch ONLY source files — NEVER test files. List the concrete issues to fix.
+
+      Return ONLY this JSON, no markdown:
+      {
+        "decision": "approved" | "heal" | "escalate",
+        "reason": "<short justification>",
+        "failures": ["<concise description of each issue to fix>"]
+      }
+
+  # ── auto_heal ───────────────────────────────────────────────────────────────
+  - id: heal_lint
+    label: "auto_heal · fix lint in source only"
+    raw: |
+      You are an expert software engineer fixing failing checks in an AI-generated repo.
+      Generate MINIMAL, targeted patches that resolve the issues below.
+
+      ## Hard rules
+      - Patch SOURCE files ONLY. NEVER modify test files (anything matching test_*.py,
+        *_test.py, *.test.ts, *.spec.ts, or under a tests/ or __tests__/ directory).
+        Patching tests to make them pass hides real bugs.
+      - Make the smallest change that fixes the issue. Do not refactor unrelated code.
+      - Do not re-attempt a patch that already failed in a previous cycle (see history).
+      - Preserve the public API and existing behaviour outside the failing path.
+
+      ## Issues to fix (this cycle = 1)
+      - ruff E711 in backend/app.py: comparison to None must use `is None`, not `== None`
+      - ruff F401 in backend/app.py: `import os` is unused and must be removed
+
+      For each file you change, return the FULL new file contents (not a diff).
+
+      Return ONLY this JSON, no markdown:
+      {
+        "patches": [
+          {
+            "file_path": "<relative path within the repo>",
+            "rationale": "<why this fixes the issue>",
+            "new_content": "<full new file contents>"
+          }
+        ]
+      }
+
+tests:
+  # ── Suite 1: llm_judge ──────────────────────────────────────────────────────
+  - description: "judge: clean repo returns a complete, well-typed score object"
+    prompt: judge_clean
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const s = JSON.parse(output);
+          const keys = ["readability", "maintainability", "security_posture", "overall", "approved"];
+          const scored = ["readability", "maintainability", "security_posture", "overall"];
+          return keys.every(k => k in s)
+            && scored.every(k => Number.isInteger(s[k]) && s[k] >= 0 && s[k] <= 100)
+            && typeof s.approved === "boolean";
+
+  - description: "judge: clean repo (all gates green, no findings) is approved"
+    prompt: judge_clean
+    assert:
+      - type: javascript
+        value: |
+          const s = JSON.parse(output);
+          return s.approved === true;
+      - type: javascript
+        value: |
+          const s = JSON.parse(output);
+          // approval must be consistent with the rubric thresholds
+          return s.readability >= 70 && s.maintainability >= 70 && s.security_posture >= 60;
+
+  - description: "judge: unresolved CRITICAL finding is never approved (D4 hard block)"
+    prompt: judge_sqli
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const s = JSON.parse(output);
+          return s.approved === false;
+
+  # ── Suite 2: triage_failures ────────────────────────────────────────────────
+  - description: "triage: all green + judge approved → approved"
+    prompt: triage_clean
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const t = JSON.parse(output);
+          return ["approved", "heal", "escalate"].includes(t.decision)
+            && Array.isArray(t.failures);
+      - type: javascript
+        value: |
+          const t = JSON.parse(output);
+          return t.decision === "approved";
+
+  - description: "triage: fixable lint with cycles left → heal (and lists issues)"
+    prompt: triage_fixable_lint
+    assert:
+      - type: javascript
+        value: |
+          const t = JSON.parse(output);
+          return t.decision === "heal" && Array.isArray(t.failures) && t.failures.length >= 1;
+
+  - description: "triage: CRITICAL non-fixable finding → escalate (OWASP hard block)"
+    prompt: triage_owasp_hard_block
+    assert:
+      - type: javascript
+        value: |
+          const t = JSON.parse(output);
+          return t.decision === "escalate";
+
+  - description: "triage: coverage below 80% → escalate"
+    prompt: triage_low_coverage
+    assert:
+      - type: javascript
+        value: |
+          const t = JSON.parse(output);
+          return t.decision === "escalate";
+
+  # ── Suite 3: auto_heal ──────────────────────────────────────────────────────
+  - description: "heal: emits at least one well-formed source patch"
+    prompt: heal_lint
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const h = JSON.parse(output);
+          const patches = h.patches || [];
+          return patches.length >= 1
+            && patches.every(p => p.file_path && p.rationale && p.new_content);
+
+  - description: "heal: NEVER patches a test file (D5 — patching tests hides bugs)"
+    prompt: heal_lint
+    assert:
+      - type: javascript
+        value: |
+          const h = JSON.parse(output);
+          const patches = h.patches || [];
+          const isTestFile = p =>
+            /(^|\/)(tests?|__tests__)\//.test(p) ||
+            /(^|\/)test_[^\/]*\.py$/.test(p) ||
+            /_test\.py$/.test(p) ||
+            /\.(test|spec)\.ts$/.test(p);
+          return patches.length >= 1 && patches.every(p => !isTestFile(p.file_path));
+
+outputPath: tests/golden/reviewer/results.json

@@ -1,14 +1,20 @@
 import asyncio
+
 from langgraph.checkpoint.memory import MemorySaver
+
 from app.orchestrator.engine import OrchestratorEngine
 from app.orchestrator.graph import build_run_graph
+
 
 async def main():
     # Initialize engine in-memory (no database required)
     engine = OrchestratorEngine()
     engine._graph = build_run_graph(MemorySaver())
     
-    idea = "A revolutionary AI-driven platform that automates startup idea validation, market research, and MVP generation."
+    idea = (
+        "A revolutionary AI-driven platform that automates startup idea "
+        "validation, market research, and MVP generation."
+    )
     print(f"Submitting idea: '{idea}'...")
     
     # Start the run
