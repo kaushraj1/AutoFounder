@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from tests.agents.reviewer.conftest import make_state
-
 from app.agents.reviewer.routers import (
     PARALLEL_GATES,
     route_after_ingest,
@@ -14,6 +12,7 @@ from app.agents.reviewer.routers import (
     route_terminal,
 )
 from app.agents.reviewer.schema import GateStatus, ReviewDecision, TestSuiteResult
+from tests.agents.reviewer.conftest import make_state
 
 
 def test_route_after_ingest() -> None:

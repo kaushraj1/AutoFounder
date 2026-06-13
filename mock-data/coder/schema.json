@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://autofounder.ai/schemas/agents/coder-output.json",
+  "title": "CoderAgentOutput",
+  "description": "Structured output from the Coder Agent (Pillar 3).",
+  "type": "object",
+  "required": [
+    "run_id",
+    "organization_id",
+    "product_name",
+    "repository_url",
+    "scaffold_type",
+    "build_status",
+    "confidence_score"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": { "type": "string", "format": "uuid" },
+    "organization_id": { "type": "string" },
+    "product_name": { "type": "string" },
+    "repository_url": { "type": "string", "format": "uri" },
+    "default_branch": { "type": "string", "default": "main" },
+    "scaffold_type": {
+      "type": "string",
+      "enum": ["frontend_only", "backend_only", "full_stack", "infra_only"]
+    },
+    "files_generated": { "type": "integer", "minimum": 0 },
+    "lines_of_code": { "type": "integer", "minimum": 0 },
+    "languages": {
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": 0, "maximum": 100 }
+    },
+    "project_structure": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "key_implementations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["module", "status"],
+        "properties": {
+          "module": { "type": "string" },
+          "files": { "type": "array", "items": { "type": "string" } },
+          "status": { "type": "string", "enum": ["complete", "partial", "stub", "failed"] },
+          "test_coverage_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "dependencies_installed": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "environment_template": { "type": "string" },
+    "setup_commands": { "type": "array", "items": { "type": "string" } },
+    "test_results": {
+      "type": "object",
+      "properties": {
+        "unit_tests": { "$ref": "#/$defs/testRun" },
+        "integration_tests": { "$ref": "#/$defs/testRun" },
+        "e2e_tests": { "$ref": "#/$defs/testRun" },
+        "overall_status": {
+          "type": "string",
+          "enum": ["pass", "partial_pass", "fail"]
+        }
+      }
+    },
+    "known_gaps": { "type": "array", "items": { "type": "string" } },
+    "artifact_bundle_s3_uri": { "type": "string" },
+    "commit_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "build_status": {
+      "type": "string",
+      "enum": ["success", "failed", "in_progress"]
+    },
+    "build_duration_seconds": { "type": "integer", "minimum": 0 },
+    "confidence_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "total_llm_tokens_used": { "type": "integer", "minimum": 0 },
+    "generated_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "testRun": {
+      "type": "object",
+      "properties": {
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

@@ -5,16 +5,16 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
-from tests.agents.product_planner.conftest import (
-    FakeNoToolRegistry,
-    FakeProductPlannerLLMRouter,
-    make_fake_udal,
-)
 
 from app.agents.product_planner.agent import ProductPlannerAgent
 from app.agents.product_planner.registry import NoToolRegistry
 from app.agents.product_planner.schema import ProductPlannerInput, ProductPlannerOutput
 from app.agents.strategy.schema import StrategyOutput
+from tests.agents.product_planner.conftest import (
+    FakeNoToolRegistry,
+    FakeProductPlannerLLMRouter,
+    make_fake_udal,
+)
 
 
 def _make_agent(

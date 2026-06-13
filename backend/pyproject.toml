@@ -23,6 +23,7 @@ dependencies = [
   "google-generativeai>=0.8.0",
   "langgraph>=0.2.0",
   "prometheus-client>=0.21.0",
+  "pygithub>=2.4.0",
 ]
 
 [dependency-groups]
@@ -73,6 +74,9 @@ select = ["E", "F", "I", "UP", "B"]
 # UP047: Support generic functions without forcing Python 3.12-only type parameter syntax.
 ignore = ["B008", "UP046", "UP047"]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
 
@@ -88,4 +92,7 @@ exclude = ["alembic/", "agent_worker_pb2.*", "tests/agents/reviewer/fixtures/"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q -m 'not localstack'"
+markers = [
+  "localstack: integration tests requiring a running LocalStack container (skipped by default; run with `pytest -m localstack`)",
+]

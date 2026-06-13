@@ -2,9 +2,9 @@
 
 > **Owner**: Prasenjit Roy
 > **Task ID**: AF-043 · **Branch**: `feature/devops-agent`
-> **Status**: 🟡 Partially startable (offline work)
+> **Status**: 🟢 Unblocked — every hard blocker delivered (AF-036 BaseAgent · AF-027 UDAL · AF-012–021 foundation network · AF-042 Reviewer · AF-047 Tool Registry). Ready to build; only a live Coder→Reviewer handoff (AF-041) and AF-049 router remain as soft waits. Agent ❌ not built yet.
 > **Date**: 2026-06-05 · **Version**: 1.1.0
-> **Depends on**: AF-036 (BaseAgent), AF-027 (UDAL), AF-012–021 (Asit foundation network), AF-042 (Reviewer green repo)
+> **Depends on**: AF-036 (BaseAgent) ✅, AF-027 (UDAL) ✅, AF-012–021 (Asit foundation network) ✅, AF-042 (Reviewer green repo) ✅ — all delivered
 > **SLA**: < 10 min code → live (excludes async HITL gate) · Uptime 99.9% · First-run deploy success ≥ 85%
 > **Ground truth (authoritative)**: [devops-agent.md](../../docs/architecture/Agents-Architecture/devops-agent.md) (LLD) and [CLAUDE.md](../CLAUDE.md) §17, §18, §27, §40, §48. This file is the developer-facing implementation summary — if it drifts, those win.
 
@@ -77,12 +77,12 @@ Pillar 5 is the **launch pad**. It takes the tested, green repository (approved 
 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
-| BaseAgent ABC | AF-036 | Asit | DevOpsAgent subclasses it | 🔴 Blocked |
-| UDAL | AF-027 | Asit | Read repo ref, write deploy artifacts | 🔴 Blocked |
-| **Foundation network outputs** | AF-012–021 | Asit | `attach_foundation_network` reads VPC / subnets / SGs / NAT / IGW via `terraform_remote_state` — DevOps never creates these | 🟡 |
-| Reviewer green CoderOutput | AF-042 | Vishal | Only deploy a green repo with images already in ECR | 🟡 |
-| Tool Registry | AF-047 | Asit | Terraform / AWS / GitHub tool wrappers | 🟡 |
-| AWS account + IAM | AF-019 | Asit | Deploy target | 🟢 |
+| BaseAgent ABC | AF-036 | Asit | DevOpsAgent subclasses it | ✅ Done |
+| UDAL | AF-027 | Asit | Read repo ref, write deploy artifacts | ✅ Done |
+| **Foundation network outputs** | AF-012–021 | Asit | `attach_foundation_network` reads VPC / subnets / SGs / NAT / IGW via `terraform_remote_state` — DevOps never creates these | ✅ Done (infra 13/13) |
+| Reviewer green CoderOutput | AF-042 | Vishal | Only deploy a green repo with images already in ECR | ✅ Done (Reviewer shipped; live Coder handoff pending AF-041) |
+| Tool Registry | AF-047 | Asit | Terraform / AWS / GitHub tool wrappers | ✅ Done (shell; add entries) |
+| AWS account + IAM | AF-019 | Asit | Deploy target | ✅ Done |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
 
@@ -481,9 +481,9 @@ class DevOpsOutput(BaseModel):
 | 2 | Terraform templates: `network_overlays/` (consumes foundation via `terraform_remote_state`), `ecs/`, `data-layer/` (RDS + Redis + S3), `alb/` | `terraform_templates/` | 🟢 Start now |
 | 2 | Tool wrappers in `tools.py` (`terraform_run`, `aws_ecr_login`, `aws_ecr_push`, `aws_ecs_*`, `codedeploy_*`, `route53_upsert`, `acm_request_certificate`, `secrets_manager_create`, `http_health_check`, `github_upsert_file`) | `tools.py` | 🟢 Start now |
 | 2 | **Pair with Asit** to consume foundation network outputs (AF-012–021) | `network_overlays/main.tf` data source | 🟢 Pair now |
-| 3 | 14 nodes + routers + `error_handler` + `with_retry` + per-node SLA | `nodes/`, `routers.py`, `utils/retry.py`, `utils/sla.py` | 🟡 Needs BaseAgent stub |
+| 3 | 14 nodes + routers + `error_handler` + `with_retry` + per-node SLA | `nodes/`, `routers.py`, `utils/retry.py`, `utils/sla.py` | 🟢 Ready (AF-036 done) |
 | 3 | `hitl_spend_gate` (Redis poll 60 s; 15 min timeout) | `nodes/hitl_spend_gate.py` | 🟢 Start now |
-| 4 | `graph.py` + `agent.py` + LocalStack integration test + multi-tenant isolation test | `graph.py`, `agent.py`, `tests/integration/` | 🔴 Needs AF-036 (or stub) |
+| 4 | `graph.py` + `agent.py` + LocalStack integration test + multi-tenant isolation test | `graph.py`, `agent.py`, `tests/integration/` | 🟢 Ready (AF-036 delivered) |
 | 4 | Golden evals (Promptfoo) on all 8 prompts | `tests/golden/` | 🟢 Start now |
 
 ### Phase 2 (Weeks 5–7)

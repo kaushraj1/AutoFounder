@@ -7,10 +7,10 @@ import json
 import httpx
 import pytest
 import respx
-from tests.agents.reviewer.conftest import make_state
 
 from app.agents.reviewer.nodes.error_handler import _alert_slack, _summarise_failures
 from app.agents.reviewer.schema import NodeStatus, NodeTrace
+from tests.agents.reviewer.conftest import make_state
 
 
 def test_summarise_failures_from_node_traces() -> None:

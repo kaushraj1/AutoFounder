@@ -1,0 +1,73 @@
+{
+  "_fixture": "devpulse",
+  "_domain": "developer-tools",
+  "_description": "A developer productivity tracker that aggregates GitHub, Jira, and Slack activity into a daily pulse.",
+
+  "run_id": "00000000-0000-0000-0000-000000000003",
+  "organization_id": "org-devpulse",
+  "idea_normalised": "A developer productivity analytics platform that aggregates activity from GitHub, Jira, Linear, and Slack to give teams a daily engineering health pulse.",
+  "approval_status": "approved",
+
+  "brand_config": {
+    "product_name": "DevPulse",
+    "tagline": "Engineering health, at a glance",
+    "logo_concept": "A pulse/heartbeat line with code brackets",
+    "primary_color": "#6C63FF",
+    "tone": "technical",
+    "target_audience": "Engineering managers and CTOs at 10-200 person tech companies",
+    "website_url": "https://devpulse.io"
+  },
+
+  "feature_list": {
+    "features": [
+      "GitHub PR cycle time and merge rate tracking",
+      "Jira/Linear sprint velocity and completion metrics",
+      "Slack sentiment analysis (team morale proxy)",
+      "Daily engineering health score (0-100)",
+      "Individual contributor focus time tracking",
+      "Team bottleneck detection and alerts",
+      "Weekly automated engineering report (PDF/email)",
+      "DORA metrics dashboard (deployment frequency, lead time, MTTR, CFR)",
+      "Customisable metric targets and SLAs",
+      "Slack bot for daily standup digest"
+    ],
+    "integrations": ["GitHub", "GitLab", "Jira", "Linear", "Slack", "PagerDuty"],
+    "pricing_tiers": [
+      {"name": "Starter", "price": "$29/month", "description": "Up to 10 developers"},
+      {"name": "Growth", "price": "$99/month", "description": "Up to 50 developers"},
+      {"name": "Enterprise", "price": "Custom", "description": "Unlimited + SSO + SLA"}
+    ]
+  },
+
+  "lean_canvas_json": {
+    "problem": [
+      "Engineering managers have no unified view of team health",
+      "Productivity data is scattered across 5+ tools",
+      "DORA metrics require expensive consultants to set up"
+    ],
+    "solution": "A single engineering health dashboard that auto-aggregates from all your tools",
+    "unique_value_proposition": "DORA metrics + team morale + bottlenecks — in one 5-minute daily read",
+    "unfair_advantage": "Pre-built integrations for the top 6 dev tools — zero setup time",
+    "customer_segments": ["Engineering managers", "CTOs", "VP Engineering"],
+    "key_metrics": ["Teams onboarded", "Weekly active users", "Reports generated", "Integrations connected"],
+    "channels": ["LinkedIn", "Hacker News", "Dev conferences", "GitHub marketplace"],
+    "cost_structure": ["AWS", "Slack API costs", "GitHub API"],
+    "revenue_streams": ["Monthly subscriptions", "Enterprise contracts"],
+    "competitors": ["LinearB", "Waydev", "Jellyfish", "Pluralsight Flow"],
+    "viability_score": 83
+  },
+
+  "personas": [
+    {
+      "name": "Ravi",
+      "role": "Engineering Manager",
+      "company_size": "80",
+      "pain_points": ["Manually pulling data from 5 tools every Monday", "Missing team burnout signals", "Hard to justify headcount to leadership"],
+      "goals": ["Data-driven 1:1s", "Proactive bottleneck resolution", "Prove engineering ROI"],
+      "willingness_to_pay_usd": 99,
+      "preferred_channels": ["LinkedIn", "Hacker News"]
+    }
+  ],
+
+  "live_url": "https://devpulse.io"
+}

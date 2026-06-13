@@ -37,7 +37,7 @@ Legend: ✅ done · 🟫 partial · 🟪 scaffold-only (stub, compiles, no logic
 | **2 — Infra & Cloud** | AF-012..024 | ❌ ~all | **0 done.** AF-012–021,014,024 ❌ · AF-022 🟫 (CI done, CD inert) · AF-023 🟫 (JSON logs done, OTel unused) |
 | **3a — Core API/Data** | AF-025..032 | ✅ 7 / ❌ 1 | AF-025/026/027/028/029 ✅ · **AF-030 🟫 (overstated)** · **AF-031 🟪 (overstated)** · AF-032 ⏳ in PR #12 |
 | **3b — Orchestrator** | AF-033..035 | ❌ | ⏳ **delivered by PR #12** (in `dev`, engine.py is still a stub) |
-| **3c — Agents** | AF-036..045 | ❌ | AF-036 🟫 (contract only, no error-hierarchy/circuit-breakers) · AF-037/038/039 🟪 · AF-040..045 ❌ |
+| **3c — Agents** | AF-036..045 | ❌ | AF-036 🟫 (contract only, no error-hierarchy/circuit-breakers) · AF-037/038/039 🟪 · AF-040 🟪 (nodes/graph/schema/tools/prompts done; 60 tests ✅; pending BaseAgent wiring) · AF-041..045 ❌ |
 | **3d — Guardrails/Reg/Router/Eval** | AF-046..050 | ❌ | AF-046 🟫 (1/6 stages, `run()` raises) · AF-047/048/049/050 ❌ (DB tables only) |
 | **4 — Frontend** | AF-051..062 | ❌ | 🟪 scaffold-only (`placeholder.ts`, no Next/React/Tailwind) |
 | **5 — Mobile** | AF-063..071 | ❌ | 🟪 scaffold-only (no Expo deps) |

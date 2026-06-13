@@ -5,9 +5,9 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from tests.agents.research.conftest import FakeToolRegistry
 
 from app.agents.research.fanout import fan_out
+from tests.agents.research.conftest import FakeToolRegistry
 
 
 @pytest.mark.asyncio

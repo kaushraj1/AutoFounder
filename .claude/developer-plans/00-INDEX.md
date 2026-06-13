@@ -10,7 +10,7 @@
 | # | File | Developer | Area | AF-IDs | Branch |
 |---|---|---|---|---|---|
 | 01 | [01-asit-platform-foundation-plan.md](01-asit-platform-foundation-plan.md) | **Asit Piri** (Lead) | Platform Foundation (infra + UDAL + FastAPI + orchestrator + BaseAgent + Tool Registry) | AF-012 → AF-036, AF-047 | `feature/*` ✅ |
-| 02 | [02-somesh-pillar-1-strategy-research-plan.md](02-somesh-pillar-1-strategy-research-plan.md) | **Somesh Chitranshi** | Pillar 1 — Strategy + Research + Product Planner | AF-037, AF-038, AF-039 | `feature/strategy-agent` |
+| 02 | [02-somesh-pillar-1-strategy-research-plan.md](02-somesh-pillar-1-strategy-research-plan.md) | **Somesh Chitranshi** | Pillar 1 — Strategy + Research + Product Planner | AF-037, AF-038, AF-039 | `feature/strategy-agent` ✅ |
 | 03 | [03-kaushlendra-pillar-2-architecture-plan.md](03-kaushlendra-pillar-2-architecture-plan.md) | **Kaushlendra Kumar Gupta** | Pillar 2 — Architect Agent | AF-040 | `feature/architect-agent` |
 | 04 | [04-kartik-pillar-3-codegen-plan.md](04-kartik-pillar-3-codegen-plan.md) | **Kartik Mogalapalli** | Pillar 3 — Coder Agent | AF-041 | `feature/coder-agent` |
 | 05 | [05-vishal-pillar-4-testing-plan.md](05-vishal-pillar-4-testing-plan.md) | **Vishal Prasad** | Pillar 4 — Reviewer / Self-Healer | AF-042 | `feature/reviewer-agent` ✅ |
@@ -20,12 +20,14 @@
 | 09 | [09-raunak-web-frontend-plan.md](09-raunak-web-frontend-plan.md) | **Raunak Ravi** | Web — Next.js 14 Founder Portal (12 surfaces) | AF-051 → AF-062 | `feature/nextjs-setup` |
 | 10 | [10-yogesh-mobile-plan.md](10-yogesh-mobile-plan.md) | **Yogesh Raut** | Mobile — Expo React Native (9 screens) | AF-063 → AF-071 | `feature/expo-setup` |
 | 11 | [11-asit-guardrails-pipeline-plan.md](11-asit-guardrails-pipeline-plan.md) | **Asit Piri** (Purnima co-owns Output+Monitoring) | Guardrails & Governance — 6-stage pipeline wrapping every agent call | AF-046 | `feat/platform/guardrails-tool-registry` ✅* |
-| 12 | [12-asit-vscode-extension-plan.md](12-asit-vscode-extension-plan.md) | **Asit Piri** (delegate candidate: Raunak) | VS Code Extension — in-IDE co-founder (7 tasks) | AF-072 → AF-078 | `feature/vscode-extension-core` |
+| 12 | [12-asit-vscode-extension-plan.md](12-asit-vscode-extension-plan.md) | **Asit Piri** (delivered by Vishal) | VS Code Extension — in-IDE co-founder (7 tasks) | AF-072 → AF-078 | `feature/vscode-extension` ✅ |
 | 13 | [13-asit-finance-ops-risk-plan.md](13-asit-finance-ops-risk-plan.md) | **Asit Piri** (Phase 4, deferred) | Finance Agent + Ops & Risk Agent (cross-cutting) | — (Phase 4) | `feature/finance-agent` |
 
 > **Previously unassigned — now all owned by Asit** (reassigned 2026-06-04, plans 11–13 above): Guardrails (AF-046), VS Code Extension (AF-072 → AF-078), Finance & Ops/Risk agents (Phase 4). ⚠️ This raises Asit to **~34 tasks (bus-factor 1)** — `task_assigned.md` Part B flags delegating the orchestrator (AF-033–035), BaseAgent (AF-036), or the VS Code Extension to an early-finishing pillar owner.
 >
 > **✅ Update 2026-06-09 (Vishal exec for Asit):** Plan **11 (AF-046 Guardrails)** + the **AF-047 Tool Registry** half of plan **01** are delivered on `feat/platform/guardrails-tool-registry` (off `dev`), verified green (ruff + mypy 210 files + 369 pytest, +127 new). With infra (AF-012–024), BaseAgent (AF-036), and the VS Code Extension (AF-072–078) already done, **Asit's only remaining work is plan 13 (Finance + Ops/Risk, Phase-4 deferred).**
+>
+> **✅ Plans delivered so far (per [TASKS.md](../TASKS.md) + [task_assigned.md](../task_assigned.md)):** **01** Asit platform foundation (AF-012→036 + AF-047) · **02** Somesh Pillar 1 (AF-037/038/039) · **05** Vishal Pillar 4 Reviewer (AF-042) · **11** Asit Guardrails (AF-046) · **12** VS Code Extension (AF-072→078, built by Vishal). **Still pending:** **03** Kaushlendra (AF-040) · **04** Kartik (AF-041) · **06** Prasenjit (AF-043) · **07** Pallavi (AF-044) · **08** Purnima (AF-045/048/049/050) · **09** Raunak (AF-051→062) · **10** Yogesh (AF-063→071) · **13** Asit Finance + Ops/Risk (Phase-4 deferred). _Status mirrors the trackers; per-task "scaffold vs real" nuance lives in [CURRENT-STATUS.md](../CURRENT-STATUS.md)._
 
 ---
 

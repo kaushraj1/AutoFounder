@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Validation Studio — PawTrail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: { extend: { fontFamily: { sans: ["Inter", "sans-serif"] } } },
+      };
+    </script>
+    <style>
+      body {
+        font-family: Inter, sans-serif;
+      }
+      .gauge {
+        conic-gradient:
+          #8b5cf6 0 259deg,
+          #1e293b 259deg 360deg;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-100 min-h-screen pb-16 lg:pb-0">
+    <nav
+      class="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-slate-800 bg-slate-900/95 flex justify-around py-3 text-xs"
+    >
+      <a href="run-detail.html" class="text-slate-400">Hub</a>
+      <a href="validation-studio.html" class="text-violet-300">Validate</a>
+      <a href="architecture-studio.html" class="text-slate-400">Arch</a>
+      <a href="dashboard.html" class="text-slate-400">Builds</a>
+    </nav>
+    <div class="flex min-h-screen">
+      <aside class="hidden lg:flex w-64 flex-col border-r border-slate-800 bg-slate-900/50 text-sm">
+        <div class="p-5 border-b border-slate-800">
+          <a href="dashboard.html" class="font-semibold flex items-center gap-2"
+            ><div
+              class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400 text-xs font-bold text-slate-950 flex items-center justify-center"
+            >
+              AF
+            </div>
+            AutoFounder</a
+          >
+        </div>
+        <nav class="p-3 space-y-1">
+          <a
+            href="idea-intake.html"
+            class="block px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800"
+            >+ New idea</a
+          >
+          <a
+            href="dashboard.html"
+            class="block px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800"
+            >My builds</a
+          >
+          <a
+            href="llmops-dashboard.html"
+            class="block px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800"
+            >AI costs</a
+          >
+        </nav>
+        <div class="px-3 py-2 border-t border-slate-800">
+          <p class="text-xs text-slate-500 uppercase px-3 mb-2">PawTrail</p>
+          <a
+            href="run-detail.html"
+            class="block px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800"
+            >Overview</a
+          >
+          <a
+            href="validation-studio.html"
+            class="block px-3 py-2 rounded-lg bg-amber-500/15 text-amber-200 border border-amber-500/30 mt-1"
+            >① Validate</a
+          >
+          <a
+            href="architecture-studio.html"
+            class="block px-3 py-2 rounded-lg text-slate-500 mt-1 opacity-60"
+            >② Architecture</a
+          >
+          <a
+            href="code-review.html"
+            class="block px-3 py-2 rounded-lg text-slate-500 mt-1 opacity-60"
+            >③ Code review</a
+          >
+          <a
+            href="deploy-console.html"
+            class="block px-3 py-2 rounded-lg text-slate-500 mt-1 opacity-60"
+            >④ Deploy</a
+          >
+          <a
+            href="launch-control.html"
+            class="block px-3 py-2 rounded-lg text-slate-500 mt-1 opacity-60"
+            >⑤ Launch</a
+          >
+        </div>
+      </aside>
+      <main class="flex-1 flex flex-col min-w-0">
+        <header class="border-b border-slate-800 px-4 lg:px-6 py-3">
+          <nav class="text-sm text-slate-400 mb-2">
+            <a href="dashboard.html" class="hover:text-white">My builds</a> ›
+            <a href="run-detail.html" class="hover:text-white">PawTrail</a> ›
+            <span class="text-white">Validation</span>
+          </nav>
+          <div class="flex flex-wrap gap-3 items-center justify-between">
+            <h1 class="font-semibold">Validation Studio</h1>
+            <div class="flex gap-2">
+              <a
+                href="architecture-studio.html"
+                class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm font-medium"
+                >Approve →</a
+              >
+              <button
+                class="px-4 py-2 rounded-lg border border-slate-600 text-sm hover:bg-slate-800"
+              >
+                Pivot
+              </button>
+            </div>
+          </div>
+        </header>
+        <div class="p-4 lg:p-6 grid lg:grid-cols-12 gap-6 flex-1">
+          <div class="lg:col-span-4 space-y-4">
+            <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-center">
+              <div
+                class="w-32 h-32 mx-auto rounded-full flex items-center justify-center text-3xl font-bold"
+                style="background: conic-gradient(#8b5cf6 0deg 259deg, #334155 259deg)"
+              >
+                72
+              </div>
+              <p class="mt-3 font-medium text-violet-300">Moderate viability</p>
+              <p class="text-xs text-slate-500 mt-1">Confidence 82%</p>
+            </div>
+            <div class="rounded-xl border border-slate-800 p-4">
+              <h3 class="text-sm font-medium mb-3">Customer personas</h3>
+              <div class="space-y-2 text-xs">
+                <div class="p-2 rounded-lg bg-slate-800/80">
+                  <strong>Priya — Tech PM</strong><br /><span class="text-slate-400"
+                    >Koramangala · needs 7am walks + proof</span
+                  >
+                </div>
+                <div class="p-2 rounded-lg bg-slate-800/80">
+                  <strong>Arjun — Founder</strong><br /><span class="text-slate-400"
+                    >HSR · travels often · hates no-shows</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="lg:col-span-8 rounded-xl border border-slate-800 bg-slate-900/40 p-5">
+            <div class="flex gap-4 border-b border-slate-800 pb-3 mb-4 text-sm">
+              <span class="text-violet-300 font-medium border-b-2 border-violet-500 pb-2"
+                >Lean Canvas</span
+              >
+              <span class="text-slate-500">Market report</span>
+              <span class="text-slate-500">PRD</span>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4 text-sm">
+              <div class="p-3 rounded-lg bg-slate-800/50">
+                <p class="text-xs text-violet-400 uppercase mb-1">Problem</p>
+                <p class="text-slate-300">
+                  Urban pros can't find reliable, vetted dog walkers on short notice.
+                </p>
+              </div>
+              <div class="p-3 rounded-lg bg-slate-800/50">
+                <p class="text-xs text-violet-400 uppercase mb-1">Solution</p>
+                <p class="text-slate-300">
+                  Subscription platform with GPS proof and background-checked walkers.
+                </p>
+              </div>
+              <div class="p-3 rounded-lg bg-slate-800/50">
+                <p class="text-xs text-violet-400 uppercase mb-1">UVP</p>
+                <p class="text-slate-300">Walks you can trust. Routes you can see.</p>
+              </div>
+              <div class="p-3 rounded-lg bg-slate-800/50">
+                <p class="text-xs text-violet-400 uppercase mb-1">Unfair advantage</p>
+                <p class="text-slate-300">
+                  Hyperlocal trust + subscription pricing in BLR tech corridors.
+                </p>
+              </div>
+            </div>
+            <table class="w-full mt-6 text-xs">
+              <thead class="text-slate-500 text-left">
+                <tr>
+                  <th class="pb-2">Competitor</th>
+                  <th class="pb-2">Weakness</th>
+                </tr>
+              </thead>
+              <tbody class="text-slate-300 divide-y divide-slate-800">
+                <tr>
+                  <td class="py-2">Wiggles</td>
+                  <td class="py-2 text-slate-400">No subscription · inconsistent BLR quality</td>
+                </tr>
+                <tr>
+                  <td class="py-2">WhatsApp referrals</td>
+                  <td class="py-2 text-slate-400">No GPS · no insurance</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -17,8 +17,28 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    # pgvector extension required for memory_episodes.embedding vector(768)
-    op.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    # pgvector is optional in some environments (e.g., plain Postgres in CI).
+    # Try to install when available; otherwise continue with array-based fallback.
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM pg_available_extensions
+                WHERE name = 'vector'
+            ) THEN
+                BEGIN
+                    CREATE EXTENSION IF NOT EXISTS vector;
+                EXCEPTION
+                    WHEN insufficient_privilege THEN
+                        RAISE NOTICE 'Skipping CREATE EXTENSION vector (insufficient privileges)';
+                END;
+            ELSE
+                RAISE NOTICE 'pgvector extension is not available; using fallback schema';
+            END IF;
+        END
+        $$;
+    """)
 
     # ------------------------------------------------------------------
     # orchestrator schema — LangGraph checkpoint persistence
@@ -39,8 +59,7 @@ def upgrade() -> None:
         )
     """)
     op.execute(
-        "CREATE INDEX IF NOT EXISTS idx_checkpoints_run_id "
-        "ON orchestrator.checkpoints (run_id)"
+        "CREATE INDEX IF NOT EXISTS idx_checkpoints_run_id ON orchestrator.checkpoints (run_id)"
     )
     op.execute(
         "CREATE INDEX IF NOT EXISTS idx_checkpoints_run_id_created "
@@ -60,7 +79,15 @@ def upgrade() -> None:
         AS $$
         DECLARE
             s TEXT := format('org_%s', org_id);
+            has_vector BOOLEAN := false;
         BEGIN
+
+            -- Detect whether pgvector is installed in this database at runtime.
+            SELECT EXISTS (
+                SELECT 1
+                FROM pg_extension
+                WHERE extname = 'vector'
+            ) INTO has_vector;
 
             -- schema
             EXECUTE format('CREATE SCHEMA IF NOT EXISTS %I', s);
@@ -95,7 +122,8 @@ def upgrade() -> None:
             EXECUTE format($sql$
                 CREATE TABLE IF NOT EXISTS %I.runs (
                     id              UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-                    workspace_id    UUID          NOT NULL REFERENCES %I.workspaces(id) ON DELETE CASCADE,
+                    workspace_id    UUID          NOT NULL REFERENCES
+                                                  %I.workspaces(id) ON DELETE CASCADE,
                     organization_id UUID          NOT NULL,
                     status          TEXT          NOT NULL DEFAULT 'queued'
                                                   CHECK (status IN (
@@ -249,29 +277,51 @@ def upgrade() -> None:
             -- --------------------------------------------------------
             -- memory_episodes (episodic agent memory + pgvector)
             -- --------------------------------------------------------
-            EXECUTE format($sql$
-                CREATE TABLE IF NOT EXISTS %I.memory_episodes (
-                    id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-                    run_id          UUID        NOT NULL REFERENCES %I.runs(id) ON DELETE CASCADE,
-                    organization_id UUID        NOT NULL,
-                    agent_id        TEXT        NOT NULL,
-                    role            TEXT        NOT NULL CHECK (role IN (
-                                                    'user','assistant','tool','system')),
-                    content         TEXT        NOT NULL,
-                    embedding       vector(768),
-                    metadata        JSONB       NOT NULL DEFAULT '{}',
-                    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-                )
-            $sql$, s, s);
+            IF has_vector THEN
+                EXECUTE format($sql$
+                    CREATE TABLE IF NOT EXISTS %I.memory_episodes (
+                        id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+                        run_id          UUID        NOT NULL REFERENCES
+                                                  %I.runs(id) ON DELETE CASCADE,
+                        organization_id UUID        NOT NULL,
+                        agent_id        TEXT        NOT NULL,
+                        role            TEXT        NOT NULL CHECK (role IN (
+                                                        'user','assistant','tool','system')),
+                        content         TEXT        NOT NULL,
+                        embedding       vector(768),
+                        metadata        JSONB       NOT NULL DEFAULT '{}',
+                        created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+                    )
+                $sql$, s, s);
+            ELSE
+                -- Fallback type keeps migrations portable when pgvector is unavailable.
+                EXECUTE format($sql$
+                    CREATE TABLE IF NOT EXISTS %I.memory_episodes (
+                        id              UUID             PRIMARY KEY DEFAULT gen_random_uuid(),
+                        run_id          UUID             NOT NULL REFERENCES
+                                                      %I.runs(id) ON DELETE CASCADE,
+                        organization_id UUID             NOT NULL,
+                        agent_id        TEXT             NOT NULL,
+                        role            TEXT             NOT NULL CHECK (role IN (
+                                                        'user','assistant','tool','system')),
+                        content         TEXT             NOT NULL,
+                        embedding       DOUBLE PRECISION[],
+                        metadata        JSONB            NOT NULL DEFAULT '{}',
+                        created_at      TIMESTAMPTZ      NOT NULL DEFAULT now()
+                    )
+                $sql$, s, s);
+            END IF;
             EXECUTE format(
                 'CREATE INDEX IF NOT EXISTS idx_memory_episodes_run_id '
                 'ON %I.memory_episodes (run_id)', s);
             -- IVFFlat ANN index for hybrid BM25+ANN retrieval (AF-049)
-            EXECUTE format($sql$
-                CREATE INDEX IF NOT EXISTS idx_memory_episodes_embedding
-                    ON %I.memory_episodes USING ivfflat (embedding vector_cosine_ops)
-                    WITH (lists = 100)
-            $sql$, s);
+            IF has_vector THEN
+                EXECUTE format($sql$
+                    CREATE INDEX IF NOT EXISTS idx_memory_episodes_embedding
+                        ON %I.memory_episodes USING ivfflat (embedding vector_cosine_ops)
+                        WITH (lists = 100)
+                $sql$, s);
+            END IF;
             EXECUTE format('ALTER TABLE %I.memory_episodes ENABLE ROW LEVEL SECURITY', s);
             EXECUTE format($sql$
                 CREATE POLICY org_isolation ON %I.memory_episodes

@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://autofounder.ai/schemas/agents/reviewer-output.json",
+  "title": "ReviewerAgentOutput",
+  "description": "Flat handoff from Reviewer Agent (Pillar 4). Core fields align with backend ReviewerOutput; gate_summary and heal_history are UI extensions.",
+  "type": "object",
+  "required": [
+    "run_id",
+    "organization_id",
+    "repo_url",
+    "branch",
+    "review_decision",
+    "is_approved",
+    "unit_test_coverage",
+    "llm_judge_overall"
+  ],
+  "properties": {
+    "run_id": { "type": "string", "format": "uuid" },
+    "organization_id": { "type": "string" },
+    "coder_run_id": { "type": ["string", "null"], "format": "uuid" },
+    "repo_url": { "type": "string", "format": "uri" },
+    "branch": { "type": "string" },
+    "pr_number": { "type": "integer", "minimum": 0 },
+    "review_decision": {
+      "type": "string",
+      "enum": ["approved", "heal", "escalate"]
+    },
+    "is_approved": { "type": "boolean" },
+    "unit_test_coverage": { "type": "number", "minimum": 0, "maximum": 100 },
+    "security_finding_count": { "type": "integer", "minimum": 0 },
+    "critical_finding_count": { "type": "integer", "minimum": 0 },
+    "llm_judge_overall": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "heal_cycles_used": { "type": "integer", "minimum": 0, "maximum": 5 },
+    "review_report_url": { "type": ["string", "null"] },
+    "github_pr_comment_url": { "type": ["string", "null"], "format": "uri" },
+    "escalation_reason": { "type": ["string", "null"] },
+    "owasp_violations": { "type": "array", "items": { "type": "string" } },
+    "gate_summary": {
+      "type": "object",
+      "properties": {
+        "lint": { "$ref": "#/$defs/gateLint" },
+        "unit_tests": { "$ref": "#/$defs/gateTests" },
+        "e2e_tests": { "$ref": "#/$defs/gateTests" },
+        "security_scan": { "$ref": "#/$defs/gateSecurity" },
+        "sonarqube": { "$ref": "#/$defs/gateSonar" }
+      }
+    },
+    "llm_judge": {
+      "type": "object",
+      "required": ["readability", "maintainability", "security_posture", "overall", "approved"],
+      "properties": {
+        "readability": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "maintainability": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "security_posture": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "overall": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "approved": { "type": "boolean" },
+        "rationale": { "type": "string" }
+      }
+    },
+    "heal_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["cycle", "outcome"],
+        "properties": {
+          "cycle": { "type": "integer", "minimum": 1 },
+          "issues_targeted": { "type": "array", "items": { "type": "string" } },
+          "patches_applied": { "type": "array", "items": { "type": "string" } },
+          "files_patched": { "type": "array", "items": { "type": "string" } },
+          "outcome": {
+            "type": "string",
+            "enum": ["pending", "improved", "no_change", "failed"]
+          }
+        }
+      }
+    },
+    "security_findings_sample": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/securityFinding" }
+    },
+    "completed_at_unix_ms": { "type": "integer", "minimum": 0 },
+    "total_llm_tokens_used": { "type": "integer", "minimum": 0 }
+  },
+  "$defs": {
+    "gateLint": {
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "enum": ["passed", "failed", "skipped", "error"] },
+        "error_count": { "type": "integer" },
+        "warning_count": { "type": "integer" }
+      }
+    },
+    "gateTests": {
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "enum": ["passed", "failed", "skipped", "error"] },
+        "passed": { "type": "integer" },
+        "failed": { "type": "integer" },
+        "coverage_pct": { "type": "number" }
+      }
+    },
+    "gateSecurity": {
+      "type": "object",
+      "properties": {
+        "status": { "type": "string" },
+        "critical": { "type": "integer" },
+        "high": { "type": "integer" },
+        "medium": { "type": "integer" },
+        "low": { "type": "integer" }
+      }
+    },
+    "gateSonar": {
+      "type": "object",
+      "properties": {
+        "quality_gate_passed": { "type": "boolean" },
+        "bugs": { "type": "integer" },
+        "vulnerabilities": { "type": "integer" },
+        "code_smells": { "type": "integer" }
+      }
+    },
+    "securityFinding": {
+      "type": "object",
+      "required": ["tool", "severity", "rule_id", "file_path", "message"],
+      "properties": {
+        "tool": { "type": "string" },
+        "severity": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low", "info"]
+        },
+        "rule_id": { "type": "string" },
+        "file_path": { "type": "string" },
+        "line": { "type": ["integer", "null"] },
+        "message": { "type": "string" },
+        "owasp_category": { "type": ["string", "null"] },
+        "auto_fixable": { "type": "boolean" }
+      }
+    }
+  }
+}

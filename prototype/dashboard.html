@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My builds — AutoFounder AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: { extend: { fontFamily: { sans: ["Inter", "sans-serif"] } } },
+      };
+    </script>
+    <style>
+      body {
+        font-family: Inter, sans-serif;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-100 min-h-screen pb-16 lg:pb-0">
+    <nav
+      class="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-slate-800 bg-slate-900/95 backdrop-blur flex justify-around py-3 text-xs"
+    >
+      <a href="dashboard.html" class="text-violet-300 font-medium">Builds</a>
+      <a href="idea-intake.html" class="text-slate-400">New idea</a>
+      <a href="run-detail.html" class="text-slate-400">PawTrail</a>
+      <a href="llmops-dashboard.html" class="text-slate-400">AI costs</a>
+    </nav>
+    <div class="flex min-h-screen">
+      <aside class="hidden lg:flex w-64 flex-col border-r border-slate-800 bg-slate-900/50">
+        <div class="p-5 border-b border-slate-800 flex items-center gap-2">
+          <a href="dashboard.html" class="flex items-center gap-2">
+            <div
+              class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400 flex items-center justify-center text-xs font-bold text-slate-950"
+            >
+              AF
+            </div>
+            <span class="font-semibold">AutoFounder</span>
+          </a>
+        </div>
+        <nav class="p-3 space-y-1">
+          <a
+            href="idea-intake.html"
+            class="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-600/20 text-violet-300 border border-violet-500/20 text-sm font-medium"
+            >+ New idea</a
+          >
+          <a
+            href="dashboard.html"
+            class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 text-white text-sm"
+            >My builds</a
+          >
+          <a
+            href="llmops-dashboard.html"
+            class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 text-sm"
+            >AI costs</a
+          >
+        </nav>
+      </aside>
+      <main class="flex-1 flex flex-col min-w-0">
+        <header
+          class="border-b border-slate-800 bg-slate-900/30 px-4 lg:px-6 py-3 flex flex-wrap items-center justify-between gap-3"
+        >
+          <div class="flex items-center gap-2 text-sm">
+            <a href="dashboard.html" class="text-white font-medium">My builds</a>
+          </div>
+          <div class="flex items-center gap-4">
+            <a
+              href="validation-studio.html"
+              class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs font-medium"
+              >⚠ Approval needed — Validation</a
+            >
+            <span class="text-sm text-slate-400"
+              >Spend:
+              <a href="llmops-dashboard.html" class="text-cyan-400 font-medium">$48.72</a></span
+            >
+            <a href="index.html" class="text-xs text-slate-500 hover:text-slate-300">Sign out</a>
+          </div>
+        </header>
+        <div class="p-4 lg:p-6 flex-1">
+          <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <h1 class="text-xl font-semibold">My builds</h1>
+            <a
+              href="idea-intake.html"
+              class="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-sm font-medium"
+              >+ New idea</a
+            >
+          </div>
+          <div class="flex flex-wrap gap-3 mb-6">
+            <input
+              type="search"
+              placeholder="Search builds…"
+              class="flex-1 min-w-[200px] rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+            />
+            <select
+              class="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300"
+            >
+              <option>All statuses</option>
+              <option>Running</option>
+              <option>Awaiting you</option>
+              <option>Completed</option>
+            </select>
+          </div>
+          <div class="rounded-xl border border-slate-800 overflow-hidden">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-900/80 text-slate-400 text-left">
+                <tr>
+                  <th class="px-4 py-3 font-medium">Idea</th>
+                  <th class="px-4 py-3 font-medium hidden md:table-cell">Status</th>
+                  <th class="px-4 py-3 font-medium hidden sm:table-cell">Stage</th>
+                  <th class="px-4 py-3 font-medium hidden sm:table-cell">Cost</th>
+                  <th class="px-4 py-3 font-medium hidden lg:table-cell">Started</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <tr class="hover:bg-slate-900/50">
+                  <td class="px-4 py-4">
+                    <a href="run-detail.html" class="font-medium text-violet-300 hover:underline"
+                      >PawTrail — dog walker subscription…</a
+                    >
+                    <p class="text-xs text-slate-500 mt-1 md:hidden">
+                      <span class="text-amber-400">Awaiting gate</span> · Stage 1
+                    </p>
+                  </td>
+                  <td class="px-4 py-4 hidden md:table-cell">
+                    <span
+                      class="px-2 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                      >Awaiting gate</span
+                    >
+                  </td>
+                  <td class="px-4 py-4 hidden sm:table-cell text-slate-400">1 · Validate</td>
+                  <td class="px-4 py-4 hidden sm:table-cell">$2.14</td>
+                  <td class="px-4 py-4 hidden lg:table-cell text-slate-500">Jun 9, 2026</td>
+                </tr>
+                <tr class="hover:bg-slate-900/50">
+                  <td class="px-4 py-4">
+                    <a href="run-detail.html" class="font-medium text-slate-200 hover:underline"
+                      >AI resume builder for students…</a
+                    >
+                  </td>
+                  <td class="px-4 py-4 hidden md:table-cell">
+                    <span
+                      class="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300"
+                      >Completed</span
+                    >
+                  </td>
+                  <td class="px-4 py-4 hidden sm:table-cell text-slate-400">7 · Done</td>
+                  <td class="px-4 py-4 hidden sm:table-cell">$8.92</td>
+                  <td class="px-4 py-4 hidden lg:table-cell text-slate-500">Jun 8, 2026</td>
+                </tr>
+                <tr class="hover:bg-slate-900/50">
+                  <td class="px-4 py-4">
+                    <a href="run-detail.html" class="font-medium text-slate-200 hover:underline"
+                      >B2B invoice automation for SMEs…</a
+                    >
+                  </td>
+                  <td class="px-4 py-4 hidden md:table-cell">
+                    <span class="px-2 py-0.5 rounded-full text-xs bg-violet-500/20 text-violet-300"
+                      >Running</span
+                    >
+                  </td>
+                  <td class="px-4 py-4 hidden sm:table-cell text-slate-400">3 · Build</td>
+                  <td class="px-4 py-4 hidden sm:table-cell">$5.41</td>
+                  <td class="px-4 py-4 hidden lg:table-cell text-slate-500">Jun 7, 2026</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-center text-slate-500 text-sm mt-4">
+            Showing 3 of 12 builds ·
+            <button class="text-violet-400 hover:underline">Load more</button>
+          </p>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

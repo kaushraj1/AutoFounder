@@ -1,0 +1,80 @@
+name: Deploy to Dev
+
+# Rolling deploy of the backend image to the dev ECS service.
+# Triggered on pushes to the `dev` branch. The ECS cluster is shared across
+# envs (autofounderai-cluster); per-env separation is at the service +
+# task-definition family level (autofounderai-backend-dev).
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: autofounderai/backend
+  ECS_CLUSTER: autofounderai-cluster
+  ECS_SERVICE: autofounderai-backend-dev
+  TASK_FAMILY: autofounderai-backend-dev
+  CONTAINER_NAME: backend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          docker build --platform linux/amd64 \
+            -t "$REGISTRY/$ECR_REPOSITORY:dev-${{ github.sha }}" \
+            -t "$REGISTRY/$ECR_REPOSITORY:dev-latest" \
+            ./backend
+          docker push "$REGISTRY/$ECR_REPOSITORY:dev-${{ github.sha }}"
+          docker push "$REGISTRY/$ECR_REPOSITORY:dev-latest"
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "$TASK_FAMILY" \
+            --query taskDefinition \
+            > task-definition.json
+
+      - name: Sanitize task definition for deploy action
+        run: |
+          # amazon-ecs-deploy-task-definition rejects newer ECS fields like
+          # enableFaultInjection that describe-task-definition returns.
+          jq 'del(.enableFaultInjection)' task-definition.json > task-definition.sanitized.json
+          mv task-definition.sanitized.json task-definition.json
+
+      - name: Render task definition with new image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:dev-${{ github.sha }}
+
+      - name: Deploy (rolling, circuit-breaker rollback)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

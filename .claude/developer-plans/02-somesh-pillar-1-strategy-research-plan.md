@@ -3,7 +3,7 @@
 > **Owner**: Somesh Chitranshi
 > **Task IDs**: AF-037 (Strategy & Ideation), AF-038 (Research), AF-039 (Product Planner) — **heaviest single load: 3 agents**
 > **Branches**: `feature/strategy-agent`, `feature/research-agent`, `feature/product-planner-agent`
-> **Status**: 🟡 Partially startable (offline work)
+> **Status**: ✅ Delivered — AF-037 (Strategy & Ideation) · AF-038 (Research) · AF-039 (Product Planner) marked complete on `somesh-feature` per [TASKS.md](../TASKS.md) §3c + [task_assigned.md](../task_assigned.md) (changelog 1.3.0, 2026-06-06). Phase-2 items below remain future work.
 > **Date**: 2026-06-04 · **Version**: 1.0.0
 > **Depends on**: AF-036 (BaseAgent), AF-027 (UDAL), AF-048 (Prompt Registry), AF-049 (LLM Router)
 > **SLA**: Strategy < 30 min end-to-end
@@ -72,10 +72,10 @@ Pillar 1 is the **validation engine** — the very first thing the platform does
 
 | Dependency | Task ID | Owner | Why It's Mandatory | Status |
 |---|---|---|---|---|
-| BaseAgent ABC | AF-036 | Asit | All 3 agents subclass it | 🔴 Blocked |
+| BaseAgent ABC | AF-036 | Asit | All 3 agents subclass it | ✅ Done |
 | UDAL | AF-027 | Somesh | Read/write market intel + canvas via UDAL | ✅ Done |
-| Prompt Registry | AF-048 | Purnima | Versioned Jinja2 templates | 🟡 |
-| LLM Router | AF-049 | Purnima | Route to Gemini 3.5 Flash + RAG | 🟡 |
+| Prompt Registry | AF-048 | Purnima | Versioned Jinja2 templates | ❌ Pending (Purnima) — filesystem-loaded fallback in MVP |
+| LLM Router | AF-049 | Purnima | Route to Gemini 3.5 Flash + RAG | ❌ Pending (Purnima) — direct routing fallback in MVP |
 | Tool Registry | AF-047 | Asit | Research tools registered | 🟡 |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
@@ -378,12 +378,12 @@ class StrategyOutput(BaseModel):
 
 | Week | Task | Deliverable | Status |
 |---|---|---|---|
-| 1 | Schemas + Jinja2 prompts (sizing, competitor, persona, canvas, viability, bias, pivot, PRD) | `schema.py`, `prompts/*.j2` | 🟢 Start now |
-| 1 | Research tool wrappers (Tavily, SerpAPI, Crunchbase, G2, SimilarWeb) | `tools/*.py` | 🟢 Start now |
-| 2 | StateGraph + 10 nodes + routers | `graph.py`, `nodes/`, `routers.py` | 🟡 Needs BaseAgent |
-| 2 | Research Agent fan-out + citation groundedness | `agents/research/` | 🟡 |
-| 3 | Wire StrategyAgent + ProductPlanner to BaseAgent | `agent.py` | 🔴 Needs AF-036 |
-| 3 | Golden evals + mocked unit tests | `tests/` | 🟢 Start now |
+| 1 | Schemas + Jinja2 prompts (sizing, competitor, persona, canvas, viability, bias, pivot, PRD) | `schema.py`, `prompts/*.j2` | ✅ Done |
+| 1 | Research tool wrappers (Tavily, SerpAPI, Crunchbase, G2, SimilarWeb) | `tools/*.py` | ✅ Done |
+| 2 | StateGraph + 10 nodes + routers | `graph.py`, `nodes/`, `routers.py` | ✅ Done (AF-036 BaseAgent landed) |
+| 2 | Research Agent fan-out + citation groundedness | `agents/research/` | ✅ Done (AF-038) |
+| 3 | Wire StrategyAgent + ProductPlanner to BaseAgent | `agent.py` | ✅ Done (AF-037 / AF-039) |
+| 3 | Golden evals + mocked unit tests | `tests/` | ✅ Done |
 
 ### Phase 2 (Weeks 4–6)
 Real API integration; deeper TAM modelling; competitor moat analysis; pricing research; Validation Studio data contract (AF-055).
@@ -576,7 +576,7 @@ message StrategyOutput {
 |---|---|---|---|
 | **Kaushlendra (Pillar 2)** | Agree `lean_canvas_json` + persona + PRD schema (he consumes them) | Immediately | ⬜ Pending |
 | **Pallavi (Pillar 6)** | Confirm persona + competitor format for positioning | Soon | ⬜ Pending |
-| **Asit/Somesh (Platform)** | BaseAgent + UDAL + Tool Registry; flag the 3-agent load | When AF-036 starts | ⬜ Pending |
+| **Asit/Somesh (Platform)** | BaseAgent + UDAL + Tool Registry; flag the 3-agent load | When AF-036 starts | ✅ BaseAgent + UDAL + Tool Registry all delivered |
 | **Purnima (Pillar 7)** | Register strategy prompts (AF-048) + routing (AF-049) | When shells exist | ⬜ Pending |
 | **Raunak (Frontend)** | Validation Studio data contract (AF-055) | When mock data ready | ⬜ Pending |
 

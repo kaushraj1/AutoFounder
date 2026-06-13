@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://autofounder.ai/schemas/agents/devops-output.json",
+  "title": "DevOpsAgentOutput",
+  "description": "Flat handoff from DevOps Agent (Pillar 5). Summarizes DevOpsState for UI and downstream Marketing.",
+  "type": "object",
+  "required": [
+    "run_id",
+    "organization_id",
+    "product_name",
+    "deploy_status",
+    "live_url",
+    "smoke_tests_passed"
+  ],
+  "properties": {
+    "run_id": { "type": "string", "format": "uuid" },
+    "organization_id": { "type": "string" },
+    "parent_run_id": { "type": "string", "format": "uuid" },
+    "reviewer_run_id": { "type": "string", "format": "uuid" },
+    "product_name": { "type": "string" },
+    "repo_url": { "type": "string", "format": "uri" },
+    "aws_region": { "type": "string", "default": "ap-south-1" },
+    "deploy_strategy": {
+      "type": "string",
+      "enum": ["rolling", "blue_green", "canary"]
+    },
+    "approval_status": {
+      "type": "string",
+      "enum": ["pending", "approved", "rejected", "timed_out"]
+    },
+    "estimated_monthly_cost_usd": { "type": "number", "minimum": 0 },
+    "live_url": { "type": "string", "format": "uri" },
+    "api_url": { "type": "string", "format": "uri" },
+    "deploy_status": {
+      "type": "string",
+      "enum": ["not_started", "syncing", "healthy", "degraded", "failed"]
+    },
+    "infrastructure": {
+      "type": "object",
+      "properties": {
+        "vpc_id": { "type": "string" },
+        "ecs_cluster": { "type": "string" },
+        "ecs_services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["service_name", "status"],
+            "properties": {
+              "service_name": { "type": "string" },
+              "desired_count": { "type": "integer" },
+              "status": {
+                "type": "string",
+                "enum": ["not_started", "provisioning", "ready", "failed"]
+              },
+              "task_def_arn": { "type": "string" }
+            }
+          }
+        },
+        "rds": { "type": "object" },
+        "elasticache": { "type": "object" },
+        "s3_bucket": { "type": "string" }
+      }
+    },
+    "dns": {
+      "type": "object",
+      "properties": {
+        "domain": { "type": "string" },
+        "record_name": { "type": "string" },
+        "tls_issuer": { "type": "string" },
+        "cert_status": { "type": "string" }
+      }
+    },
+    "cicd": { "type": "object" },
+    "smoke_tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["endpoint", "status_code", "latency_ms", "passed"],
+        "properties": {
+          "endpoint": { "type": "string", "format": "uri" },
+          "status_code": { "type": "integer" },
+          "latency_ms": { "type": "number", "minimum": 0 },
+          "passed": { "type": "boolean" },
+          "error": { "type": ["string", "null"] },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "smoke_tests_passed": { "type": "boolean" },
+    "monitoring": { "type": "object" },
+    "terraform": { "type": "object" },
+    "deploy_report_s3_uri": { "type": "string" },
+    "total_llm_tokens_used": { "type": "integer", "minimum": 0 },
+    "generated_at": { "type": "string", "format": "date-time" }
+  }
+}

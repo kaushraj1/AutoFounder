@@ -1,0 +1,73 @@
+{
+  "_fixture": "calmhq",
+  "_domain": "health-wellness",
+  "_description": "A mental wellness app with guided meditations, mood tracking, and therapist matching.",
+
+  "run_id": "00000000-0000-0000-0000-000000000002",
+  "organization_id": "org-calmhq",
+  "idea_normalised": "A mental wellness platform with daily guided meditations, mood journaling, therapist discovery, and breathing exercises for busy professionals.",
+  "approval_status": "approved",
+
+  "brand_config": {
+    "product_name": "CalmHQ",
+    "tagline": "Your daily calm, on demand",
+    "logo_concept": "Soft wave or calm ripple in muted teal",
+    "primary_color": "#4ECDC4",
+    "tone": "inspirational",
+    "target_audience": "Busy professionals aged 25-45 dealing with work stress and burnout",
+    "website_url": "https://calmhq.app"
+  },
+
+  "feature_list": {
+    "features": [
+      "Daily guided meditation library (500+ sessions)",
+      "Mood tracking with weekly insights",
+      "Breathing exercises (box, 4-7-8, Wim Hof)",
+      "Sleep stories for better rest",
+      "Therapist discovery and booking",
+      "Gratitude journal with daily prompts",
+      "Stress score based on mood patterns",
+      "Offline mode for sessions",
+      "Apple Health and Google Fit integration",
+      "Personalised daily plan based on mood"
+    ],
+    "integrations": ["Apple Health", "Google Fit", "Calendly (therapist booking)", "Stripe"],
+    "pricing_tiers": [
+      {"name": "Free", "price": "$0", "description": "5 meditations/month, mood tracking"},
+      {"name": "Premium", "price": "$12.99/month", "description": "Unlimited access to all features"},
+      {"name": "Team", "price": "$8.99/user/month", "description": "Corporate wellness plan"}
+    ]
+  },
+
+  "lean_canvas_json": {
+    "problem": [
+      "Burnout affects 77% of professionals",
+      "Therapy is expensive and hard to access",
+      "Generic wellness apps don't personalise to mood"
+    ],
+    "solution": "An AI-guided wellness platform that adapts daily recommendations to your mood",
+    "unique_value_proposition": "Personalised daily calm — not just meditation, a complete wellness companion",
+    "unfair_advantage": "Mood-adaptive recommendations + therapist marketplace in one app",
+    "customer_segments": ["Busy professionals", "Remote workers", "Corporate HR teams"],
+    "key_metrics": ["DAU", "Session completion rate", "Mood improvement score", "Therapist bookings"],
+    "channels": ["App Store", "LinkedIn", "Corporate HR partnerships", "Instagram"],
+    "cost_structure": ["AWS", "Therapist partner fees", "Content production"],
+    "revenue_streams": ["B2C subscriptions", "Corporate plans", "Therapist marketplace commission"],
+    "competitors": ["Calm", "Headspace", "BetterHelp", "Insight Timer"],
+    "viability_score": 78
+  },
+
+  "personas": [
+    {
+      "name": "Priya",
+      "role": "Product Manager",
+      "company_size": "200",
+      "pain_points": ["Chronic stress", "No time for therapy", "Inconsistent sleep"],
+      "goals": ["Build a daily wellness habit", "Reduce work anxiety", "Sleep better"],
+      "willingness_to_pay_usd": 13,
+      "preferred_channels": ["Instagram", "App Store"]
+    }
+  ],
+
+  "live_url": "https://calmhq.app"
+}

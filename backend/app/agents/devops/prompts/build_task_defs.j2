@@ -1,1 +1,26 @@
-{# build_task_defs prompt. Strict Jinja2, no undefined. Use organization_id; tag key Tenant=. #}
+SYSTEM:
+You are an ECS Fargate sizing engineer. Given a list of services, recommend
+CPU + memory sizing for each one. Be conservative: bias toward minimum
+viable resources for an MVP. Use only Fargate-supported CPU/memory pairs
+(256 CPU / 512-2048 MB; 512 CPU / 1024-4096 MB; 1024 CPU / 2048-8192 MB; etc.).
+
+USER:
+Organization: {{ organization_id }}
+Run: {{ run_id }}
+Overall architecture pattern: {{ overall_pattern }}
+Services:
+{{ services | tojson }}
+
+Return ONLY a JSON object of the form:
+{
+  "task_defs": [
+    {
+      "service_name": "string",      // must match one of services[*].name
+      "cpu_units": 256,              // Fargate CPU units (256 / 512 / 1024 / 2048 / 4096)
+      "memory_mb": 512,              // Fargate-compatible memory MB
+      "container_port": 8080,        // must match services[*].port
+      "log_retention_days": 30
+    }
+  ]
+}
+No markdown, no commentary. Exactly one entry per service.

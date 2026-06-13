@@ -1,0 +1,72 @@
+{
+  "_fixture": "shipfast",
+  "_domain": "developer-tools",
+  "_description": "A developer-tools SaaS that lets indie hackers ship Next.js SaaS boilerplates fast.",
+
+  "run_id": "00000000-0000-0000-0000-000000000001",
+  "organization_id": "org-shipfast",
+  "idea_normalised": "A Next.js SaaS boilerplate with auth, payments, email, and database pre-wired — ship in hours not weeks.",
+  "approval_status": "approved",
+
+  "brand_config": {
+    "product_name": "ShipFast",
+    "tagline": "Ship your SaaS in a weekend",
+    "logo_concept": "A rocket with a fast-forward symbol",
+    "primary_color": "#FF6B35",
+    "tone": "technical",
+    "target_audience": "Indie hackers and solo founders building SaaS products",
+    "website_url": "https://shipfast.dev"
+  },
+
+  "feature_list": {
+    "features": [
+      "Next.js 14 App Router boilerplate",
+      "Supabase auth (magic link, Google OAuth)",
+      "Stripe subscription billing (monthly/annual)",
+      "Resend transactional email",
+      "Tailwind CSS + shadcn/ui component library",
+      "SEO-optimised landing page template",
+      "Blog with MDX support",
+      "Waitlist page with email capture",
+      "Admin dashboard",
+      "Dark mode support"
+    ],
+    "integrations": ["Supabase", "Stripe", "Resend", "Vercel", "GitHub"],
+    "pricing_tiers": [
+      {"name": "Starter", "price": "$149", "description": "One-time purchase, lifetime updates"},
+      {"name": "All-Access", "price": "$299", "description": "All templates + future additions"}
+    ]
+  },
+
+  "lean_canvas_json": {
+    "problem": [
+      "Setting up auth, payments, and email takes weeks",
+      "Copy-pasting boilerplate code is error-prone",
+      "Time-to-first-revenue is the biggest killer of indie projects"
+    ],
+    "solution": "A production-ready Next.js SaaS boilerplate with everything pre-wired",
+    "unique_value_proposition": "Ship a production-ready SaaS in a weekend, not months",
+    "unfair_advantage": "Marc Lou's personal brand + 2,000+ customers who shipped with it",
+    "customer_segments": ["Indie hackers", "Solo founders", "Developers building side projects"],
+    "key_metrics": ["Boilerplates sold", "Time-to-first-deploy", "Customer Slack messages"],
+    "channels": ["Twitter/X", "Product Hunt", "Indie Hackers", "YouTube tutorials"],
+    "cost_structure": ["Stripe fees", "Domain"],
+    "revenue_streams": ["One-time purchase", "Affiliate program"],
+    "competitors": ["create-t3-app", "Blitz.js", "Gravity", "SaaS Starter"],
+    "viability_score": 91
+  },
+
+  "personas": [
+    {
+      "name": "Alex",
+      "role": "Indie Hacker",
+      "company_size": "1",
+      "pain_points": ["Weeks of setup before shipping", "Auth hell", "Stripe integration bugs"],
+      "goals": ["Ship fast", "Get first paying customer", "Validate idea in days"],
+      "willingness_to_pay_usd": 149,
+      "preferred_channels": ["Twitter/X", "Product Hunt", "Indie Hackers"]
+    }
+  ],
+
+  "live_url": "https://shipfast.dev"
+}

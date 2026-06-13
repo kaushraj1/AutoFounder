@@ -11,10 +11,10 @@ on:
 
 env:
   AWS_REGION: ap-south-1
-  ECR_REPOSITORY: autofounder-ai/backend
-  ECS_CLUSTER: autofounder-ai-staging-cluster
-  ECS_SERVICE: backend
-  TASK_FAMILY: autofounder-ai-staging-backend
+  ECR_REPOSITORY: autofounderai/backend
+  ECS_CLUSTER: autofounderai-cluster
+  ECS_SERVICE: autofounderai-backend-uat
+  TASK_FAMILY: autofounderai-backend-uat
   CONTAINER_NAME: backend
 
 jobs:
@@ -42,19 +42,31 @@ jobs:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
         run: |
           docker build --platform linux/amd64 \
-            -t "$REGISTRY/$ECR_REPOSITORY:sha-${{ github.sha }}" \
-            -t "$REGISTRY/$ECR_REPOSITORY:staging-latest" \
+            -t "$REGISTRY/$ECR_REPOSITORY:uat-${{ github.sha }}" \
+            -t "$REGISTRY/$ECR_REPOSITORY:uat-latest" \
             ./backend
-          docker push "$REGISTRY/$ECR_REPOSITORY:sha-${{ github.sha }}"
-          docker push "$REGISTRY/$ECR_REPOSITORY:staging-latest"
+          docker push "$REGISTRY/$ECR_REPOSITORY:uat-${{ github.sha }}"
+          docker push "$REGISTRY/$ECR_REPOSITORY:uat-latest"
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "$TASK_FAMILY" \
+            --query taskDefinition \
+            > task-definition.json
+
+      - name: Sanitize task definition for deploy action
+        run: |
+          jq 'del(.enableFaultInjection)' task-definition.json > task-definition.sanitized.json
+          mv task-definition.sanitized.json task-definition.json
 
       - name: Render task definition with new image
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition-family: ${{ env.TASK_FAMILY }}
+          task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
+          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:uat-${{ github.sha }}
 
       - name: Deploy (rolling, circuit-breaker rollback)
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2

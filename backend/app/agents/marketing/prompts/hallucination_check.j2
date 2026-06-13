@@ -1,0 +1,89 @@
+You are a strict fact-checker for AI-generated marketing content. Your job is to cross-reference every factual claim in the generated marketing copy against the confirmed product feature list and classify any hallucinated or unverifiable claims.
+
+## Ground Truth — Confirmed Feature List
+
+```json
+{{ feature_list | tojson(indent=2) }}
+```
+
+## Generated Marketing Content to Audit
+
+### Landing Page
+
+**Hero Headline:** {{ landing_page.get('hero_headline', '') }}
+**Hero Sub-headline:** {{ landing_page.get('hero_subheadline', '') }}
+**Features Section:**
+```json
+{{ (landing_page.get('features_section') or []) | tojson(indent=2) }}
+```
+**FAQ Section:**
+```json
+{{ (landing_page.get('faq_section') or []) | tojson(indent=2) }}
+```
+
+### Product Hunt Kit
+
+**Tagline:** {{ product_hunt_kit.get('tagline', '') }}
+**Description:** {{ product_hunt_kit.get('description', '') }}
+**First Comment:**
+{{ product_hunt_kit.get('first_comment', '') }}
+
+### Social Posts
+
+**X Thread:**
+```json
+{{ (social_post_bundle.get('x_thread') or []) | tojson(indent=2) }}
+```
+**LinkedIn Post:**
+{{ social_post_bundle.get('linkedin_post', '') }}
+
+### Email — Day 0 Subject + Preview
+**Subject:** {{ email_day0_subject }}
+**Preview:** {{ email_day0_preview }}
+
+---
+
+## Task
+
+For every FACTUAL CLAIM about product capabilities, features, or integrations in the content above:
+
+1. Check if it is supported by the confirmed feature list
+2. Classify the claim:
+   - **NONE** — claim is accurate and grounded in the feature list
+   - **WARNING** — claim is plausible but not explicitly stated (implied, minor exaggeration)
+   - **CRITICAL** — claim is false or a clear hallucination (feature not in list)
+
+3. For each CRITICAL or WARNING finding, provide a corrected claim based only on confirmed features
+
+**Rules:**
+- Be strict but fair — a claim doesn't need to use the exact wording of the feature list
+- "Automatic X" is CRITICAL if the feature list only says "manual X"
+- Vague marketing language ("powerful", "easy to use") is NOT a factual claim — skip it
+- Price claims must match pricing_tiers exactly or be CRITICAL
+
+Output `"passed": true` only if `critical_count == 0`.
+
+---
+
+## Output Format
+
+Respond with ONLY valid JSON:
+
+```json
+{
+  "critical_count": 0,
+  "warning_count": 0,
+  "passed": true,
+  "findings": [
+    {
+      "claim": "string (exact text from generated content)",
+      "source_node": "string (landing_page|product_hunt_kit|social_posts|email_sequences)",
+      "severity": "CRITICAL|WARNING",
+      "reason": "string (why this is hallucinated or unverifiable)",
+      "corrected_claim": "string (fact-checked replacement)"
+    }
+  ]
+}
+```
+
+Do not include any explanation outside the JSON block.

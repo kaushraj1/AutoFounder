@@ -85,6 +85,43 @@ class Settings(BaseSettings):
     slack_webhook_reviewer: str = ""
     aws_s3_artifacts_bucket: str = ""
 
+    # Pillar 5 — DevOps / Deployment (AF-043)
+    # TODO(AF-012-021): Replace these with terraform_remote_state lookup once Asit's
+    # foundation network module ships. Until then, these are the manually-created
+    # foundation VPC + subnets in ap-south-1.
+    foundation_vpc_id: str = "vpc-094e84b00f220fdf5"
+    foundation_private_subnet_ids: list[str] = [
+        "subnet-0caeebdee8861f443",
+        "subnet-0e8b9b48904794476",
+    ]
+    foundation_public_subnet_ids: list[str] = [
+        "subnet-0cf8a83ec865e28b8",
+        "subnet-017d037f8bb14a4f1",
+    ]
+    foundation_availability_zones: list[str] = ["ap-south-1a", "ap-south-1b"]
+    foundation_aws_region: str = "ap-south-1"
+    devops_spend_gate_cap_usd: float = 150.0
+    # HITL spend gate — waits on Redis for founder decision when cost > cap.
+    # Key is `${devops_hitl_redis_key_prefix}:{run_id}`, value 'approved'/'rejected'.
+    devops_hitl_redis_key_prefix: str = "hitl:devops:spend"
+    devops_hitl_poll_interval_seconds: float = 60.0
+    devops_hitl_timeout_seconds: float = 900.0
+
+    # DevOps tool execution mode. 'real' = boto3 / PyGithub / subprocess terraform.
+    # 'scaffold' = canned dict returns (Phase 1A behaviour) — used by unit suites
+    # that don't want to mock every AWS client.
+    devops_tools_mode: str = "real"
+    # Override AWS endpoint for LocalStack / motoserver / other test doubles.
+    # boto3 reads AWS_ENDPOINT_URL natively, but we surface a typed field here
+    # so devops tools.py can fall back to scaffold when endpoint+creds missing.
+    aws_endpoint_url: str | None = None
+    # Default-on safety: github_upsert_file logs the would-be commit instead of
+    # pushing. Flip to False (per-run or globally) once a throwaway-org PAT is in.
+    devops_github_dry_run: bool = True
+    # Resolved binary used by terraform_run. Override in env to point at a
+    # pinned 1.x install or a tfenv shim.
+    devops_terraform_binary: str = "terraform"
+
     # Observability (AF-023 OTel · AF-024 Prometheus/LangSmith)
     otel_enabled: bool = False
     otel_exporter_otlp_endpoint: str | None = None

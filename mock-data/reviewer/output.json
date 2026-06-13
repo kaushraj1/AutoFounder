@@ -1,0 +1,66 @@
+{
+  "run_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+  "organization_id": "org_pawtrail_demo",
+  "coder_run_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "repo_url": "https://github.com/pawtrail-demo/pawtrail-mvp",
+  "branch": "main",
+  "pr_number": 14,
+  "review_decision": "approved",
+  "is_approved": true,
+  "unit_test_coverage": 76.4,
+  "security_finding_count": 5,
+  "critical_finding_count": 0,
+  "llm_judge_overall": 81,
+  "heal_cycles_used": 1,
+  "review_report_url": "s3://autofounder-artifacts/org_pawtrail_demo/b2c3d4e5/review/report.md",
+  "github_pr_comment_url": "https://github.com/pawtrail-demo/pawtrail-mvp/pull/14#issuecomment-2145219876",
+  "escalation_reason": null,
+  "owasp_violations": [],
+  "gate_summary": {
+    "lint": { "status": "passed", "error_count": 0, "warning_count": 3 },
+    "unit_tests": { "status": "passed", "passed": 84, "failed": 0, "coverage_pct": 76.4 },
+    "e2e_tests": { "status": "passed", "passed": 6, "failed": 0 },
+    "security_scan": { "status": "passed", "critical": 0, "high": 0, "medium": 2, "low": 3 },
+    "sonarqube": { "quality_gate_passed": true, "bugs": 1, "vulnerabilities": 0, "code_smells": 4 }
+  },
+  "llm_judge": {
+    "readability": 84,
+    "maintainability": 79,
+    "security_posture": 78,
+    "overall": 81,
+    "approved": true,
+    "rationale": "Code follows modular monolith boundaries. One medium finding (missing rate limit on webhook) auto-healed. Coverage below 80% target but acceptable for MVP with documented gaps."
+  },
+  "heal_history": [
+    {
+      "cycle": 1,
+      "issues_targeted": [
+        "A05:2021-Security Misconfiguration — Razorpay webhook missing rate limit"
+      ],
+      "patches_applied": ["Added slowapi rate limiter on /v1/billing/webhooks/razorpay"],
+      "files_patched": ["backend/app/billing/razorpay_webhook.py"],
+      "outcome": "improved"
+    }
+  ],
+  "security_findings_sample": [
+    {
+      "tool": "bandit",
+      "severity": "medium",
+      "rule_id": "B104",
+      "file_path": "backend/app/tracking/ws.py",
+      "message": "Hardcoded bind address 0.0.0.0 — acceptable for container, documented",
+      "owasp_category": "A05:2021-Security Misconfiguration",
+      "auto_fixable": false
+    },
+    {
+      "tool": "semgrep",
+      "severity": "low",
+      "rule_id": "python.lang.security.audit.logging.logger-credential-leak",
+      "file_path": "backend/app/billing/service.py",
+      "message": "Ensure Razorpay keys not logged",
+      "auto_fixable": true
+    }
+  ],
+  "completed_at_unix_ms": 1749389324000,
+  "total_llm_tokens_used": 22150
+}

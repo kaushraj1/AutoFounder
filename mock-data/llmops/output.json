@@ -1,0 +1,108 @@
+{
+  "cycle_id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+  "organization_id": "org_pawtrail_demo",
+  "cycle_window": {
+    "start": "2026-06-01T00:00:00Z",
+    "end": "2026-06-08T23:59:59Z"
+  },
+  "prompts_promoted": [
+    "strategy/market-sizing@v1.3.0",
+    "coder/fastapi-scaffold@v2.1.0",
+    "reviewer/security-triage@v1.0.2"
+  ],
+  "prompts_blocked": ["marketing/landing-page@v1.4.0"],
+  "prompts_retired": ["coder/fastapi-scaffold@v2.0.1"],
+  "routing_updates": [
+    {
+      "task_class": "long_form_copy",
+      "model": "gemini-2.5-flash",
+      "max_cost_per_1k": 0.35,
+      "quality_slo": 0.88
+    },
+    {
+      "task_class": "code_generation",
+      "model": "claude-sonnet-4-20250514",
+      "max_cost_per_1k": 3.0,
+      "quality_slo": 0.92
+    },
+    {
+      "task_class": "structured_json",
+      "model": "gemini-2.5-flash",
+      "max_cost_per_1k": 0.25,
+      "quality_slo": 0.95
+    }
+  ],
+  "eval_results": [
+    {
+      "agent": "strategist",
+      "golden_set": "golden_strategy.yaml",
+      "score": 0.91,
+      "baseline": 0.89,
+      "regression_pct": -2.2,
+      "passed": true
+    },
+    {
+      "agent": "coder",
+      "golden_set": "golden_coder.yaml",
+      "score": 0.87,
+      "baseline": 0.86,
+      "regression_pct": -1.2,
+      "passed": true
+    },
+    {
+      "agent": "marketing",
+      "golden_set": "golden_marketing.yaml",
+      "score": 0.84,
+      "baseline": 0.87,
+      "regression_pct": 3.4,
+      "passed": false
+    }
+  ],
+  "drift_alerts": [
+    {
+      "agent": "marketing",
+      "metric": "groundedness_score",
+      "baseline": 0.92,
+      "current": 0.86,
+      "severity": "medium",
+      "action": "blocked landing-page@v1.4.0 promotion; rolled back to v1.3.2"
+    },
+    {
+      "agent": "reviewer",
+      "metric": "false_positive_rate",
+      "baseline": 0.08,
+      "current": 0.11,
+      "severity": "low",
+      "action": "monitor — within 2-week rolling band"
+    }
+  ],
+  "per_tenant_cost": {
+    "org_pawtrail_demo": 48.72,
+    "org_acme_saas": 12.4,
+    "org_fintech_x": 31.15
+  },
+  "cost_breakdown_usd": {
+    "input_tokens": 28.4,
+    "output_tokens": 52.1,
+    "image_generation": 8.0,
+    "embeddings": 3.77
+  },
+  "total_savings_usd": 14.2,
+  "savings_notes": "Routed structured_json tasks from claude-sonnet to gemini-flash; no quality regression on strategist/coder evals.",
+  "canary_deployments": [
+    {
+      "prompt": "coder/fastapi-scaffold@v2.1.0",
+      "canary_pct": 10,
+      "status": "active",
+      "started_at": "2026-06-07T12:00:00Z"
+    }
+  ],
+  "rag_health": {
+    "index_documents": 1240,
+    "avg_retrieval_latency_ms": 42,
+    "hit_rate_pct": 78.5,
+    "stale_chunks_flagged": 12
+  },
+  "dashboard_url": "https://portal.autofounder.ai/llmops?org=org_pawtrail_demo",
+  "generated_at": "2026-06-09T06:00:00Z"
+}

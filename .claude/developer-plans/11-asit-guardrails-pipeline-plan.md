@@ -72,8 +72,8 @@ The Guardrails pipeline is the **safety membrane** that wraps **every** agent in
 |---|---|---|---|---|
 | FastAPI app | AF-028 | Somesh | Middleware mount point | ✅ Done |
 | UDAL | AF-027 | Somesh | Tenant context + lineage emit | ✅ Done |
-| BaseAgent | AF-036 | Asit | Wraps the agent lifecycle | 🔴 Blocked |
-| S3 Object Lock bucket | AF-016 | Asit | Immutable audit store | 🟡 |
+| BaseAgent | AF-036 | Asit | Wraps the agent lifecycle | ✅ Done |
+| S3 Object Lock bucket | AF-016 | Asit | Immutable audit store | ✅ Terraform shipped (deploy + wire = Phase-2 follow-up) |
 
 ### 2.2 Soft Dependencies (Optional but Beneficial)
 
@@ -385,7 +385,7 @@ class LineageRecord(BaseModel):
 | 1 | `GuardResult` contract + 6 stage stubs + audit emitter | `guardrails/` | 🟢 Start now |
 | 1 | Input guard (Presidio + regex fallback + injection rules) | `stages/input_guard.py` | 🟢 Start now |
 | 1 | Output guard (citation-check + toxicity lexicon) | `stages/output_guard.py` | 🟢 Start now (Purnima) |
-| 2 | Pipeline wrapper wired into BaseAgent | `pipeline.py` | 🟡 Needs AF-036 |
+| 2 | Pipeline wrapper wired into BaseAgent | `pipeline.py` | ✅ Done (additive opt-in wiring) |
 | 2 | Execution guard on Tool Registry (schema + cost cap) | `stages/execution_guard.py` | 🟡 Needs AF-047 |
 | 3 | Audit & Lineage → S3 Object Lock; policy stage (inline) | `audit.py`, `stages/policy.py` | 🟡 Needs AF-016 |
 

@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://autofounder.ai/schemas/agents/strategist-output.json",
+  "title": "StrategistAgentOutput",
+  "description": "Structured output from the Strategist Agent (Pillar 1 — Strategy). Aligns with backend StrategyOutput.",
+  "type": "object",
+  "required": [
+    "run_id",
+    "organization_id",
+    "product_name",
+    "one_liner",
+    "problem_statement",
+    "solution_summary",
+    "target_market",
+    "confidence_score"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": { "type": "string", "format": "uuid" },
+    "organization_id": { "type": "string", "minLength": 1 },
+    "product_name": { "type": "string", "minLength": 1 },
+    "one_liner": { "type": "string", "maxLength": 280 },
+    "problem_statement": { "type": "string" },
+    "solution_summary": { "type": "string" },
+    "target_market": { "type": "string" },
+    "tam_sam_som": {
+      "type": "object",
+      "properties": {
+        "tam_inr_cr": { "type": "number", "minimum": 0 },
+        "sam_inr_cr": { "type": "number", "minimum": 0 },
+        "som_inr_cr": { "type": "number", "minimum": 0 },
+        "methodology": { "type": "string" }
+      }
+    },
+    "competitive_landscape": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "positioning"],
+        "properties": {
+          "name": { "type": "string" },
+          "positioning": { "type": "string" },
+          "strengths": { "type": "array", "items": { "type": "string" } },
+          "weaknesses": { "type": "array", "items": { "type": "string" } },
+          "pricing": { "type": "string" }
+        }
+      }
+    },
+    "differentiation": { "type": "array", "items": { "type": "string" } },
+    "business_model": { "type": "string" },
+    "revenue_streams": { "type": "array", "items": { "type": "string" } },
+    "pricing_strategy": {
+      "type": "object",
+      "properties": {
+        "model": { "type": "string" },
+        "tiers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "price_inr"],
+            "properties": {
+              "name": { "type": "string" },
+              "price_inr": { "type": "number", "minimum": 0 },
+              "walks_per_month": { "type": "integer", "minimum": 0 },
+              "features": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "rationale": { "type": "string" }
+      }
+    },
+    "go_to_market": {
+      "type": "object",
+      "properties": {
+        "channels": { "type": "array", "items": { "type": "string" } },
+        "launch_sequence": { "type": "array", "items": { "type": "string" } },
+        "cac_target_inr": { "type": "number" },
+        "ltv_target_inr": { "type": "number" }
+      }
+    },
+    "key_metrics": { "type": "array", "items": { "type": "string" } },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["risk", "severity"],
+        "properties": {
+          "risk": { "type": "string" },
+          "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+          "mitigation": { "type": "string" }
+        }
+      }
+    },
+    "personas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "demographics": { "type": "string" },
+          "pain_points": { "type": "array", "items": { "type": "string" } },
+          "jobs_to_be_done": { "type": "array", "items": { "type": "string" } },
+          "willingness_to_pay": { "type": "string", "enum": ["low", "medium", "high"] }
+        }
+      }
+    },
+    "mvp_scope": {
+      "type": "object",
+      "properties": {
+        "in_scope": { "type": "array", "items": { "type": "string" } },
+        "out_of_scope": { "type": "array", "items": { "type": "string" } },
+        "success_criteria": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "confidence_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "total_llm_tokens_used": { "type": "integer", "minimum": 0 },
+    "generated_at": { "type": "string", "format": "date-time" }
+  }
+}

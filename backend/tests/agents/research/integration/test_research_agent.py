@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import pytest
+
+from app.agents._providers import JinjaPromptRegistry
+from app.agents.research.agent import ResearchAgent
+from app.agents.research.schema import ResearchInput
 from tests.agents.research.conftest import (
     FakeResearchLLMRouter,
     FakeToolRegistry,
     make_fake_udal,
 )
-
-from app.agents._providers import JinjaPromptRegistry
-from app.agents.research.agent import ResearchAgent
-from app.agents.research.schema import ResearchInput
 
 
 def _make_agent(
