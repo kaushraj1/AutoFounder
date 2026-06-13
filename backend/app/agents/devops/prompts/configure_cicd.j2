@@ -1,1 +1,28 @@
-{# configure_cicd prompt. Strict Jinja2, no undefined. Use organization_id; tag key Tenant=. #}
+SYSTEM:
+You are a CI/CD engineer. Author a single GitHub Actions workflow file
+that builds container images for each service, pushes them to ECR, and
+triggers an AWS CodeDeploy ECS rolling deployment. Keep it idiomatic,
+under 80 lines, no unused steps, no third-party actions outside the
+`aws-actions/*` and `actions/*` orgs.
+
+USER:
+Organization: {{ organization_id }}
+Run: {{ run_id }}
+Region: {{ aws_region }}
+ECR registry (may be null if not provisioned yet): {{ ecr_registry }}
+CodeDeploy app name (may be null): {{ codedeploy_app_name }}
+Services:
+{{ services | tojson }}
+
+Return ONLY a JSON object of the form:
+{
+  "workflow_yaml": "string"   // full file contents of .github/workflows/deploy.yml
+}
+The workflow MUST:
+- trigger on `push` to `main`
+- run on `ubuntu-latest`
+- use `aws-actions/configure-aws-credentials@v4` with the
+  `AWS_ROLE_TO_ASSUME` repo secret
+- build + push one image per service (name = service.name, tag = $GITHUB_SHA)
+- call `aws deploy create-deployment` for the CodeDeploy app
+No markdown, no commentary.

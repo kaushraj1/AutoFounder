@@ -23,6 +23,7 @@ dependencies = [
   "google-generativeai>=0.8.0",
   "langgraph>=0.2.0",
   "prometheus-client>=0.21.0",
+  "pygithub>=2.4.0",
 ]
 
 [dependency-groups]
@@ -91,4 +92,7 @@ exclude = ["alembic/", "agent_worker_pb2.*", "tests/agents/reviewer/fixtures/"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q -m 'not localstack'"
+markers = [
+  "localstack: integration tests requiring a running LocalStack container (skipped by default; run with `pytest -m localstack`)",
+]

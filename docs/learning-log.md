@@ -98,3 +98,36 @@ Append-only project journal. Newest entries at the bottom.
 - **Why now**: Pillar 5 scaffold (`packages/agents/engineering/devops/`) is the first agent skeleton landing in-repo. If we don't lock the house style here, the next 6 agents will each drift in their own direction and code review becomes an opinion fight instead of a correctness check.
 - **Applied to**: Pillar 5 DevOps scaffold (64 files) - all stub docstrings are one-line, no emojis, no defensive scaffolding code, no helper modules invented before a node needs them. The `tests/fixtures/coder_output_dummy.json` stub was kept (one line) because the plan calls for a per-package fixture; the real dummy at `.claude/specs/pillar5-dummy-input.json` remains the source of truth.
 - **Enforcement**: future PR reviews should reject - on sight - multi-paragraph docstrings, emoji, `tenant_id`, defensive code without a justifying comment, and abstractions with one caller.
+
+
+## 2026-06-12 — DevOps Pillar 5 wiring: two-tier HITL spend gate, foundation network, orchestrator integration
+
+- **Topic**: Phase 1A wiring of the DevOpsAgent into the orchestrator pipeline, with Terraform seed templates, a Redis-backed pre-flight spend gate, and a post-deploy orchestrator-level cost gate that drives the LangGraph `interrupt_before`.
+
+- **Key decisions**:
+  - **Two HITL gates by design** — they protect different things and run at different times:
+    1. `app/agents/devops/nodes/hitl_spend_gate.py` — *intra-subgraph*, runs **before any AWS API call**. Auto-approves if estimated cost = `settings.devops_spend_gate_cap_usd` ($150). If above the cap, polls Redis at `hitl:devops:spend:{run_id}` every 60 s for up to 15 min. Required so we never spin up RDS/ALB/ECS without consent (those cost money the moment Terraform applies).
+    2. `app/orchestrator/nodes.py::infra_spend_gate` — *cross-pillar*, runs **after Pillar 5 finishes**. Reads `state["deployment_output"]["monthly_cost_usd"]` and triggers `interrupt_before` if cost exceeds `INFRA_SPEND_THRESHOLD_USD` ($50). Lets the founder review the actually-deployed cost before public marketing launch (Pillar 6).
+  - **Foundation network is hardcoded in `Settings.foundation_*`** for now (real VPC `vpc-094e84b00f220fdf5` in ap-south-1 with 2 private + 2 public subnets). Marked `TODO(AF-012-021)` for replacement with `terraform_remote_state` against Asit's foundation module when it ships.
+  - **`Annotated[..., operator.add]` reducer required on `DevOpsState.node_traces`** — parallel LangGraph nodes (`provision_compute || provision_data_layer`, `build_task_defs || configure_codedeploy`, `configure_monitoring || configure_cicd`) all append traces in the same step. Default `LastValue` channel rejects with `InvalidUpdateError`. Architect agent uses the same pattern at `backend/app/agents/architect/state.py:99-100`.
+  - **`LocalToolRegistry` shim in `app/agents/devops/tools.py`** dispatches by tool name to async scaffold wrappers. Same contract (`ToolRegistryProtocol.call(name, args)`) will accept boto3-backed real implementations later without touching the registry signature.
+  - **Two API mechanisms for HITL decisions, intentionally separate**:
+    - `POST /v1/runs/{run_id}/gates/{gate_id}` (existing `api/v1/gates.py`) ? updates the orchestrator-level `Gate` row + calls `OrchestratorEngine.resume()`. Used for `validation_gate`, `architecture_gate`, `infra_spend_gate`, `launch_gate`.
+    - `POST /v1/runs/{run_id}/devops-spend-approval` (new) ? writes `approved`/`rejected` to the Redis key the DevOps subgraph polls. Used only for the in-subgraph pre-flight gate.
+  - **Terraform seed templates** in `backend/app/agents/devops/terraform_templates/` are deliberately minimal — they declare the variable contract and outputs that downstream modules consume; the DevOps agent fills in per-tenant `aws_ecs_task_definition` / `aws_ecs_service` / ALB listener rules at runtime from `CoderOutput.services[]`.
+
+- **Key insights**:
+  - LangGraph `interrupt_before` requires the gate node to be on a conditional edge that actually fires — `route_after_pillar_5` was previously gated on `state["cost_usd_cents"]` which `run_pillar_5` never sets. Switched to `deployment_output["monthly_cost_usd"]` * 100 to convert dollars to cents (and kept the `cost_usd_cents` fallback so existing tests still work).
+  - **Module-vs-function shadowing**: `nodes/__init__.py` re-exports `hitl_spend_gate` as both module and function name. Tests that need to monkeypatch the module must use `importlib.import_module("...nodes.hitl_spend_gate")` — plain `from ... import hitl_spend_gate as hitl_module` returns the function.
+  - **`fakeredis.aioredis.FakeRedis(decode_responses=True)`** is the project's standard test double for Redis — same constructor used in `tests/orchestrator/test_engine_persistence.py` and `test_checkpointer.py`. Don't reinvent.
+  - **`DualCheckpointer` in tests** requires a working SQLAlchemy session that supports `.execute(...).mappings().first()`. Stubbing all of that is hostile; for unit/integration tests, monkeypatch `app.orchestrator.checkpointer.DualCheckpointer` to `lambda *a, **k: MemorySaver()` and inject `langgraph.checkpoint.memory.MemorySaver` instead.
+  - **`BaseAgent` constructor signature is positional `*args, **kwargs`** (delegating to ABC). Pass deps as keyword args: `udal=..., checkpointer=..., tool_registry=..., prompt_registry=..., llm_router=...`. The architect/strategy/reviewer agents all follow this pattern.
+  - **Cost estimator recomputes inside `ingest_input`** from `services[]` (3 services × 2 replicas + NAT + ALB + RDS + Redis + S3 = ~$174). Tests that need cost < cap must shrink `services` count/replicas; setting `estimated_monthly_cost_usd` on the input dict has no effect because it's overwritten.
+
+- **Gotchas**:
+  - PowerShell `Set-Content -NoNewline` with a here-string is the most reliable way to overwrite multiple template files in one shot — `create_file` refuses to overwrite, and `replace_string_in_file` chokes on 1-line stubs that don't contain enough context.
+  - `app/agents/devops/schema.py` had a duplicate `node_traces:` field declaration (silently shadowed). When adding reducers, also grep for duplicates — Pydantic doesn't warn about field re-declaration.
+  - The orchestrator's `run_pillar_5` correctly populates `deployment_output["monthly_cost_usd"]` (in dollars). Don't write a unit-converting helper in the edge function — just multiply by 100 inline so the threshold (`INFRA_SPEND_THRESHOLD_CENTS = 5_000`) stays consistent with the other gates in `edges.py`.
+  - Foundation network is shared across tenants by design (whole point), but security groups are **per-tenant** (name prefixed by `organization_id`). Tests must assert both: `vpc_id` equal across tenants, `security_group_ids["ecs_tasks"]` different.
+
+- **Status**: Phase 1A complete. DevOpsAgent runs end-to-end through the orchestrator, both HITL paths tested with fakeredis, 21/21 tests green. Phase 1B (Founder Portal endpoint + Terraform validate pass + post-deploy gate threshold) is next.

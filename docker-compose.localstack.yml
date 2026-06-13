@@ -1,0 +1,37 @@
+name: autofounder-localstack
+
+# Spins up LocalStack (community edition) for DevOps Agent integration tests.
+# Usage:
+#   docker compose -f docker-compose.localstack.yml up -d
+#   $env:LOCALSTACK_RUNNING=1
+#   .\backend\.venv\Scripts\python.exe -m pytest backend -m localstack
+#   docker compose -f docker-compose.localstack.yml down -v
+#
+# Services covered (community tier): IAM, STS, Secrets Manager, CodeDeploy,
+# ACM (request only, no validation), Route53, ECS, ECR, CloudWatch, Logs,
+# S3, SSM. The DevOps integration test only exercises secretsmanager,
+# codedeploy, route53, acm, and HTTP health checks. PyGithub stays mocked.
+
+services:
+  localstack:
+    image: localstack/localstack:3.7
+    container_name: autofounder-localstack
+    ports:
+      - "4566:4566" # edge port (all services multiplexed)
+    environment:
+      - SERVICES=iam,sts,secretsmanager,codedeploy,acm,route53,ecs,ecr,cloudwatch,logs,s3,ssm
+      - DEBUG=0
+      - PERSISTENCE=0
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - DEFAULT_REGION=ap-south-1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - localstack-data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  localstack-data:

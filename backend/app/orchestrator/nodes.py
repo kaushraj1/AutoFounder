@@ -239,13 +239,106 @@ async def run_pillar_4(state: RunState) -> dict[str, Any]:
 
 
 async def run_pillar_5(state: RunState) -> dict[str, Any]:
-    """Pillar 5: Deployment & Infrastructure.  Stub — wired to AF-043."""
-    return {
-        "current_pillar": 5,
-        "current_node": "run_pillar_5",
-        "deployment_output": {"stub": True, "deploy_url": None, "infra_cost_usd": 0},
-        "step_events": [_event("run_pillar_5", 5, "Pillar 5 stub complete")],
-    }
+    """Pillar 5: Deployment & Infrastructure. Wired to DevOpsAgent (AF-043).
+
+    Gated on a real CoderOutput from Pillar 4. If upstream is a stub (pillars 3/4
+    not yet wired), returns a stub deployment_output unchanged. When real data
+    arrives, constructs a DevOpsState and invokes DevOpsAgent.run().
+    """
+    review_output = state.get("review_output") or {}
+    code_output = state.get("code_output") or {}
+
+    # Gate: upstream pillars must have produced real output.
+    if review_output.get("stub") or code_output.get("stub") or not code_output:
+        return {
+            "current_pillar": 5,
+            "current_node": "run_pillar_5",
+            "deployment_output": {
+                "stub": True,
+                "deploy_url": None,
+                "infra_cost_usd": 0,
+            },
+            "step_events": [
+                _event("run_pillar_5", 5, "Pillar 5 stub — upstream CoderOutput not real yet"),
+            ],
+        }
+
+    from app.agents._providers import GeminiRouter, JinjaPromptRegistry
+    from app.agents.devops import DevOpsAgent
+    from app.agents.devops.tools import LocalToolRegistry
+    from app.core.config import get_settings
+    from app.core.security import Principal
+    from app.db.redis_pool import get_redis
+    from app.db.session import SessionLocal
+    from app.db.udal import UDAL
+    from app.orchestrator.checkpointer import DualCheckpointer
+
+    settings = get_settings()
+
+    try:
+        redis_client = get_redis()
+    except RuntimeError:
+        redis_client = None
+
+    principal = Principal(organization_id=state["organization_id"], role="system")
+
+    async with SessionLocal() as db_session:
+        udal = UDAL(principal=principal, session=db_session, redis=redis_client)
+        checkpointer = DualCheckpointer(session_factory=SessionLocal, redis=redis_client)
+        tool_registry = LocalToolRegistry()
+        prompt_registry = JinjaPromptRegistry()
+        # GeminiRouter is constructed but not yet called by DevOps scaffold nodes.
+        llm_router = GeminiRouter(
+            api_key=settings.gemini_api_key, default_model=settings.strategy_model
+        )
+
+        agent = DevOpsAgent(
+            udal=udal,
+            checkpointer=checkpointer,
+            tool_registry=tool_registry,
+            prompt_registry=prompt_registry,
+            llm_router=llm_router,
+        )
+
+        # Build DevOpsState input from upstream CoderOutput + tenant config.
+        agent_input: dict[str, Any] = {
+            **code_output,
+            "run_id": state["run_id"],
+            "organization_id": state["organization_id"],
+            "parent_run_id": code_output.get("run_id", state["run_id"]),
+            "grandparent_run_id": code_output.get("parent_run_id", state["run_id"]),
+            "aws_region": code_output.get("aws_region", settings.foundation_aws_region),
+            "repo_url": code_output.get("repo_url", code_output.get("github_repo_html_url", "")),
+        }
+
+        try:
+            output_state = await agent.run(agent_input)
+            output_dict = output_state.model_dump(mode="json")
+            return {
+                "current_pillar": 5,
+                "current_node": "run_pillar_5",
+                "deployment_output": {
+                    "live_url": output_state.live_url,
+                    "deploy_status": str(output_state.deploy_status),
+                    "smoke_passed": output_state.smoke_tests_passed,
+                    "monthly_cost_usd": output_state.estimated_monthly_cost_usd,
+                    "deployment_id": output_state.deployment_id,
+                    "full_state": output_dict,
+                },
+                "step_events": [
+                    _event("run_pillar_5", 5, "Pillar 5 DevOpsAgent execution successful"),
+                ],
+            }
+        except Exception as e:
+            return {
+                "current_pillar": 5,
+                "current_node": "run_pillar_5",
+                "status": "failed",
+                "error": f"DevOpsAgent run failed: {str(e)}",
+                "step_events": [
+                    _event("run_pillar_5", 5, f"DevOpsAgent run failed: {str(e)}"),
+                ],
+            }
 
 
 async def infra_spend_gate(state: RunState) -> dict[str, Any]:

@@ -41,8 +41,20 @@ def route_after_architecture_gate(state: RunState) -> str:
 
 
 def route_after_pillar_5(state: RunState) -> str:
-    """Fire infra-spend gate only when accumulated cost exceeds threshold."""
-    if (state.get("cost_usd_cents") or 0) > INFRA_SPEND_THRESHOLD_CENTS:
+    """Fire infra-spend gate only when projected monthly cost exceeds threshold.
+
+    Reads `deployment_output.monthly_cost_usd` (populated by run_pillar_5 from
+    the DevOps agent's cost estimator) and converts to cents. Falls back to the
+    legacy `cost_usd_cents` field when no deployment_output is present (keeps
+    older tests/fixtures working).
+    """
+    deployment_output = state.get("deployment_output") or {}
+    monthly_cost_usd = deployment_output.get("monthly_cost_usd")
+    if monthly_cost_usd is not None:
+        cost_cents = int(round(float(monthly_cost_usd) * 100))
+    else:
+        cost_cents = int(state.get("cost_usd_cents") or 0)
+    if cost_cents > INFRA_SPEND_THRESHOLD_CENTS:
         return "infra_spend_gate"
     return "run_pillar_6"
 

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import operator
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -332,10 +333,15 @@ class DevOpsState(BaseModel):
 
     # Terraform
     terraform_plan_output: str | None = None
-    terraform_state_s3_key: str | None = None
 
     # Execution metadata
-    node_traces: list[NodeTrace] = Field(default_factory=list)
+    # node_traces uses an operator.add reducer so parallel nodes (e.g.
+    # provision_compute || provision_data_layer) can each append safely.
+    node_traces: Annotated[list[NodeTrace], operator.add] = Field(default_factory=list)
+    last_error: str | None = None
+    deployment_id: str | None = None
+    terraform_state_s3_key: str | None = None
+
     retry_policy: RetryPolicy = Field(default_factory=RetryPolicy)
     total_llm_tokens_used: int = 0
     total_tool_calls: int = 0
