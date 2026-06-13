@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.agents.devops.schema import NodeStatus, NodeTrace, SecretRef
+from app.core.logging import bind_log_context
 
 
 async def provision_secrets(state: dict, agent: Any | None = None) -> dict:
@@ -17,6 +18,12 @@ async def provision_secrets(state: dict, agent: Any | None = None) -> dict:
 	now = datetime.now(UTC)
 	organization_id = state.get("organization_id", "tenant")
 	run_prefix = str(state.get("run_id", "run"))[:8]
+	bind_log_context(
+		organization_id=str(state.get("organization_id", "")),
+		run_id=str(state.get("run_id", "")),
+		agent_id="devops",
+		node="provision_secrets",
+	)
 	secret_names: set[str] = set()
 
 	for service in state.get("services", []):

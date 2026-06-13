@@ -11,6 +11,9 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.agents.devops.schema import CodeDeployApp, NodeStatus, NodeTrace
+from app.core.logging import bind_log_context, get_logger
+
+logger = get_logger("app.agents.devops.nodes.configure_codedeploy")
 
 
 async def configure_codedeploy(state: dict, agent: Any | None = None) -> dict:
@@ -18,6 +21,12 @@ async def configure_codedeploy(state: dict, agent: Any | None = None) -> dict:
 	now = datetime.now(UTC)
 	org = state.get("organization_id", "tenant")
 	run = str(state.get("run_id", "run"))[:8]
+	bind_log_context(
+		organization_id=str(state.get("organization_id", "")),
+		run_id=str(state.get("run_id", "")),
+		agent_id="devops",
+		node="configure_codedeploy",
+	)
 	app_name = f"cd-{org[:16]}-{run}"
 	deployment_group = f"dg-{org[:16]}-{run}"
 	appspec = "version: 0.0\nResources:\n  - TargetService:\n      Type: AWS::ECS::Service\n"
@@ -41,10 +50,14 @@ async def configure_codedeploy(state: dict, agent: Any | None = None) -> dict:
 					"service_role_arn": role_arn,
 				},
 			)
-		except Exception:
+		except Exception as exc:
 			# A tool failure here is not fatal at the graph-state level;
 			# deploy_application will fail loudly when it tries to deploy.
-			pass
+			logger.warning(
+				"configure_codedeploy.tool_failed",
+				error_type=type(exc).__name__,
+				error=str(exc)[:300],
+			)
 
 	return {
 		"codedeploy_app": CodeDeployApp(

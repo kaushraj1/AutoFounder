@@ -11,11 +11,18 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.agents.devops.schema import NodeStatus, NodeTrace, SmokeTestResult
+from app.core.logging import bind_log_context
 
 
 async def smoke_test(state: dict, agent: Any | None = None) -> dict:
 	state = state.model_dump() if hasattr(state, "model_dump") else state
 	now = datetime.now(UTC)
+	bind_log_context(
+		organization_id=str(state.get("organization_id", "")),
+		run_id=str(state.get("run_id", "")),
+		agent_id="devops",
+		node="smoke_test",
+	)
 	live_url = state.get("live_url")
 	results: list[SmokeTestResult] = []
 

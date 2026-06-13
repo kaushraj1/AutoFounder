@@ -16,16 +16,27 @@ loop is not blocked.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import shutil
 import subprocess
+import tempfile
+import time
+from pathlib import Path
 from typing import Any
 
 import httpx
 
 from app.agents.base import ToolRegistryProtocol
 from app.core.config import get_settings
+from app.core.logging import get_logger
 
 logger = logging.getLogger("app.agents.devops.tools")
+# JSON-structured logger for the new Phase 1D code paths so CloudWatch /
+# ELK can filter on organization_id, run_id, module, event, returncode, etc.
+slog = get_logger("app.agents.devops.tools")
+
+TERRAFORM_TEMPLATES_DIR = Path(__file__).parent / "terraform_templates"
 
 
 # ---------------------------------------------------------------------------
@@ -107,6 +118,191 @@ async def terraform_run(
         "stdout": proc.stdout,
         "stderr": proc.stderr,
         "returncode": proc.returncode,
+    }
+
+
+def _stage_terraform_module(
+    *, module_name: str, organization_id: str, run_id: str
+) -> Path:
+    """Copy ``terraform_templates/<module>`` + ``_shared`` into a fresh tmp dir.
+
+    Strips the partial S3 backend so Path A (plan-only, no AWS) can ``init``
+    with the default local backend. When the apply path lands, drop the
+    backend-strip and pass real ``-backend-config`` instead.
+    """
+    src = TERRAFORM_TEMPLATES_DIR / module_name
+    if not src.is_dir():
+        raise FileNotFoundError(f"Unknown terraform module: {module_name} ({src})")
+    shared = TERRAFORM_TEMPLATES_DIR / "_shared"
+
+    work = Path(
+        tempfile.mkdtemp(
+            prefix=f"af-tf-{module_name}-{organization_id[:8]}-{run_id[:8]}-"
+        )
+    )
+    for entry in src.iterdir():
+        if entry.is_file():
+            shutil.copy2(entry, work / entry.name)
+    if shared.is_dir():
+        for entry in shared.iterdir():
+            if entry.is_file() and entry.name != "backend.tf":
+                dest = work / entry.name
+                if not dest.exists():
+                    shutil.copy2(entry, dest)
+    return work
+
+
+async def terraform_plan_module(
+    *,
+    module_name: str,
+    organization_id: str,
+    run_id: str,
+    vars: dict[str, Any] | None = None,
+    extra_files: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Stage a per-tenant terraform module into a tmp dir, run init + validate.
+
+    Path A (offline, no AWS credentials) — validates HCL syntax, variable
+    wiring, provider constraints, and module schema without making any AWS
+    API calls. ``terraform plan`` is unsafe in this mode because modules
+    with data sources (e.g. ``aws_vpc``, ``aws_subnet`` in the networking
+    module) require live AWS auth even during plan. ``terraform validate``
+    is the canonical static-analysis check and does NOT need credentials.
+
+    ``extra_files`` lets callers drop generated ``.tf.json`` files (e.g.
+    per-service ECS task defs) into the workdir before validate.
+
+    Returns a dict with ``ok``, ``returncode`` (0 = valid; non-zero =
+    error), ``working_dir``, ``init_stdout/stderr``,
+    ``validate_stdout/stderr``, ``duration_ms``. The dict key
+    ``plan_stdout`` / ``plan_stderr`` is kept as an alias for
+    ``validate_*`` so downstream report templates don't break when the
+    apply path lands.
+    """
+    if _is_scaffold_mode():
+        slog.info(
+            "terraform_plan_module.scaffold",
+            module=module_name,
+            organization_id=organization_id,
+            run_id=run_id,
+        )
+        return {
+            "ok": True,
+            "module": module_name,
+            "working_dir": "",
+            "returncode": 0,
+            "init_stdout": "scaffold",
+            "validate_stdout": "scaffold",
+            "plan_stdout": "scaffold",
+            "duration_ms": 0,
+        }
+
+    started = time.perf_counter()
+    work = _stage_terraform_module(
+        module_name=module_name, organization_id=organization_id, run_id=run_id
+    )
+    slog.info(
+        "terraform_plan_module.staged",
+        module=module_name,
+        organization_id=organization_id,
+        run_id=run_id,
+        working_dir=str(work),
+        vars_keys=sorted((vars or {}).keys()),
+        extra_files=sorted((extra_files or {}).keys()),
+    )
+
+    for filename, contents in (extra_files or {}).items():
+        (work / filename).write_text(contents, encoding="utf-8")
+
+    tfvars_payload = {
+        "organization_id": organization_id,
+        "run_id": run_id,
+        **(vars or {}),
+    }
+    (work / "terraform.auto.tfvars.json").write_text(
+        json.dumps(tfvars_payload, default=str, indent=2), encoding="utf-8"
+    )
+
+    settings = get_settings()
+    bin_path = settings.devops_terraform_binary
+
+    def _run(cmd: list[str], *, timeout: int = 600) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(  # noqa: S603 — caller-controlled args, no shell
+            cmd,
+            cwd=str(work),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+
+    # init -backend=false avoids any S3/DynamoDB lookups (the partial backend
+    # in _shared/backend.tf is already stripped during staging, but this is
+    # belt-and-braces for Path A).
+    init_cmd = [bin_path, "init", "-input=false", "-no-color", "-backend=false"]
+    slog.info(
+        "terraform_plan_module.init.start",
+        module=module_name,
+        organization_id=organization_id,
+        run_id=run_id,
+        cmd=init_cmd,
+    )
+    init_proc = await asyncio.to_thread(_run, init_cmd)
+    slog.info(
+        "terraform_plan_module.init.done",
+        module=module_name,
+        organization_id=organization_id,
+        run_id=run_id,
+        returncode=init_proc.returncode,
+        stderr_tail=init_proc.stderr[-500:] if init_proc.stderr else "",
+    )
+    if init_proc.returncode != 0:
+        return {
+            "ok": False,
+            "module": module_name,
+            "working_dir": str(work),
+            "returncode": init_proc.returncode,
+            "init_stdout": init_proc.stdout,
+            "init_stderr": init_proc.stderr,
+            "validate_stdout": "",
+            "validate_stderr": "",
+            "plan_stdout": "",
+            "plan_stderr": "",
+            "duration_ms": round((time.perf_counter() - started) * 1000, 1),
+        }
+
+    validate_cmd = [bin_path, "validate", "-no-color", "-json"]
+    slog.info(
+        "terraform_plan_module.validate.start",
+        module=module_name,
+        organization_id=organization_id,
+        run_id=run_id,
+        cmd=validate_cmd,
+    )
+    validate_proc = await asyncio.to_thread(_run, validate_cmd)
+    duration_ms = round((time.perf_counter() - started) * 1000, 1)
+    ok = validate_proc.returncode == 0
+    slog.info(
+        "terraform_plan_module.validate.done",
+        module=module_name,
+        organization_id=organization_id,
+        run_id=run_id,
+        returncode=validate_proc.returncode,
+        ok=ok,
+        duration_ms=duration_ms,
+        stderr_tail=validate_proc.stderr[-500:] if validate_proc.stderr else "",
+    )
+    return {
+        "ok": ok,
+        "module": module_name,
+        "working_dir": str(work),
+        "returncode": validate_proc.returncode,
+        "init_stdout": init_proc.stdout,
+        "init_stderr": init_proc.stderr,
+        "validate_stdout": validate_proc.stdout,
+        "validate_stderr": validate_proc.stderr,
+        "plan_stdout": validate_proc.stdout,
+        "plan_stderr": validate_proc.stderr,
+        "duration_ms": duration_ms,
     }
 
 
@@ -439,6 +635,7 @@ async def http_health_check(*, endpoint: str) -> dict[str, Any]:
 
 _TOOL_DISPATCH = {
     "terraform_run": terraform_run,
+    "terraform_plan_module": terraform_plan_module,
     "secrets_manager_create": secrets_manager_create,
     "codedeploy_create_application": codedeploy_create_application,
     "codedeploy_create_deployment_group": codedeploy_create_deployment_group,
@@ -459,5 +656,23 @@ class LocalToolRegistry(ToolRegistryProtocol):
         fn = _TOOL_DISPATCH.get(tool_name)
         if fn is None:
             raise KeyError(f"DevOps tool '{tool_name}' not registered")
-        logger.info("devops tool call: %s", tool_name)
-        return await fn(**args)
+        slog.info("devops.tool.call", tool=tool_name, arg_keys=sorted(args.keys()))
+        started = time.perf_counter()
+        try:
+            result = await fn(**args)
+        except Exception as exc:
+            slog.error(
+                "devops.tool.error",
+                tool=tool_name,
+                error_type=type(exc).__name__,
+                error=str(exc)[:500],
+                duration_ms=round((time.perf_counter() - started) * 1000, 1),
+            )
+            raise
+        slog.info(
+            "devops.tool.done",
+            tool=tool_name,
+            ok=bool(result.get("ok")) if isinstance(result, dict) else True,
+            duration_ms=round((time.perf_counter() - started) * 1000, 1),
+        )
+        return result

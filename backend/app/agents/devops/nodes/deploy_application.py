@@ -11,13 +11,26 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.agents.devops.schema import DeployStatus, NodeStatus, NodeTrace
+from app.core.logging import bind_log_context, get_logger
+
+logger = get_logger("app.agents.devops.nodes.deploy_application")
 
 
 async def deploy_application(state: dict, agent: Any | None = None) -> dict:
 	state = state.model_dump() if hasattr(state, "model_dump") else state
 	now = datetime.now(UTC)
+	bind_log_context(
+		organization_id=str(state.get("organization_id", "")),
+		run_id=str(state.get("run_id", "")),
+		agent_id="devops",
+		node="deploy_application",
+	)
 	task_defs = state.get("task_defs", [])
 	if not task_defs:
+		logger.error(
+			"deploy_application.no_task_defs",
+			message="task_defs missing — upstream build_task_defs likely failed",
+		)
 		return {
 			"deploy_status": DeployStatus.FAILED,
 			"last_error": "No task definitions available for deployment",
@@ -52,6 +65,13 @@ async def deploy_application(state: dict, agent: Any | None = None) -> dict:
 			)
 			deployment_id = result.get("deployment_id") or deployment_id
 		except Exception as exc:
+			logger.error(
+				"deploy_application.codedeploy_failed",
+				error_type=type(exc).__name__,
+				error=str(exc)[:300],
+				app_name=app_name,
+				deployment_group=deployment_group,
+			)
 			return {
 				"deploy_status": DeployStatus.FAILED,
 				"last_error": f"CodeDeploy create_deployment failed: {exc}",

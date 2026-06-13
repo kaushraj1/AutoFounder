@@ -39,9 +39,14 @@ def build_devops_graph(
 
 	graph.add_node("ingest_input", nodes.ingest_input)
 	graph.add_node("hitl_spend_gate", nodes.hitl_spend_gate)
-	graph.add_node("attach_foundation_network", nodes.attach_foundation_network)
-	graph.add_node("provision_compute", nodes.provision_compute)
-	graph.add_node("provision_data_layer", nodes.provision_data_layer)
+	graph.add_node(
+		"attach_foundation_network",
+		partial(nodes.attach_foundation_network, agent=agent),
+	)
+	graph.add_node("provision_compute", partial(nodes.provision_compute, agent=agent))
+	graph.add_node(
+		"provision_data_layer", partial(nodes.provision_data_layer, agent=agent)
+	)
 	graph.add_node("infra_join", _infra_join)
 	graph.add_node("provision_secrets", partial(nodes.provision_secrets, agent=agent))
 	graph.add_node("build_task_defs", partial(nodes.build_task_defs, agent=agent))

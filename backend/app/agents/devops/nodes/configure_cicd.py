@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from app.agents.devops.schema import CICDConfig, NodeStatus, NodeTrace
 from app.agents.devops.utils.llm_json import parse_with_correction
+from app.core.logging import bind_log_context
 
 
 class _CICDResponse(BaseModel):
@@ -25,6 +26,12 @@ async def configure_cicd(state: dict, agent: Any | None = None) -> dict:
         raise RuntimeError("configure_cicd requires an agent (LLM router)")
     state = state.model_dump() if hasattr(state, "model_dump") else state
     now = datetime.now(UTC)
+    bind_log_context(
+        organization_id=str(state.get("organization_id", "")),
+        run_id=str(state.get("run_id", "")),
+        agent_id="devops",
+        node="configure_cicd",
+    )
 
     cd_app = state.get("codedeploy_app")
     codedeploy_app_name = None

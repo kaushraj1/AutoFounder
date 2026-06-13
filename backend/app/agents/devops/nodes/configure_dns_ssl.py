@@ -12,11 +12,18 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.agents.devops.schema import DNSRecord, NodeStatus, NodeTrace, TLSCertificate
+from app.core.logging import bind_log_context
 
 
 async def configure_dns_ssl(state: dict, agent: Any | None = None) -> dict:
 	state = state.model_dump() if hasattr(state, "model_dump") else state
 	now = datetime.now(UTC)
+	bind_log_context(
+		organization_id=str(state.get("organization_id", "")),
+		run_id=str(state.get("run_id", "")),
+		agent_id="devops",
+		node="configure_dns_ssl",
+	)
 	vpc = state.get("vpc_config")
 	domain_root = state.get("domain_root", "euron.one")
 	subdomain = state.get("subdomain", state.get("organization_id", "app")[:16])
