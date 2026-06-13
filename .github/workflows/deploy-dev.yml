@@ -12,7 +12,7 @@ on:
 
 env:
   AWS_REGION: ap-south-1
-  ECR_REPOSITORY: autofounder-ai/backend
+  ECR_REPOSITORY: autofounderai/backend
   ECS_CLUSTER: autofounderai-cluster
   ECS_SERVICE: autofounderai-backend-dev
   TASK_FAMILY: autofounderai-backend-dev
@@ -43,10 +43,10 @@ jobs:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
         run: |
           docker build --platform linux/amd64 \
-            -t "$REGISTRY/$ECR_REPOSITORY:sha-${{ github.sha }}" \
+            -t "$REGISTRY/$ECR_REPOSITORY:dev-${{ github.sha }}" \
             -t "$REGISTRY/$ECR_REPOSITORY:dev-latest" \
             ./backend
-          docker push "$REGISTRY/$ECR_REPOSITORY:sha-${{ github.sha }}"
+          docker push "$REGISTRY/$ECR_REPOSITORY:dev-${{ github.sha }}"
           docker push "$REGISTRY/$ECR_REPOSITORY:dev-latest"
 
       - name: Render task definition with new image
@@ -55,7 +55,7 @@ jobs:
         with:
           task-definition-family: ${{ env.TASK_FAMILY }}
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:sha-${{ github.sha }}
+          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:dev-${{ github.sha }}
 
       - name: Deploy (rolling, circuit-breaker rollback)
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
