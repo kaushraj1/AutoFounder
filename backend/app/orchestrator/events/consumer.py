@@ -155,7 +155,8 @@ class SQSRunCreatedConsumer:
                 self._client = boto3.client("sqs", region_name=self.settings.aws_region)
             except (BotoCoreError, ClientError) as e:
                 logger.warning(
-                    "Failed to initialize boto3 SQS client for run creation: %s. Using in-memory fallback.",
+                    "Failed to initialize boto3 SQS client for run creation: %s. "
+                    "Using in-memory fallback.",
                     e,
                 )
                 self._client = None

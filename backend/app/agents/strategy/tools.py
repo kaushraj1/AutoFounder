@@ -89,7 +89,8 @@ class LocalToolRegistry(ToolRegistryProtocol):
                 company = args.get("company_name", "")
                 if not crunchbase_key:
                     logger.warning(
-                        "CRUNCHBASE_API_KEY not configured — attempting web search + Gemini extraction for '%s'.",
+                        "CRUNCHBASE_API_KEY not configured — attempting web search + "
+                        "Gemini extraction for '%s'.",
                         company,
                     )
                     search_results = None
@@ -115,16 +116,20 @@ class LocalToolRegistry(ToolRegistryProtocol):
                     )
                     if search_results and gemini_key:
                         try:
-                            from app.agents._providers import GeminiRouter
                             import json
+
+                            from app.agents._providers import GeminiRouter
 
                             router = GeminiRouter(
                                 api_key=gemini_key, default_model=self.settings.strategy_model
                             )
                             prompt = (
-                                f"Analyze the search results for the company '{company}' and extract the total funding amount in millions of USD "
-                                "(as a float, e.g. 15.4 for $15.4M, 0.5 for $500k, 0.0 if unfunded/bootstrapped) and the number of employees range "
-                                "(e.g., '1-10', '11-50', '51-200', '201-500', '500+').\n\n"
+                                f"Analyze the search results for the company '{company}' "
+                                "and extract the total funding amount in millions of USD "
+                                "(as a float, e.g. 15.4 for $15.4M, 0.5 for $500k, "
+                                "0.0 if unfunded/bootstrapped) and the number of "
+                                "employees range (e.g., '1-10', '11-50', '51-200', "
+                                "'201-500', '500+').\n\n"
                                 f"Search Results:\n{str(search_results)[:4000]}\n\n"
                                 "Return ONLY a valid JSON object matching this schema:\n"
                                 "{\n"
@@ -155,8 +160,9 @@ class LocalToolRegistry(ToolRegistryProtocol):
                         "num_employees_enum": "employee_range_11_50",
                     }
                 async with httpx.AsyncClient() as client:
+                    slug = company.lower().replace(' ', '-')
                     resp = await client.get(
-                        f"https://api.crunchbase.com/api/v4/entities/organizations/{company.lower().replace(' ', '-')}",
+                        f"https://api.crunchbase.com/api/v4/entities/organizations/{slug}",
                         params={
                             "user_key": crunchbase_key,
                             "field_ids": (

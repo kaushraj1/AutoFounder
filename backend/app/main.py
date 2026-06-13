@@ -34,7 +34,10 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     from app.db.redis_pool import get_redis, init_redis  # noqa: PLC0415
     from app.db.session import SessionLocal  # noqa: PLC0415
     from app.orchestrator import OrchestratorEngine  # noqa: PLC0415
-    from app.orchestrator.events.consumer import SQSGateDecisionConsumer, SQSRunCreatedConsumer  # noqa: PLC0415
+    from app.orchestrator.events.consumer import (  # noqa: PLC0415
+        SQSGateDecisionConsumer,
+        SQSRunCreatedConsumer,
+    )
     from app.orchestrator.worker import SQSPillarWorker  # noqa: PLC0415
 
     await init_redis()

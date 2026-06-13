@@ -42,7 +42,8 @@ async def submit_idea(
             workspace_id = uuid.uuid4()
             await db.session.execute(
                 text(
-                    "INSERT INTO workspaces (id, organization_id, name, created_by) VALUES (:id, :org, 'Default Workspace', 'system');"
+                    "INSERT INTO workspaces (id, organization_id, name, created_by) "
+                    "VALUES (:id, :org, 'Default Workspace', 'system');"
                 ),
                 {"id": workspace_id, "org": uuid.UUID(udal.organization_id)},
             )

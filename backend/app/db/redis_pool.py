@@ -29,6 +29,7 @@ async def init_redis() -> None:
     except Exception as e:
         if settings.app_env.lower() == "development":
             import logging
+
             import fakeredis.aioredis
 
             logger = logging.getLogger("app.db.redis")

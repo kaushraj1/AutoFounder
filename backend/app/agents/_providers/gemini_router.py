@@ -23,6 +23,7 @@ class GeminiRouter(LLMRouterProtocol):
     async def complete(self, *, task_class: str, prompt: str, **kw: Any) -> str:
         """Complete prompt using Gemini or Euri Model."""
         import httpx
+
         from app.core.config import get_settings
 
         settings = get_settings()
