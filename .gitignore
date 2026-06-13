@@ -169,3 +169,6 @@ vscode-extension/.vscode-test/
 .stylelintcache
 # Local terraform validation log (transient output of scripts/tf-validate.ps1)
 scripts/tf-validate.out
+# Scratch commit-message drafts
+.git-commit-msg.tmp
+.git-commit-msg*.tmp
