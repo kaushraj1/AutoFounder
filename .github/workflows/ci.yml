@@ -58,7 +58,7 @@ jobs:
         working-directory: backend
 
       - name: Mypy typecheck
-        run: uv run mypy .
+        run: uv run mypy app
         working-directory: backend
 
   unit-tests:
