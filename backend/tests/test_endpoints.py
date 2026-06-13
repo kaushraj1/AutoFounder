@@ -31,7 +31,7 @@ def mock_db_session() -> AsyncMock:
 def mock_udal(mock_db_session: AsyncMock) -> MagicMock:
     """Mock tenant-scoped UDAL."""
     udal = MagicMock()
-    udal.organization_id = "org_test"
+    udal.organization_id = "00000000-0000-0000-0000-000000000000"
 
     # Mock relational context manager
     db_ctx = MagicMock()
@@ -68,6 +68,10 @@ def test_client(mock_udal: MagicMock) -> Iterator[TestClient]:
 
 
 def test_submit_idea_success(test_client: TestClient, mock_db_session: AsyncMock) -> None:
+    mock_result = MagicMock()
+    mock_result.fetchone.return_value = None
+    mock_db_session.execute.return_value = mock_result
+
     response = test_client.post(
         "/v1/ideas", json={"text": "A platform for auto-generating SaaS compliance."}
     )
@@ -76,7 +80,7 @@ def test_submit_idea_success(test_client: TestClient, mock_db_session: AsyncMock
     assert "data" in data
     assert "meta" in data
     assert data["data"]["pillar"] == "strategy"
-    assert data["data"]["status"] == "pending"
+    assert data["data"]["status"] == "queued"
 
     # Verify DB calls
     assert mock_db_session.add.call_count == 1
@@ -100,7 +104,7 @@ def test_list_runs_paginated(test_client: TestClient, mock_db_session: AsyncMock
     count_result.scalar_one.return_value = 10
 
     # Mock list runs result
-    run_1 = Run(id=uuid.uuid4(), pillar="strategy", status="pending")
+    run_1 = Run(id=uuid.uuid4(), pillar="strategy", status="queued")
     run_1.created_at = datetime.now(UTC)
     runs_result = MagicMock()
     runs_result.scalars.return_value.all.return_value = [run_1]
@@ -119,7 +123,7 @@ def test_list_runs_paginated(test_client: TestClient, mock_db_session: AsyncMock
 
 def test_get_run_by_id_success(test_client: TestClient, mock_db_session: AsyncMock) -> None:
     run_id = uuid.uuid4()
-    run = Run(id=run_id, pillar="strategy", status="pending")
+    run = Run(id=run_id, pillar="strategy", status="queued")
     run.created_at = datetime.now(UTC)
 
     db_result = MagicMock()
@@ -144,7 +148,7 @@ def test_get_run_by_id_not_found(test_client: TestClient, mock_db_session: Async
 
 def test_cancel_run_success(test_client: TestClient, mock_db_session: AsyncMock) -> None:
     run_id = uuid.uuid4()
-    run = Run(id=run_id, pillar="strategy", status="pending")
+    run = Run(id=run_id, pillar="strategy", status="queued")
     run.created_at = datetime.now(UTC)
 
     db_result = MagicMock()
@@ -167,7 +171,7 @@ def test_decide_gate_approve_success(test_client: TestClient, mock_db_session: A
     run_id = uuid.uuid4()
     gate_id = uuid.uuid4()
 
-    run = Run(id=run_id, pillar="strategy", status="awaiting_gate")
+    run = Run(id=run_id, pillar="strategy", status="paused")
     gate = Gate(id=gate_id, run_id=run_id, kind="validation_approve", state="pending", payload={})
     gate.created_at = datetime.now(UTC)
 
@@ -219,7 +223,7 @@ def test_decide_gate_already_decided(test_client: TestClient, mock_db_session: A
 
 def test_list_artifacts_success(test_client: TestClient, mock_db_session: AsyncMock) -> None:
     run_id = uuid.uuid4()
-    run = Run(id=run_id, pillar="strategy", status="pending")
+    run = Run(id=run_id, pillar="strategy", status="queued")
 
     artifact = Artifact(
         id=uuid.uuid4(), run_id=run_id, kind="lean_canvas", uri="org_test/canvas.json"
@@ -247,7 +251,7 @@ def test_list_artifacts_success(test_client: TestClient, mock_db_session: AsyncM
 
 def test_submit_feedback_success(test_client: TestClient, mock_db_session: AsyncMock) -> None:
     run_id = uuid.uuid4()
-    run = Run(id=run_id, pillar="strategy", status="pending")
+    run = Run(id=run_id, pillar="strategy", status="queued")
 
     run_result = MagicMock()
     run_result.scalar_one_or_none.return_value = run

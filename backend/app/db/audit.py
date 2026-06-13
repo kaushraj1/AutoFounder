@@ -42,14 +42,14 @@ async def emit_audit_event(
                      resource_id, actor, outcome, metadata)
                 SELECT
                     t.id,
-                    :run_id::uuid,
+                    CAST(:run_id AS UUID),
                     :agent_id,
                     :action,
                     :resource_type,
                     :resource_id,
                     :actor,
                     :outcome,
-                    :metadata::jsonb
+                    CAST(:metadata AS JSONB)
                 FROM platform.tenants t
                 WHERE t.slug = :org_id
                 LIMIT 1

@@ -86,21 +86,83 @@ class LocalToolRegistry(ToolRegistryProtocol):
                     return resp.json()
 
             elif tool_name == "crunchbase_lookup":
-                company = args.get("company_name", "").lower().replace(" ", "-")
+                company = args.get("company_name", "")
                 if not crunchbase_key:
                     logger.warning(
-                        "CRUNCHBASE_API_KEY not configured — returning MOCK data for '%s'.",
-                        tool_name,
+                        "CRUNCHBASE_API_KEY not configured — attempting web search + "
+                        "Gemini extraction for '%s'.",
+                        company,
                     )
+                    search_results = None
+                    if tavily_key:
+                        try:
+                            search_results = await self.call(
+                                "tavily_search",
+                                {"query": f"{company} company funding total employees crunchbase"},
+                            )
+                        except Exception as e:
+                            logger.warning("Tavily search failed in crunchbase fallback: %s", e)
+                    if not search_results and serpapi_key:
+                        try:
+                            search_results = await self.call(
+                                "serp_search",
+                                {"query": f"{company} company funding total employees crunchbase"},
+                            )
+                        except Exception as e:
+                            logger.warning("Serp search failed in crunchbase fallback: %s", e)
+
+                    gemini_key = self.settings.gemini_api_key or os.environ.get(
+                        "GEMINI_API_KEY", ""
+                    )
+                    if search_results and gemini_key:
+                        try:
+                            import json
+
+                            from app.agents._providers import GeminiRouter
+
+                            router = GeminiRouter(
+                                api_key=gemini_key, default_model=self.settings.strategy_model
+                            )
+                            prompt = (
+                                f"Analyze the search results for the company '{company}' "
+                                "and extract the total funding amount in millions of USD "
+                                "(as a float, e.g. 15.4 for $15.4M, 0.5 for $500k, "
+                                "0.0 if unfunded/bootstrapped) and the number of "
+                                "employees range (e.g., '1-10', '11-50', '51-200', "
+                                "'201-500', '500+').\n\n"
+                                f"Search Results:\n{str(search_results)[:4000]}\n\n"
+                                "Return ONLY a valid JSON object matching this schema:\n"
+                                "{\n"
+                                '  "funding_total": <float or null>,\n'
+                                '  "num_employees_enum": <string or null>\n'
+                                "}"
+                            )
+                            resp_text = await router.complete(
+                                task_class="crunchbase_fallback", prompt=prompt, json_mode=True
+                            )
+                            extracted = json.loads(resp_text)
+                            if isinstance(extracted, dict):
+                                return {
+                                    "name": company,
+                                    "funding_total": extracted.get("funding_total") or 0.0,
+                                    "num_employees_enum": extracted.get("num_employees_enum")
+                                    or "employee_range_11_50",
+                                }
+                        except Exception as e:
+                            logger.error(
+                                "Error extracting details via Gemini in crunchbase fallback: %s", e
+                            )
+
                     return {
-                        "name": args.get("company_name"),
-                        "short_description": "Mock Crunchbase Description",
+                        "name": company,
+                        "short_description": "Fallback Description",
                         "funding_total": 5.5,
                         "num_employees_enum": "employee_range_11_50",
                     }
                 async with httpx.AsyncClient() as client:
+                    slug = company.lower().replace(' ', '-')
                     resp = await client.get(
-                        f"https://api.crunchbase.com/api/v4/entities/organizations/{company}",
+                        f"https://api.crunchbase.com/api/v4/entities/organizations/{slug}",
                         params={
                             "user_key": crunchbase_key,
                             "field_ids": (

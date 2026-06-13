@@ -92,11 +92,9 @@ class OrchestratorEngine:
 
         async with self._session_factory() as session:
             await session.execute(
-                text(
-                    f"SET LOCAL search_path TO org_{organization_id}, platform, public; "
-                    f"SET LOCAL app.organization_id = '{organization_id}';"
-                )
+                text(f'SET LOCAL search_path TO "org_{organization_id}", platform, public;')
             )
+            await session.execute(text(f"SET LOCAL app.organization_id = '{organization_id}';"))
             await session.execute(
                 text("""
                     INSERT INTO runs
@@ -126,11 +124,9 @@ class OrchestratorEngine:
         is_terminal = status in _TERMINAL
         async with self._session_factory() as session:
             await session.execute(
-                text(
-                    f"SET LOCAL search_path TO org_{organization_id}, platform, public; "
-                    f"SET LOCAL app.organization_id = '{organization_id}';"
-                )
+                text(f'SET LOCAL search_path TO "org_{organization_id}", platform, public;')
             )
+            await session.execute(text(f"SET LOCAL app.organization_id = '{organization_id}';"))
             await session.execute(
                 text("""
                     UPDATE runs
@@ -209,11 +205,9 @@ class OrchestratorEngine:
                 from sqlalchemy import text
 
                 await session.execute(
-                    text(
-                        f"SET LOCAL search_path TO org_{organization_id}, platform, public; "
-                        f"SET LOCAL app.organization_id = '{organization_id}';"
-                    )
+                    text(f'SET LOCAL search_path TO "org_{organization_id}", platform, public;')
                 )
+                await session.execute(text(f"SET LOCAL app.organization_id = '{organization_id}';"))
                 snapshot = await self._get_graph().aget_state(config)
                 from app.orchestrator.hitl.gate_manager import check_and_create_gate
 
@@ -267,11 +261,9 @@ class OrchestratorEngine:
                 from sqlalchemy import text
 
                 await session.execute(
-                    text(
-                        f"SET LOCAL search_path TO org_{org_id}, platform, public; "
-                        f"SET LOCAL app.organization_id = '{org_id}';"
-                    )
+                    text(f'SET LOCAL search_path TO "org_{org_id}", platform, public;')
                 )
+                await session.execute(text(f"SET LOCAL app.organization_id = '{org_id}';"))
                 from app.orchestrator.hitl.gate_manager import check_and_create_gate
 
                 await check_and_create_gate(

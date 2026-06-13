@@ -14,7 +14,7 @@ ORG = "org_test"
 def test_create_and_get_run() -> None:
     idea = IdeaCreate(text="A marketplace for second-hand textbooks in India.")
     run = run_service.create_run(idea, organization_id=ORG)
-    assert run.status == RunStatus.pending
+    assert run.status == RunStatus.queued
     assert run_service.get_run(run.id, organization_id=ORG).id == run.id
 
 

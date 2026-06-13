@@ -159,8 +159,8 @@ def test_get_principal_dev_fallback(test_app: FastAPI) -> None:
     response = client.get("/test-protected")
     assert response.status_code == 200
     data = response.json()
-    assert data["org_id"] == "org_dev"
-    assert data["ctx_org_id"] == "org_dev"
+    assert data["org_id"] == "00000000-0000-0000-0000-000000000000"
+    assert data["ctx_org_id"] == "00000000-0000-0000-0000-000000000000"
     assert get_tenant_context() is None
 
 

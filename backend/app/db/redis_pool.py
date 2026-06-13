@@ -17,11 +17,30 @@ async def init_redis() -> None:
     """Open the connection pool. Called once at startup."""
     global _client
     settings = get_settings()
-    _client = aioredis.from_url(
+    real_client = aioredis.from_url(
         settings.redis_url,
         decode_responses=True,
         max_connections=20,
     )
+    try:
+        # Test connection with a ping
+        await real_client.ping()
+        _client = real_client
+    except Exception as e:
+        if settings.app_env.lower() == "development":
+            import logging
+
+            import fakeredis.aioredis
+
+            logger = logging.getLogger("app.db.redis")
+            logger.warning(
+                "Could not connect to Redis at %s (%s). Falling back to fakeredis in development.",
+                settings.redis_url,
+                e,
+            )
+            _client = fakeredis.aioredis.FakeRedis(decode_responses=True)
+        else:
+            raise e
 
 
 async def close_redis() -> None:

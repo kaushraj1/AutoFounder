@@ -10,11 +10,12 @@ from pydantic import BaseModel, ConfigDict
 class RunStatus(StrEnum):
     """Lifecycle states for a run."""
 
-    pending = "pending"
+    queued = "queued"
     running = "running"
-    awaiting_gate = "awaiting_gate"
+    paused = "paused"
     completed = "completed"
     failed = "failed"
+    cancelled = "cancelled"
 
 
 class RunRead(BaseModel):

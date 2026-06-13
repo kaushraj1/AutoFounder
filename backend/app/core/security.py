@@ -25,7 +25,9 @@ class Principal:
 
 # Fixed principal used in development until real auth lands.
 DEV_PRINCIPAL = Principal(
-    organization_id="org_dev", role="founder", scopes=["runs:read", "runs:write", "gates:decide"]
+    organization_id="00000000-0000-0000-0000-000000000000",
+    role="founder",
+    scopes=["runs:read", "runs:write", "gates:decide"],
 )
 
 
