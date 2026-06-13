@@ -69,7 +69,9 @@ async def configure_cicd(state: dict, agent: Any | None = None) -> dict:
                     "repo_full_name": repo_full_name,
                     "path": ".github/workflows/deploy.yml",
                     "content": parsed.workflow_yaml,
-                    "commit_message": f"chore: add CodeDeploy workflow for run {state.get('run_id')}",
+                    "commit_message": (
+                        f"chore: add CodeDeploy workflow for run {state.get('run_id')}"
+                    ),
                     "branch": state.get("github_branch", "main"),
                 },
             )

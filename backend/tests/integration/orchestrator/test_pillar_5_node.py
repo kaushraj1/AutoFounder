@@ -29,16 +29,11 @@ from app.agents.devops.schema import DeployStatus
 from app.agents.devops.tests._fakes import FakeDevOpsLLMRouter
 from app.core.config import get_settings
 
-FIXTURE = (
-    Path(__file__).resolve().parents[4]
-    / ".claude"
-    / "specs"
-    / "pillar5-dummy-input.json"
-)
+FIXTURE = Path(__file__).resolve().parents[4] / ".claude" / "specs" / "pillar5-dummy-input.json"
 
 
 class _StubSession:
-    async def __aenter__(self) -> "_StubSession":
+    async def __aenter__(self) -> _StubSession:
         return self
 
     async def __aexit__(self, *exc: object) -> bool:
@@ -76,9 +71,7 @@ def _load_code_output() -> dict[str, Any]:
     return payload
 
 
-def _build_run_state(
-    code_output: dict[str, Any], review_output: dict[str, Any]
-) -> dict[str, Any]:
+def _build_run_state(code_output: dict[str, Any], review_output: dict[str, Any]) -> dict[str, Any]:
     return {
         "run_id": str(uuid4()),
         "organization_id": "tenant-acme-saas-a1b2c3d4",
@@ -113,11 +106,12 @@ def patched_pillar_5(monkeypatch: pytest.MonkeyPatch) -> Any:
 
     from langgraph.checkpoint.memory import MemorySaver
 
+    import app.agents._providers as providers_mod
+
     # Patch the symbols at their definition sites so the run_pillar_5
     # local imports resolve to the stubs.
     import app.db.session as session_mod
     import app.db.udal as udal_mod
-    import app.agents._providers as providers_mod
     import app.orchestrator.checkpointer as checkpointer_mod
 
     monkeypatch.setattr(session_mod, "SessionLocal", _stub_session_factory)
@@ -213,13 +207,9 @@ async def test_run_pillar_5_redis_polling_approval(
 
     # Wire a fake Redis into both the spend gate and the orchestrator node.
     fake_redis = fakeredis.aioredis.FakeRedis(decode_responses=True)
-    await fake_redis.set(
-        f"hitl:devops:spend:{state['run_id']}", "approved"
-    )
+    await fake_redis.set(f"hitl:devops:spend:{state['run_id']}", "approved")
 
-    hitl_module = importlib.import_module(
-        "app.agents.devops.nodes.hitl_spend_gate"
-    )
+    hitl_module = importlib.import_module("app.agents.devops.nodes.hitl_spend_gate")
     monkeypatch.setattr(hitl_module, "_get_redis_client", lambda: fake_redis)
 
     import app.db.redis_pool as redis_pool

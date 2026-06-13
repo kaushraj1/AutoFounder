@@ -62,9 +62,7 @@ async def build_task_defs(state: dict, agent: Any | None = None) -> dict:
         service_name = service["name"]
         sizing = sizing_by_name.get(service_name)
         if sizing is None:
-            raise ValueError(
-                f"build_task_defs: LLM omitted sizing for service '{service_name}'"
-            )
+            raise ValueError(f"build_task_defs: LLM omitted sizing for service '{service_name}'")
         family = f"{organization_id[:16]}-{service_name}-{run_prefix}"
         task_json = json.dumps(
             {

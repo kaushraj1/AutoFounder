@@ -27,16 +27,39 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.12-slim AS runtime
 
+# Install Terraform CLI — DevOps agent invokes `terraform init -backend=false`
+# + `terraform validate -json` against staged copies of infra/terraform/modules/*
+# (Path A, no AWS credentials required).
+ARG TERRAFORM_VERSION=1.9.8
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl unzip \
+    && curl -fsSL "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip" -o /tmp/tf.zip \
+    && unzip /tmp/tf.zip -d /usr/local/bin \
+    && rm /tmp/tf.zip \
+    && apt-get purge -y unzip curl \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && terraform version
+
 # Run as a non-root user (least privilege).
 RUN useradd --create-home --uid 10001 appuser
 WORKDIR /app
 
+# TF_PLUGIN_CACHE_DIR lets repeated `terraform init` calls inside one task reuse
+# the AWS provider download (~90s saved per module after the first init).
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    APP_ENV=production
+    APP_ENV=production \
+    TF_PLUGIN_CACHE_DIR=/home/appuser/.terraform.d/plugin-cache
 
 COPY --from=builder --chown=appuser:appuser /app /app
+
+# Bake the DevOps agent's terraform module templates into the image so the
+# tool can stage them at runtime (backend/app/agents/devops/terraform_templates/
+# is already inside ./app, this is just a sanity guard).
+RUN mkdir -p /home/appuser/.terraform.d/plugin-cache \
+    && chown -R appuser:appuser /home/appuser/.terraform.d
 
 USER appuser
 EXPOSE 8000

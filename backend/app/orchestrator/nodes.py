@@ -265,7 +265,6 @@ async def run_pillar_5(state: RunState) -> dict[str, Any]:
 
     from app.agents._providers import GeminiRouter, JinjaPromptRegistry
     from app.agents.devops import DevOpsAgent
-    from app.agents.devops.schema import DevOpsState
     from app.agents.devops.tools import LocalToolRegistry
     from app.core.config import get_settings
     from app.core.security import Principal
@@ -307,13 +306,9 @@ async def run_pillar_5(state: RunState) -> dict[str, Any]:
             "run_id": state["run_id"],
             "organization_id": state["organization_id"],
             "parent_run_id": code_output.get("run_id", state["run_id"]),
-            "grandparent_run_id": code_output.get(
-                "parent_run_id", state["run_id"]
-            ),
+            "grandparent_run_id": code_output.get("parent_run_id", state["run_id"]),
             "aws_region": code_output.get("aws_region", settings.foundation_aws_region),
-            "repo_url": code_output.get(
-                "repo_url", code_output.get("github_repo_html_url", "")
-            ),
+            "repo_url": code_output.get("repo_url", code_output.get("github_repo_html_url", "")),
         }
 
         try:

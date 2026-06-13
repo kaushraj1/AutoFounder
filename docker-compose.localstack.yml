@@ -17,7 +17,7 @@ services:
     image: localstack/localstack:3.7
     container_name: autofounder-localstack
     ports:
-      - "4566:4566"   # edge port (all services multiplexed)
+      - "4566:4566" # edge port (all services multiplexed)
     environment:
       - SERVICES=iam,sts,secretsmanager,codedeploy,acm,route53,ecs,ecr,cloudwatch,logs,s3,ssm
       - DEBUG=0

@@ -52,9 +52,7 @@ async def configure_monitoring(state: dict, agent: Any | None = None) -> dict:
     ecs_cluster_obj = state.get("ecs_cluster") or {}
     alb_arn = vpc_cfg.get("alb_arn") if isinstance(vpc_cfg, dict) else None
     ecs_cluster_name = (
-        ecs_cluster_obj.get("cluster_name")
-        if isinstance(ecs_cluster_obj, dict)
-        else None
+        ecs_cluster_obj.get("cluster_name") if isinstance(ecs_cluster_obj, dict) else None
     )
 
     raw_template = agent.prompts.get("devops/configure_monitoring")

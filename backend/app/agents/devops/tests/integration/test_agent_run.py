@@ -12,19 +12,14 @@ from typing import Any
 
 import pytest
 
+from app.agents._providers import JinjaPromptRegistry
 from app.agents.devops import DevOpsAgent
 from app.agents.devops.schema import ApprovalStatus, DeployStatus, DevOpsState
 from app.agents.devops.tests._fakes import FakeDevOpsLLMRouter
 from app.agents.devops.tools import LocalToolRegistry
-from app.agents._providers import JinjaPromptRegistry
 from app.core.config import get_settings
 
-FIXTURE = (
-    Path(__file__).resolve().parents[6]
-    / ".claude"
-    / "specs"
-    / "pillar5-dummy-input.json"
-)
+FIXTURE = Path(__file__).resolve().parents[6] / ".claude" / "specs" / "pillar5-dummy-input.json"
 
 
 class _StubUDAL:
@@ -68,13 +63,12 @@ async def test_devops_agent_run_happy_path() -> None:
     assert "## Overview" in out.deploy_report_markdown
     assert out.vpc_config is not None
     # Foundation VPC must come from settings (real account), not the placeholder.
+    assert out.vpc_config.vpc_id is not None
     assert out.vpc_config.vpc_id.startswith("vpc-")
     assert len(out.vpc_config.private_subnet_ids) >= 2
     assert len(out.vpc_config.public_subnet_ids) >= 2
     # LLM-driven sizing landed in task_defs
-    assert out.task_defs and any(
-        '"cpu": "256"' in td.task_def_json for td in out.task_defs
-    )
+    assert out.task_defs and any('"cpu": "256"' in td.task_def_json for td in out.task_defs)
     # LLM-driven monitoring alarms wired through
     assert out.monitoring_config is not None
     assert len(out.monitoring_config.cloudwatch_alarms) >= 1
@@ -108,10 +102,7 @@ async def test_devops_agent_run_isolation_two_tenants() -> None:
 
     assert out_a.organization_id != out_b.organization_id
     assert out_a.rds_instance and out_b.rds_instance
-    assert (
-        out_a.rds_instance.db_instance_identifier
-        != out_b.rds_instance.db_instance_identifier
-    )
+    assert out_a.rds_instance.db_instance_identifier != out_b.rds_instance.db_instance_identifier
     assert out_a.s3_bucket and out_b.s3_bucket
     assert out_a.s3_bucket.bucket_name != out_b.s3_bucket.bucket_name
     assert out_a.vpc_config and out_b.vpc_config

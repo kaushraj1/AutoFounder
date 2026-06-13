@@ -12,9 +12,9 @@ on:
 env:
   AWS_REGION: ap-south-1
   ECR_REPOSITORY: autofounder-ai/backend
-  ECS_CLUSTER: autofounder-ai-staging-cluster
-  ECS_SERVICE: backend
-  TASK_FAMILY: autofounder-ai-staging-backend
+  ECS_CLUSTER: autofounderai-cluster
+  ECS_SERVICE: autofounderai-backend-uat
+  TASK_FAMILY: autofounderai-backend-uat
   CONTAINER_NAME: backend
 
 jobs:

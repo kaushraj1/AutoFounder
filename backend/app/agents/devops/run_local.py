@@ -12,6 +12,7 @@ import argparse
 import asyncio
 import json
 from pathlib import Path
+from typing import Any, cast
 
 from .graph import build_devops_graph
 from .schema import DevOpsState
@@ -44,7 +45,7 @@ def main() -> None:
         print(state.model_dump_json(indent=2))
         return
 
-    graph = build_devops_graph(agent=None)
+    graph = cast(Any, build_devops_graph(agent=None))
     config = {"configurable": {"thread_id": str(state.run_id)}}
     result = asyncio.run(graph.ainvoke(state.model_dump(), config=config))
     print(DevOpsState.model_validate(result).model_dump_json(indent=2))

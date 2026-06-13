@@ -22,6 +22,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
@@ -64,9 +65,7 @@ def _boto3_client(service: str) -> Any:
 # ---------------------------------------------------------------------------
 
 
-async def terraform_run(
-    *, action: str, working_dir: str, vars: dict[str, Any]
-) -> dict[str, Any]:
+async def terraform_run(*, action: str, working_dir: str, vars: dict[str, Any]) -> dict[str, Any]:
     """Invoke the local terraform binary against ``working_dir``.
 
     ``action`` is one of ``init``, ``plan``, ``apply``, ``destroy``. ``vars``
@@ -121,9 +120,7 @@ async def terraform_run(
     }
 
 
-def _stage_terraform_module(
-    *, module_name: str, organization_id: str, run_id: str
-) -> Path:
+def _stage_terraform_module(*, module_name: str, organization_id: str, run_id: str) -> Path:
     """Copy ``terraform_templates/<module>`` + ``_shared`` into a fresh tmp dir.
 
     Strips the partial S3 backend so Path A (plan-only, no AWS) can ``init``
@@ -135,11 +132,7 @@ def _stage_terraform_module(
         raise FileNotFoundError(f"Unknown terraform module: {module_name} ({src})")
     shared = TERRAFORM_TEMPLATES_DIR / "_shared"
 
-    work = Path(
-        tempfile.mkdtemp(
-            prefix=f"af-tf-{module_name}-{organization_id[:8]}-{run_id[:8]}-"
-        )
-    )
+    work = Path(tempfile.mkdtemp(prefix=f"af-tf-{module_name}-{organization_id[:8]}-{run_id[:8]}-"))
     for entry in src.iterdir():
         if entry.is_file():
             shutil.copy2(entry, work / entry.name)
@@ -311,9 +304,7 @@ async def terraform_plan_module(
 # ---------------------------------------------------------------------------
 
 
-async def secrets_manager_create(
-    *, name: str, values: dict[str, str]
-) -> dict[str, Any]:
+async def secrets_manager_create(*, name: str, values: dict[str, str]) -> dict[str, Any]:
     """Create-or-update a Secrets Manager secret with a JSON blob of ``values``."""
     if _is_scaffold_mode():
         return {"ok": True, "secret_name": name, "keys": sorted(values.keys())}
@@ -404,9 +395,7 @@ async def codedeploy_create_deployment_group(
     }
 
 
-async def codedeploy_create_deployment(
-    *, app_name: str, deployment_group: str
-) -> dict[str, Any]:
+async def codedeploy_create_deployment(*, app_name: str, deployment_group: str) -> dict[str, Any]:
     if _is_scaffold_mode():
         return {
             "ok": True,
@@ -437,9 +426,7 @@ async def codedeploy_create_deployment(
 # ---------------------------------------------------------------------------
 
 
-async def route53_upsert(
-    *, zone_id: str, record_name: str, alb_dns_name: str
-) -> dict[str, Any]:
+async def route53_upsert(*, zone_id: str, record_name: str, alb_dns_name: str) -> dict[str, Any]:
     if _is_scaffold_mode():
         return {
             "ok": True,
@@ -469,9 +456,7 @@ async def route53_upsert(
     }
 
     def _upsert() -> dict[str, Any]:
-        return client.change_resource_record_sets(
-            HostedZoneId=zone_id, ChangeBatch=change_batch
-        )
+        return client.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=change_batch)
 
     resp = await asyncio.to_thread(_upsert)
     return {
@@ -495,9 +480,7 @@ async def acm_request_certificate(*, domain: str) -> dict[str, Any]:
     client = _boto3_client("acm")
 
     def _request() -> dict[str, Any]:
-        return client.request_certificate(
-            DomainName=domain, ValidationMethod="DNS"
-        )
+        return client.request_certificate(DomainName=domain, ValidationMethod="DNS")
 
     resp = await asyncio.to_thread(_request)
     return {
@@ -513,9 +496,7 @@ async def acm_request_certificate(*, domain: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-async def github_upsert_file(
-    *, repo_url: str, path: str, content: str
-) -> dict[str, Any]:
+async def github_upsert_file(*, repo_url: str, path: str, content: str) -> dict[str, Any]:
     """Create-or-update ``path`` on the default branch of ``repo_url``.
 
     Honors ``settings.devops_github_dry_run`` — when true (the default),
@@ -569,7 +550,7 @@ async def github_upsert_file(
         try:
             existing = repo.get_contents(path, ref=repo.default_branch)
             sha = getattr(existing, "sha", None) if not isinstance(existing, list) else None
-            res = repo.update_file(path, msg, content, sha, branch=repo.default_branch)
+            res = repo.update_file(path, msg, content, sha or "", branch=repo.default_branch)
         except Exception:
             res = repo.create_file(path, msg, content, branch=repo.default_branch)
         commit = res.get("commit") if isinstance(res, dict) else None
@@ -633,7 +614,7 @@ async def http_health_check(*, endpoint: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-_TOOL_DISPATCH = {
+_TOOL_DISPATCH: dict[str, Callable[..., Awaitable[dict[str, Any]]]] = {
     "terraform_run": terraform_run,
     "terraform_plan_module": terraform_plan_module,
     "secrets_manager_create": secrets_manager_create,

@@ -25,7 +25,6 @@ import pytest
 from app.agents.devops import tools
 from app.core.config import get_settings
 
-
 pytestmark = pytest.mark.localstack
 
 if not os.getenv("LOCALSTACK_RUNNING"):
@@ -93,9 +92,7 @@ async def test_codedeploy_create_deployment_real() -> None:
         serviceRoleArn="arn:aws:iam::000000000000:role/codedeploy-role",
     )
 
-    res = await tools.codedeploy_create_deployment(
-        app_name=app_name, deployment_group=group_name
-    )
+    res = await tools.codedeploy_create_deployment(app_name=app_name, deployment_group=group_name)
     assert res["ok"] is True
     assert res["deployment_id"]
 
@@ -103,9 +100,7 @@ async def test_codedeploy_create_deployment_real() -> None:
 async def test_route53_upsert_real() -> None:
     r53 = _aws("route53")
     zone_name = f"af-test-{uuid.uuid4().hex[:8]}.local."
-    zone = r53.create_hosted_zone(
-        Name=zone_name, CallerReference=f"af-{uuid.uuid4().hex}"
-    )
+    zone = r53.create_hosted_zone(Name=zone_name, CallerReference=f"af-{uuid.uuid4().hex}")
     zone_id = zone["HostedZone"]["Id"].split("/")[-1]
 
     res = await tools.route53_upsert(
@@ -126,9 +121,7 @@ async def test_acm_request_certificate_real() -> None:
 
 async def test_http_health_check_real_via_localstack_health() -> None:
     # LocalStack itself exposes a 200 health endpoint — convenient target.
-    res = await tools.http_health_check(
-        endpoint=f"{LOCALSTACK_URL}/_localstack/health"
-    )
+    res = await tools.http_health_check(endpoint=f"{LOCALSTACK_URL}/_localstack/health")
     assert res["ok"] is True
     assert res["status_code"] == 200
     assert res["latency_ms"] >= 0

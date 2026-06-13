@@ -25,10 +25,9 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
-
-import redis.asyncio as aioredis
 
 from app.api.deps import get_meta, get_principal, get_redis, get_udal
 from app.core.config import get_settings
@@ -79,12 +78,13 @@ async def decide_devops_spend(
         existing = await redis.get(redis_key)
         if existing is not None:
             existing_value = (
-                existing if isinstance(existing, str) else existing.decode("utf-8")
-            ).strip().lower()
+                (existing if isinstance(existing, str) else existing.decode("utf-8"))
+                .strip()
+                .lower()
+            )
             if existing_value in {"approved", "rejected"}:
                 raise ConflictError(
-                    f"DevOps spend gate for run {run_id} already decided "
-                    f"({existing_value})"
+                    f"DevOps spend gate for run {run_id} already decided ({existing_value})"
                 )
 
         # 3. Write the decision. TTL = poll-timeout + buffer so the key
