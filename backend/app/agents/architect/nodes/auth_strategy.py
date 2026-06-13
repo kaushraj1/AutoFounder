@@ -58,11 +58,11 @@ def auth_strategy(state: ArchitectState) -> ArchitectState:
     logger.info("[architect] auth_strategy — start")
 
     nfrs: list[dict[str, Any]] = [
-        r for r in state.get("requirements", [])
-        if r.get("kind") == "NFR"
+        r for r in state.get("requirements", []) if r.get("kind") == "NFR"
     ]
 
     import json
+
     prompt = _AUTH_PROMPT.format(
         stack=json.dumps(state.get("stack", {}), indent=2),
         nfrs=json.dumps(nfrs, indent=2),

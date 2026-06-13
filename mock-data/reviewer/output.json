@@ -34,7 +34,9 @@
   "heal_history": [
     {
       "cycle": 1,
-      "issues_targeted": ["A05:2021-Security Misconfiguration — Razorpay webhook missing rate limit"],
+      "issues_targeted": [
+        "A05:2021-Security Misconfiguration — Razorpay webhook missing rate limit"
+      ],
       "patches_applied": ["Added slowapi rate limiter on /v1/billing/webhooks/razorpay"],
       "files_patched": ["backend/app/billing/razorpay_webhook.py"],
       "outcome": "improved"

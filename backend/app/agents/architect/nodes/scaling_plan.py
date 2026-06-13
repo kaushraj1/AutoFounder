@@ -67,8 +67,7 @@ def scaling_plan(state: ArchitectState) -> ArchitectState:
     logger.info("[architect] scaling_plan — start")
 
     nfrs: list[dict[str, Any]] = [
-        r for r in state.get("requirements", [])
-        if r.get("kind") == "NFR"
+        r for r in state.get("requirements", []) if r.get("kind") == "NFR"
     ]
 
     prompt = _SCALING_PROMPT.format(

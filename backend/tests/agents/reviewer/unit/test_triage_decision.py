@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from tests.agents.reviewer.conftest import make_state
-
 from app.agents.reviewer.nodes.triage_failures import _decide
 from app.agents.reviewer.schema import (
     COVERAGE_THRESHOLD,
@@ -16,6 +14,7 @@ from app.agents.reviewer.schema import (
     SeverityLevel,
     TestSuiteResult,
 )
+from tests.agents.reviewer.conftest import make_state
 
 
 def _owasp_finding() -> SecurityFinding:

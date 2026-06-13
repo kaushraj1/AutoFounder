@@ -81,10 +81,8 @@ def call_llm(
             last_exc = exc
 
         if attempt < max_retries:
-            sleep_for = _BACKOFF_BASE ** attempt
+            sleep_for = _BACKOFF_BASE**attempt
             logger.info("Retrying in %.1f s...", sleep_for)
             time.sleep(sleep_for)
 
-    raise RuntimeError(
-        f"LLM call failed after {max_retries} attempts: {last_exc}"
-    )
+    raise RuntimeError(f"LLM call failed after {max_retries} attempts: {last_exc}")

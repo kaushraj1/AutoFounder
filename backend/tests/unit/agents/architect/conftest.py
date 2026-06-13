@@ -14,6 +14,7 @@ import pytest
 # Minimal valid data fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture()
 def run_id() -> str:
     return str(uuid4())

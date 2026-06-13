@@ -1,0 +1,73 @@
+{
+  "_fixture": "greenledger",
+  "_domain": "sustainability-fintech",
+  "_description": "A carbon accounting and ESG reporting SaaS for SMBs.",
+
+  "run_id": "00000000-0000-0000-0000-000000000004",
+  "organization_id": "org-greenledger",
+  "idea_normalised": "A carbon accounting and ESG reporting platform for SMBs — automatically imports Scope 1, 2, and 3 emissions from accounting software and generates audit-ready ESG reports.",
+  "approval_status": "approved",
+
+  "brand_config": {
+    "product_name": "GreenLedger",
+    "tagline": "Carbon accounting made simple",
+    "logo_concept": "A leaf integrated with a ledger or balance sheet",
+    "primary_color": "#2D9B5A",
+    "tone": "professional",
+    "target_audience": "CFOs and sustainability officers at SMBs (50-500 employees) facing ESG reporting mandates",
+    "website_url": "https://greenledger.io"
+  },
+
+  "feature_list": {
+    "features": [
+      "Automated Scope 1, 2, and 3 emissions calculation",
+      "QuickBooks and Xero integration for expense categorisation",
+      "Audit-ready ESG report generation (PDF + CSV)",
+      "GHG Protocol and TCFD-aligned reporting frameworks",
+      "Carbon offset marketplace with verified credits",
+      "Emissions benchmarking vs industry peers",
+      "Net-zero roadmap builder with milestones",
+      "Multi-location emissions tracking",
+      "Supplier emissions data collection portal",
+      "Annual emissions trend dashboard"
+    ],
+    "integrations": ["QuickBooks", "Xero", "Salesforce", "SAP", "DocuSign"],
+    "pricing_tiers": [
+      {"name": "Basic", "price": "$199/month", "description": "Up to 50 employees, Scope 1+2 only"},
+      {"name": "Standard", "price": "$499/month", "description": "Full Scope 1+2+3, audit reports"},
+      {"name": "Enterprise", "price": "Custom", "description": "Multi-entity + API + dedicated CSM"}
+    ]
+  },
+
+  "lean_canvas_json": {
+    "problem": [
+      "SEC and EU CSRD mandates make ESG reporting mandatory but complex",
+      "Existing tools cost $50K+ and are built for enterprises",
+      "SMBs lack the data science expertise to calculate Scope 3 emissions"
+    ],
+    "solution": "Automated carbon accounting that turns accounting data into audit-ready ESG reports in hours",
+    "unique_value_proposition": "ESG reporting that takes hours, not months — built for SMBs, not just enterprises",
+    "unfair_advantage": "Accounting software integrations automate 80% of data collection with zero manual entry",
+    "customer_segments": ["CFOs at SMBs", "Sustainability officers", "B-Corp applicants"],
+    "key_metrics": ["Reports generated", "Tons CO2e tracked", "Offset credits sold", "MRR"],
+    "channels": ["LinkedIn", "Accounting software marketplaces", "ESG conferences", "B-Corp community"],
+    "cost_structure": ["AWS", "Accounting API fees", "Carbon data providers"],
+    "revenue_streams": ["SaaS subscriptions", "Carbon offset marketplace commission"],
+    "competitors": ["Watershed", "Persefoni", "Salesforce Net Zero Cloud", "Greenly"],
+    "viability_score": 76
+  },
+
+  "personas": [
+    {
+      "name": "Sarah",
+      "role": "CFO",
+      "company_size": "150",
+      "pain_points": ["Board demanding ESG report by Q1", "No budget for Big 4 consultants", "Data scattered across QuickBooks and spreadsheets"],
+      "goals": ["Achieve B-Corp certification", "Meet SEC climate disclosure requirements", "Track carbon reduction progress"],
+      "willingness_to_pay_usd": 499,
+      "preferred_channels": ["LinkedIn", "CFO.com", "Accounting software marketplaces"]
+    }
+  ],
+
+  "live_url": "https://greenledger.io"
+}

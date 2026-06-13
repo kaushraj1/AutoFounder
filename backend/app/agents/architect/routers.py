@@ -30,6 +30,6 @@ def route_after_hitl(state: ArchitectState) -> str:
     if status == "approved":
         return "end"
     if status == "rejected":
-        return "select_stack"   # loop back to redesign
+        return "select_stack"  # loop back to redesign
     # Still pending — should not happen in a synchronous flow
     return "error_end"

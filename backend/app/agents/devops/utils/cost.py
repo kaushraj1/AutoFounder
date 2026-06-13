@@ -1,4 +1,5 @@
 """Estimate monthly AWS cost for a DevOpsState. Rough; refresh from AWS Pricing API later."""
+
 from __future__ import annotations
 
 from ..schema import ServiceManifest

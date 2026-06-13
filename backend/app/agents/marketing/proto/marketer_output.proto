@@ -1,0 +1,59 @@
+// marketer_output.proto — Pillar 6 Marketing Agent output schema (AF-044)
+//
+// NOTE: Compilation deferred to Phase 2 when Purnima's LLMOps pipeline (AF-049) lands.
+// To compile:
+//   pip install grpcio-tools mypy-protobuf
+//   python -m grpc_tools.protoc \
+//     -I backend/app/agents/marketing/proto \
+//     --python_out=backend/app/agents/marketing/proto \
+//     --pyi_out=backend/app/agents/marketing/proto \
+//     backend/app/agents/marketing/proto/marketer_output.proto
+
+syntax = "proto3";
+
+package autofounder.marketing.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// MarketerOutput is published to the `marketer.output` Kafka topic after
+// each successful MarketingAgent run. Consumed by:
+//   - LLMOps (Purnima, AF-049): trace + cost accounting
+//   - Founder Portal (Raunak, AF-059): dashboard display
+//   - Mobile Gate (Yogesh, AF-068): push notification
+
+message MarketerOutput {
+  string run_id = 1;
+  string parent_run_id = 2;
+  string organization_id = 3;
+  string product_name = 4;
+  string live_url = 5;
+
+  // Content presence (booleans for lightweight routing)
+  bool landing_page_generated = 10;
+  int32 seo_blog_count = 11;
+  bool product_hunt_kit_generated = 12;
+  bool social_posts_generated = 13;
+  bool email_sequences_generated = 14;
+  bool visual_assets_generated = 15;
+
+  // Hallucination audit
+  int32 hallucination_critical_count = 20;
+  int32 hallucination_warning_count = 21;
+  bool hallucination_passed = 22;
+
+  // HITL
+  string approval_status = 30;  // approved | rejected | partial | timed_out
+  repeated string approved_content_types = 31;
+  repeated string rejected_content_types = 32;
+
+  // Telemetry
+  int32 total_llm_tokens_used = 40;
+  int32 total_images_generated = 41;
+  repeated string errors = 42;
+
+  // Artifact storage
+  string gtm_report_s3_uri = 50;
+
+  // Timing
+  google.protobuf.Timestamp created_at = 60;
+}

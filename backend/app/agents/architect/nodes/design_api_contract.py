@@ -41,8 +41,7 @@ def design_api_contract(state: ArchitectState) -> ArchitectState:
         )
         # Re-prompt once with validation errors appended
         fix_prompt = (
-            prompt
-            + "\n\n---\nYour previous response had these OpenAPI validation errors. "
+            prompt + "\n\n---\nYour previous response had these OpenAPI validation errors. "
             "Fix them and return a corrected spec:\n"
             + "\n".join(f"- {e}" for e in validation.errors)
         )
