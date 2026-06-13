@@ -160,7 +160,7 @@ class LocalToolRegistry(ToolRegistryProtocol):
                         "num_employees_enum": "employee_range_11_50",
                     }
                 async with httpx.AsyncClient() as client:
-                    slug = company.lower().replace(' ', '-')
+                    slug = company.lower().replace(" ", "-")
                     resp = await client.get(
                         f"https://api.crunchbase.com/api/v4/entities/organizations/{slug}",
                         params={
