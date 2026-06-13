@@ -48,11 +48,23 @@ jobs:
           docker push "$REGISTRY/$ECR_REPOSITORY:uat-${{ github.sha }}"
           docker push "$REGISTRY/$ECR_REPOSITORY:uat-latest"
 
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "$TASK_FAMILY" \
+            --query taskDefinition \
+            > task-definition.json
+
+      - name: Sanitize task definition for deploy action
+        run: |
+          jq 'del(.enableFaultInjection)' task-definition.json > task-definition.sanitized.json
+          mv task-definition.sanitized.json task-definition.json
+
       - name: Render task definition with new image
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition-family: ${{ env.TASK_FAMILY }}
+          task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:uat-${{ github.sha }}
 
