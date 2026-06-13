@@ -32,7 +32,7 @@ async def submit_idea(
     """
     async with udal.relational() as db:
         from sqlalchemy import text
-        
+
         # Resolve or create a default workspace for the organization
         res = await db.session.execute(text("SELECT id FROM workspaces LIMIT 1;"))
         row = res.fetchone()
@@ -41,10 +41,12 @@ async def submit_idea(
         else:
             workspace_id = uuid.uuid4()
             await db.session.execute(
-                text("INSERT INTO workspaces (id, organization_id, name, created_by) VALUES (:id, :org, 'Default Workspace', 'system');"),
-                {"id": workspace_id, "org": uuid.UUID(udal.organization_id)}
+                text(
+                    "INSERT INTO workspaces (id, organization_id, name, created_by) VALUES (:id, :org, 'Default Workspace', 'system');"
+                ),
+                {"id": workspace_id, "org": uuid.UUID(udal.organization_id)},
             )
-            
+
         new_run = Run(
             id=uuid.uuid4(),
             workspace_id=workspace_id,
@@ -62,15 +64,13 @@ async def submit_idea(
         await db.audit("create", "runs", str(new_run.id))
 
         from app.orchestrator.events.producer import event_producer
+
         await event_producer.publish_event(
             event_type="run.created",
             organization_id=udal.organization_id,
             run_id=str(new_run.id),
             pillar=1,
-            payload={
-                "workspace_id": str(workspace_id),
-                "idea_text": idea.text
-            }
+            payload={"workspace_id": str(workspace_id), "idea_text": idea.text},
         )
 
         run_read = RunRead.model_validate(new_run)

@@ -127,6 +127,7 @@ class EventBridgeProducer:
             if event_type == "run.created":
                 import asyncio
                 from app.orchestrator.events.consumer import get_mock_run_created_queue
+
                 asyncio.create_task(get_mock_run_created_queue().put(detail))
 
 

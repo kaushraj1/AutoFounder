@@ -15,6 +15,7 @@ class GeminiRouter(LLMRouterProtocol):
         self.api_key = api_key
         self.default_model = default_model
         from app.core.config import get_settings
+
         settings = get_settings()
         if api_key and not settings.euri_api_key:
             genai.configure(api_key=api_key)
@@ -23,6 +24,7 @@ class GeminiRouter(LLMRouterProtocol):
         """Complete prompt using Gemini or Euri Model."""
         import httpx
         from app.core.config import get_settings
+
         settings = get_settings()
 
         euri_key = settings.euri_api_key
@@ -31,16 +33,11 @@ class GeminiRouter(LLMRouterProtocol):
             endpoint = f"{base_url.rstrip('/')}/chat/completions"
             model_name = settings.euri_model
 
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {euri_key}"
-            }
+            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {euri_key}"}
 
-            payload = {
+            payload: dict[str, Any] = {
                 "model": model_name,
-                "messages": [
-                    {"role": "user", "content": prompt}
-                ]
+                "messages": [{"role": "user", "content": prompt}],
             }
             if kw.get("response_format") == "json" or kw.get("json_mode", False):
                 payload["response_format"] = {"type": "json_object"}

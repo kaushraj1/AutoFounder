@@ -30,7 +30,7 @@ async def init_redis() -> None:
         if settings.app_env.lower() == "development":
             import logging
             import fakeredis.aioredis
-            
+
             logger = logging.getLogger("app.db.redis")
             logger.warning(
                 "Could not connect to Redis at %s (%s). Falling back to fakeredis in development.",

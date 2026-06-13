@@ -155,7 +155,8 @@ class SQSRunCreatedConsumer:
                 self._client = boto3.client("sqs", region_name=self.settings.aws_region)
             except (BotoCoreError, ClientError) as e:
                 logger.warning(
-                    "Failed to initialize boto3 SQS client for run creation: %s. Using in-memory fallback.", e
+                    "Failed to initialize boto3 SQS client for run creation: %s. Using in-memory fallback.",
+                    e,
                 )
                 self._client = None
         self._initialized = True
@@ -171,7 +172,7 @@ class SQSRunCreatedConsumer:
                     await self._poll_aws()
                 else:
                     await self._poll_mock()
-        except asyncio.cancelled_error:
+        except asyncio.CancelledError:
             logger.info("SQS Run Created Consumer stopped.")
             raise
 
@@ -248,4 +249,3 @@ class SQSRunCreatedConsumer:
         config = self.engine._config(run_id)
         await self.engine._get_graph().ainvoke(initial, config)
         await self.engine._sync_status_from_graph(run_id, organization_id)
-
