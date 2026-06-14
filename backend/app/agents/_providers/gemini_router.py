@@ -1,71 +1,138 @@
+"""Euri-backed LLM router (OpenAI-compatible client).
+
+All agent LLM calls go through the Euri API at
+https://api.euron.one/api/v1/euri using the ``openai`` Python client.
+This lets every agent (Pillars 1–7) call Gemini models — and any other
+model Euri supports — without touching Google's SDK directly.
+
+Usage (injected via DI into every BaseAgent subclass)::
+
+    from app.agents._providers.gemini_router import GeminiRouter
+    router = GeminiRouter()
+    text = await router.complete(task_class="strategy_analysis", prompt="...")
+"""
+
+from __future__ import annotations
+
 import logging
 from typing import Any
-
-import google.generativeai as genai
 
 from app.agents.base import LLMRouterProtocol
 
 logger = logging.getLogger("app.agents.providers.gemini_router")
 
+_EURI_BASE_URL = "https://api.euron.one/api/v1/euri"
+
+#: Per-agent default models via Euri
+_TASK_MODEL_MAP: dict[str, str] = {
+    "strategy": "gemini-2.5-flash",
+    "research": "gemini-2.5-flash",
+    "product_planner": "gemini-2.5-flash",
+    "architect": "gemini-2.5-flash",
+    "coder": "gemini-2.5-pro",
+    "reviewer": "gemini-2.5-flash",
+    "devops": "gemini-2.5-flash",
+    "marketing": "gemini-2.5-flash",
+    "llmops": "gemini-2.5-flash",
+}
+_DEFAULT_MODEL = "gemini-2.5-flash"
+
 
 class GeminiRouter(LLMRouterProtocol):
-    """Router implementation using google-generativeai (Gemini SDK) with fallback to Euri API."""
+    """Euri API router implementing LLMRouterProtocol.
 
-    def __init__(self, api_key: str, default_model: str = "gemini-1.5-flash") -> None:
-        self.api_key = api_key
-        self.default_model = default_model
-        from app.core.config import get_settings
+    Uses ``openai.AsyncOpenAI`` pointed at the Euri base URL so agents
+    can call any Gemini (or other) model through a single interface.
 
-        settings = get_settings()
-        if api_key and not settings.euri_api_key:
-            genai.configure(api_key=api_key)
+    Args:
+        api_key: Euri API key. If empty, read from ``EURI_API_KEY`` env var
+            via ``get_settings()`` at call time.
+        default_model: Fallback model when task_class doesn't match any prefix.
+    """
+
+    def __init__(
+        self,
+        api_key: str = "",
+        default_model: str = _DEFAULT_MODEL,
+    ) -> None:
+        self._api_key = api_key
+        self._default_model = default_model
 
     async def complete(self, *, task_class: str, prompt: str, **kw: Any) -> str:
-        """Complete prompt using Gemini or Euri Model."""
-        import httpx
+        """Complete a prompt via Euri API and return the response text.
+
+        Args:
+            task_class: Agent task identifier, e.g. ``"strategy_analysis"``,
+                ``"coder_generation"``. Used to resolve the target model.
+            prompt: Fully-rendered prompt string.
+            **kw: Optional flags:
+                - ``json_mode=True`` → request JSON output from the model
+                - ``response_format="json"`` → same as json_mode
+                - ``system`` → system message string
+                - ``temperature`` → float, default 0.7
+                - ``model`` → override resolved model for this single call
+
+        Returns:
+            Completion text from the model.
+
+        Raises:
+            ValueError: If no Euri API key is available.
+            openai.APIError: On API errors.
+        """
+        from openai import AsyncOpenAI
 
         from app.core.config import get_settings
 
         settings = get_settings()
+        api_key = self._api_key or settings.euri_api_key
+        if not api_key:
+            raise ValueError(
+                "Euri API key is not configured. "
+                "Set EURI_API_KEY in backend/.env"
+            )
 
-        euri_key = settings.euri_api_key
-        if euri_key:
-            base_url = settings.euri_base_url
-            endpoint = f"{base_url.rstrip('/')}/chat/completions"
-            model_name = settings.euri_model
+        # Resolve model
+        model = kw.pop("model", None) or self._resolve_model(task_class)
 
-            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {euri_key}"}
+        # Build messages
+        messages: list[dict[str, str]] = []
+        system_msg: str | None = kw.pop("system", None)
+        if system_msg:
+            messages.append({"role": "system", "content": system_msg})
+        messages.append({"role": "user", "content": prompt})
 
-            payload: dict[str, Any] = {
-                "model": model_name,
-                "messages": [{"role": "user", "content": prompt}],
-            }
-            if kw.get("response_format") == "json" or kw.get("json_mode", False):
-                payload["response_format"] = {"type": "json_object"}
+        # JSON mode
+        json_mode = kw.pop("json_mode", False)
+        response_format_val = kw.pop("response_format", None)
+        use_json = json_mode or response_format_val == "json"
 
-            logger.info("Routing completion to Euri API (model=%s, url=%s)", model_name, endpoint)
+        temperature: float = kw.pop("temperature", 0.7)
 
-            async with httpx.AsyncClient() as client:
-                response = await client.post(endpoint, headers=headers, json=payload, timeout=60.0)
-                response.raise_for_status()
-                data = response.json()
-                return data["choices"][0]["message"]["content"]
+        create_kwargs: dict[str, Any] = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+        }
+        if use_json:
+            create_kwargs["response_format"] = {"type": "json_object"}
 
-        if not self.api_key:
-            logger.error("Gemini API key is missing from GeminiRouter config")
-            raise ValueError("Gemini API key is not configured.")
-
-        model_name = kw.get("model") or self.default_model
-
-        # Extract json_mode configuration
-        generation_config: dict[str, Any] = {}
-        if kw.get("response_format") == "json" or kw.get("json_mode", False):
-            generation_config["response_mime_type"] = "application/json"
-
-        # Initialize and invoke the GenerativeModel
-        model = genai.GenerativeModel(model_name)
-        response = await model.generate_content_async(
-            prompt,
-            generation_config=generation_config if generation_config else None,  # type: ignore
+        logger.info(
+            "GeminiRouter → Euri: task_class=%s model=%s json=%s",
+            task_class,
+            model,
+            use_json,
         )
-        return response.text
+
+        client = AsyncOpenAI(api_key=api_key, base_url=_EURI_BASE_URL)
+        response = await client.chat.completions.create(**create_kwargs)
+        return response.choices[0].message.content or ""
+
+    def _resolve_model(self, task_class: str) -> str:
+        """Longest-prefix match against ``_TASK_MODEL_MAP``."""
+        normalised = task_class.lower().replace("-", "_")
+        best: str | None = None
+        for prefix in _TASK_MODEL_MAP:
+            if normalised.startswith(prefix):
+                if best is None or len(prefix) > len(best):
+                    best = prefix
+        return _TASK_MODEL_MAP[best] if best else self._default_model

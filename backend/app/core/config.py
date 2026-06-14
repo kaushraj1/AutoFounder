@@ -62,11 +62,14 @@ class Settings(BaseSettings):
     mtls_enabled: bool = False
     mtls_allowed_dns: str = "CN=orchestrator.internal,CN=workers.internal"
 
-    # Pillar 1 — Strategy / Research (AF-037 / AF-038 / AF-039)
-    gemini_api_key: str = ""
+    # LLM — Euri API (OpenAI-compatible, routes to Gemini and other models)
     euri_api_key: str = ""
     euri_base_url: str = "https://api.euron.one/api/v1/euri"
-    euri_model: str = "gpt-5.4-mini"
+    euri_model: str = "gemini-2.5-flash"          # default model via Euri
+    euri_model_pro: str = "gemini-2.5-pro"        # used for coder (larger context)
+
+    # Legacy Gemini SDK key (not used when euri_api_key is set)
+    gemini_api_key: str = ""
     strategy_model: str = "gemini-2.5-flash"
     tavily_api_key: str = ""
     serpapi_key: str = ""
