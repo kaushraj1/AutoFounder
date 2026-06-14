@@ -1,7 +1,14 @@
-# Local dev: Supabase (postgres + pgvector + auth + storage + realtime) is managed by the
-# Supabase CLI — run `supabase start` to spin it up before starting other services.
-# This file only manages ancillary services not covered by Supabase CLI.
+# AutoFounder AI — full local stack
+# Usage:
+#   docker compose up --build          # start everything
+#   docker compose up --build backend  # backend only
+#   docker compose logs -f backend     # tail logs
+#
+# Supabase (postgres + auth + storage + realtime) is managed separately
+# via `supabase start` — do NOT add it here.
+
 services:
+  # ─── Redis ──────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -9,12 +16,57 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     command: redis-server --appendonly yes
     volumes:
-      - autofounder_ai_redis_data:/data
+      - autofounder_redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
 
+  # ─── Backend (FastAPI) ───────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      # Override Redis URL to point at the compose service
+      REDIS_URL: redis://redis:6379/0
+      APP_ENV: development
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://localhost:8000/health').status==200 else sys.exit(1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    volumes:
+      # Hot-reload in dev: mount source over the image copy
+      - ./backend/app:/app/app:ro
+
+  # ─── Frontend (Next.js) ──────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Points browser requests at the backend container
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+    depends_on:
+      backend:
+        condition: service_healthy
+
 volumes:
-  autofounder_ai_redis_data:
+  autofounder_redis_data:
