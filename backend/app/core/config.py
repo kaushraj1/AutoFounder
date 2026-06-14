@@ -32,8 +32,14 @@ class Settings(BaseSettings):
 
     # Supabase (Storage + Auth) — required by ObjectClient and AF-029 auth middleware
     supabase_url: str = "http://localhost:54321"
-    supabase_service_key: str = "dev-service-key-change-in-prod"
+    supabase_service_key: str = "dev-service-key-change-in-prod"      # set via SUPABASE_SERVICE_KEY
+    supabase_service_role_key: str = ""                                # alias: SUPABASE_SERVICE_ROLE_KEY
     supabase_jwt_secret: str = "change-me-in-dev"
+
+    @property
+    def effective_supabase_service_key(self) -> str:
+        """Returns whichever service key env var is set (role key takes priority)."""
+        return self.supabase_service_role_key or self.supabase_service_key
 
     # Authorization & OPA
     opa_url: str = "http://localhost:8181"

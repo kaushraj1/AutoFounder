@@ -1,0 +1,55 @@
+## Inputs from Pillar 1 → Pillar 2
+
+There are two upstream sources: Pillar 1 (StrategyOutput) and Pillar 1.5 (ProductPlannerOutput).
+
+---
+
+### From StrategyOutput (Pillar 1 — Strategy Agent)
+
+| Field           | Type                              | Used In Node(s)                                        | Purpose                                                              |
+|-----------------|-----------------------------------|--------------------------------------------------------|----------------------------------------------------------------------|
+| idea_normalised | str                               | extract_requirements                                   | Contextualizes requirements extraction (B2B vs B2C targeting)        |
+| viability_band  | str (strong/moderate/weak/reject) | extract_requirements                                   | Drives NFR strictness — weak viability → modular design for pivots   |
+| lean_canvas     | LeanCanvas object                 | extract_requirements, select_stack, compose_featurelist| Business logic for feature list, stack fit, and canvas-grounded reqs |
+
+LeanCanvas contains:
+- problem[], customer_segments[], unique_value_proposition
+- solution[], channels[], revenue_streams[]
+- cost_structure[], key_metrics[], unfair_advantage, early_adopters
+
+---
+
+### From ProductPlannerOutput (Pillar 1.5 — Product Planner Agent)
+
+| Field           | Type | Used In Node(s) | Purpose                                                            |
+|-----------------|------|-----------------|--------------------------------------------------------------------|
+| prd_markdown    | str  | extract_requirements | PRIMARY LLM input — all FRs/NFRs/use cases extracted from this|
+| run_id          | str  | All nodes       | Tracing and artifact storage                                       |
+| organization_id | str  | All nodes       | Multi-tenant isolation                                             |
+
+---
+
+### How they land in ArchitectState (agent.py:87-98)
+
+initial_state: ArchitectState = {
+    "run_id":            product_planner_output.run_id,
+    "organization_id":   product_planner_output.organization_id,
+    "idea_normalised":   strategy_output.idea_normalised,       # <- from P1
+    "viability_band":    strategy_output.viability_band,        # <- from P1
+    "lean_canvas":       strategy_output.lean_canvas.model_dump(),   # <- from P1
+    "prd":               product_planner_output.prd_markdown,   # <- from P1.5
+}
+
+---
+
+### Which node uses what
+
+prd_markdown      -> extract_requirements (Node 1) — PRIMARY input
+idea_normalised   -> extract_requirements (Node 1) — context
+viability_band    -> extract_requirements (Node 1) — NFR strictness
+lean_canvas       -> extract_requirements (Node 1) — business context
+                  -> select_stack        (Node 2c) — stack fit
+                  -> compose_featurelist (Node 7)  — feature ground truth
+
+prd_markdown is the most important — it's the main document the LLM reads to produce
+all requirements, which then cascade into ERD, OpenAPI, auth strategy, and scaling plan.
