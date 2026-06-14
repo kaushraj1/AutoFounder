@@ -35,19 +35,11 @@ Think of the project like building a house. You can't paint a room (build your a
 
 ## Team Roster → Ownership
 
+> **Updated 2026-06-14:** Sole developer is now **Kaushlendra Kumar Gupta**. All tasks previously assigned to other team members are now owned by Kaushlendra.
+
 | # | Member | Area | Owns (AF-IDs) |
 |---|--------|------|---------------|
-| 1 | **Asit Piri** (Lead) | Platform foundation: PRD, Architecture, GitHub, CI/CD, DB, APIs, AWS, Code Review, Integration & Merging · **+ Guardrails · VS Code Extension · Finance & Ops/Risk** | AF-012 → AF-031, AF-036, AF-046, AF-047, AF-072 → AF-078 |
-| 2 | **Somesh Chitranshi** | Pillar 1 — Idea Validation & Market Research | AF-025 → AF-035, AF-037 → AF-039 |
-| 3 | **Kaushlendra Kumar Gupta** | Pillar 2 — Architecture & Tech Stack Design | AF-040 |
-| 4 | **Kartik Mogalapalli** | Pillar 3 — Autonomous Code Generation | AF-041 |
-| 5 | **Vishal Prasad** | Pillar 4 — Testing & Self-Healing | AF-042 |
-| 6 | **Prasenjit Roy** | Pillar 5 — Deployment & Infrastructure | AF-043 |
-| 7 | **Pallavi Anil Sindkar** | Pillar 6 — Marketing & Launch Automation | AF-044 |
-| 8 | **Purnima** | Pillar 7 — LLMOps & Continuous Learning (+ shared prompt/router/eval) | AF-045, AF-048, AF-049, AF-050 |
-| 9 | **Raunak Ravi** | Web Interface Design | AF-051 → AF-062 |
-| 10 | **Yogesh Raut** | Mobile Interface Design | AF-063 → AF-071 |
-| — | ✅ **All assigned** | _(VS Code Extension · Guardrails pipeline · Finance & Ops/Risk agents are now owned by **Asit** — folded into row 1)_ | — |
+| 1 | **Kaushlendra Kumar Gupta** (Sole Developer) | **Everything** — Platform Foundation, all 7 Pillars, Guardrails, VS Code Extension, Web Frontend, Mobile App, LLMOps, Finance & Ops/Risk | AF-001 → AF-078 (all tasks) |
 
 ---
 
@@ -55,15 +47,15 @@ Think of the project like building a house. You can't paint a room (build your a
 
 | Phase | Description | Lead Owner(s) | Total | ✅ Done | ❌ Pending |
 |-------|-------------|---------------|-------|---------|-----------|
-| Phase 1 | Monorepo & Boilerplate Setup | Team | 11 | 11 | 0 |
-| Phase 2 | Infrastructure & Cloud | Asit (Vishal exec) | 13 | 13 | 0 |
-| Phase 3 | Backend — FastAPI + Agents | Asit (3a/3b + 3d guardrails/tools) + all Pillar owners (3c) + Purnima (3d prompts/router/eval) | 26 | 18 | 8 |
-| Phase 4 | Frontend — Next.js 14 | Raunak | 12 | 0 | 12 |
-| Phase 5 | Mobile — Expo React Native | Yogesh | 9 | 0 | 9 |
-| Phase 6 | VS Code Extension | **Asit** | 7 | 7 | 0 |
+| Phase 1 | Monorepo & Boilerplate Setup | Kaushlendra Kumar Gupta | 11 | 11 | 0 |
+| Phase 2 | Infrastructure & Cloud | Kaushlendra Kumar Gupta | 13 | 13 | 0 |
+| Phase 3 | Backend — FastAPI + Agents | Kaushlendra Kumar Gupta | 26 | 18 | 8 |
+| Phase 4 | Frontend — Next.js 14 | Kaushlendra Kumar Gupta | 12 | 0 | 12 |
+| Phase 5 | Mobile — Expo React Native | Kaushlendra Kumar Gupta | 9 | 0 | 9 |
+| Phase 6 | VS Code Extension | **Kaushlendra Kumar Gupta** | 7 | 7 | 0 |
 | **Total** | | | **78** | **49** | **29** |
 
-**Per-person task count:** Asit **24** · Somesh 3 · Kaushlendra 1 · Kartik 1 · Vishal 1 · Prasenjit 1 · Pallavi 1 · Purnima 4 · Raunak 12 · Yogesh 9 · **Unassigned 0** _(AF-046 Guardrails + AF-072→AF-078 VS Code reassigned to Asit; Finance & Ops/Risk agents also owned by Asit, Phase 4)_ = 29 pending + 49 done = **78** (Phase 2 done by Vishal; Phase 3 = 18/26 — Somesh's Pillar-1 agents + Vishal's Reviewer AF-042 + Asit's AF-046 Guardrails + AF-047 Tool Registry; Phase 6 = 7/7 built by Vishal).
+**Owner:** Kaushlendra Kumar Gupta owns **all 78 tasks** — 49 done + 29 pending. See [`KAUSHLENDRA-SOLO-PLAN.md`](../KAUSHLENDRA-SOLO-PLAN.md) for the prioritised build queue.
 
 
 ---
@@ -90,7 +82,7 @@ Think of the project like building a house. You can't paint a room (build your a
 | AF-010 | Team | `scripts/setup-dev.sh` + `scripts/setup-dev.ps1` — cross-platform one-command local environment setup | `feature/dev-setup-scripts` | ✅ |
 | AF-011 | Team | `.env.example` + `README.md` — env var documentation and project onboarding guide | `feature/env-and-readme` | ✅ |
 
-## Phase 2 — Infrastructure & Cloud 🟢 (Owner: Asit — can start now)
+## Phase 2 — Infrastructure & Cloud 🟢 (Owner: Kaushlendra Kumar Gupta)
 
 > AWS networking, ECS services, managed databases, messaging, CI/CD pipeline, and observability baseline. **Depends on: Phase 1 (done) → unblocked.**
 >
@@ -98,44 +90,44 @@ Think of the project like building a house. You can't paint a room (build your a
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-012 | Asit→Vishal | Terraform module `networking` — VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints for S3/ECR/Secrets | `feature/terraform-networking` | Phase 1 | 🟢 | ✅ |
-| AF-013 | Asit→Vishal | Terraform module `ecs` — ECS Fargate cluster, task definitions per service, auto-scaling target-tracking policies | `feature/terraform-ecs` | AF-012 | 🟢 | ✅ |
-| AF-014 | Asit→Vishal | Supabase project setup — `supabase link`, RLS policies, pgvector extension, schema-per-tenant migrations (hosted; no RDS) | `feature/supabase-setup` | Phase 1 | 🟢 | ✅ |
-| AF-015 | Asit→Vishal | Terraform module `elasticache` — Redis 7 cluster (Multi-AZ), subnet groups, auth token | `feature/terraform-elasticache` | AF-012 | 🟢 | ✅ |
-| AF-016 | Asit→Vishal | Terraform module `s3` — artifacts bucket, RLHF data lake, prompt-templates bucket; S3 Object Lock on audit bucket (7 yr) | `feature/terraform-s3` | AF-012 | 🟢 | ✅ |
-| AF-017 | Asit→Vishal | Terraform module `messaging` — Confluent Kafka (primary bus + LLMOps telemetry), EventBridge bus + rules, per-pillar SQS queues + DLQs, SNS topic | `feature/terraform-messaging` | AF-012 | 🟢 | ✅* |
-| AF-018 | Asit→Vishal | Terraform module `alb` — Application Load Balancer (L7), HTTPS listener, target groups per ECS service; CloudFront + WAF + Shield | `feature/terraform-alb` | AF-013 | 🟡 | ✅* |
-| AF-019 | Asit→Vishal | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | AF-012 | 🟢 | ✅ |
-| AF-020 | Asit→Vishal | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ✅ |
-| AF-021 | Asit→Vishal | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ✅ |
-| AF-022 | Asit→Vishal | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ✅* |
-| AF-023 | Vishal (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ✅* |
-| AF-024 | Vishal (← Purnima support) | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ✅* |
+| AF-012 | Kaushlendra Kumar Gupta | Terraform module `networking` — VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints for S3/ECR/Secrets | `feature/terraform-networking` | Phase 1 | 🟢 | ✅ |
+| AF-013 | Kaushlendra Kumar Gupta | Terraform module `ecs` — ECS Fargate cluster, task definitions per service, auto-scaling target-tracking policies | `feature/terraform-ecs` | AF-012 | 🟢 | ✅ |
+| AF-014 | Kaushlendra Kumar Gupta | Supabase project setup — `supabase link`, RLS policies, pgvector extension, schema-per-tenant migrations (hosted; no RDS) | `feature/supabase-setup` | Phase 1 | 🟢 | ✅ |
+| AF-015 | Kaushlendra Kumar Gupta | Terraform module `elasticache` — Redis 7 cluster (Multi-AZ), subnet groups, auth token | `feature/terraform-elasticache` | AF-012 | 🟢 | ✅ |
+| AF-016 | Kaushlendra Kumar Gupta | Terraform module `s3` — artifacts bucket, RLHF data lake, prompt-templates bucket; S3 Object Lock on audit bucket (7 yr) | `feature/terraform-s3` | AF-012 | 🟢 | ✅ |
+| AF-017 | Kaushlendra Kumar Gupta | Terraform module `messaging` — Confluent Kafka (primary bus + LLMOps telemetry), EventBridge bus + rules, per-pillar SQS queues + DLQs, SNS topic | `feature/terraform-messaging` | AF-012 | 🟢 | ✅* |
+| AF-018 | Kaushlendra Kumar Gupta | Terraform module `alb` — Application Load Balancer (L7), HTTPS listener, target groups per ECS service; CloudFront + WAF + Shield | `feature/terraform-alb` | AF-013 | 🟡 | ✅* |
+| AF-019 | Kaushlendra Kumar Gupta | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | AF-012 | 🟢 | ✅ |
+| AF-020 | Kaushlendra Kumar Gupta | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ✅ |
+| AF-021 | Kaushlendra Kumar Gupta | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ✅ |
+| AF-022 | Kaushlendra Kumar Gupta | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ✅* |
+| AF-023 | Kaushlendra Kumar Gupta | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ✅* |
+| AF-024 | Kaushlendra Kumar Gupta | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ✅* |
 
 ## Phase 3 — Backend (FastAPI + LangGraph + Agents)
 
 > Core API, orchestration engine, all AI agents, guardrails, tool/prompt registries, and RAG pipeline. **Depends on: Phase 2.**
 
-### 3a — Core API & Data Layer 🟢/🟡 (Owner: Asit)
+### 3a — Core API & Data Layer 🟢/🟡 (Owner: Kaushlendra Kumar Gupta)
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-025 | Somesh | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟢 | ✅ |
-| AF-026 | Somesh | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟢 | ✅ |
-| AF-027 | Somesh | **⭐ UDAL** — `backend/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟢 | ✅ |
-| AF-028 | Somesh | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ✅ |
-| AF-029 | Somesh | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🟢 | ✅ |
-| AF-030 | Somesh | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🟢 | ✅ |
-| AF-031 | Somesh | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ✅ |
-| AF-032 | Somesh | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🟢 | ✅ |
+| AF-025 | Kaushlendra Kumar Gupta | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟢 | ✅ |
+| AF-026 | Kaushlendra Kumar Gupta | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟢 | ✅ |
+| AF-027 | Kaushlendra Kumar Gupta | **⭐ UDAL** — `backend/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟢 | ✅ |
+| AF-028 | Kaushlendra Kumar Gupta | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ✅ |
+| AF-029 | Kaushlendra Kumar Gupta | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🟢 | ✅ |
+| AF-030 | Kaushlendra Kumar Gupta | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🟢 | ✅ |
+| AF-031 | Kaushlendra Kumar Gupta | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ✅ |
+| AF-032 | Kaushlendra Kumar Gupta | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🟢 | ✅ |
 
-### 3b — LangGraph Orchestration 🟢 (Owner: Somesh)
+### 3b — LangGraph Orchestration 🟢 (Owner: Kaushlendra Kumar Gupta)
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-033 | Somesh | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🟢 | ✅ |
-| AF-034 | Somesh | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🟢 | ✅ |
-| AF-035 | Somesh | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🟢 | ✅ |
+| AF-033 | Kaushlendra Kumar Gupta | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🟢 | ✅ |
+| AF-034 | Kaushlendra Kumar Gupta | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🟢 | ✅ |
+| AF-035 | Kaushlendra Kumar Gupta | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🟢 | ✅ |
 
 ### 3c — AI Agents (Owners: Pillar leads)
 
@@ -164,42 +156,42 @@ Think of the project like building a house. You can't paint a room (build your a
 | AF-049 | **Purnima** | LiteLLM Model Router + RAG — task-class → model routing (Gemini 3.5 Flash; gemini-embedding-2 768-dim); hybrid BM25 + ANN on Supabase pgvector; Cohere reranking; context compression; citation check | `feature/model-router-rag` | AF-027, AF-014 | 🟡 | ❌ |
 | AF-050 | **Purnima** + pillar golden sets | Eval harness — Promptfoo golden sets per agent, LangSmith batch eval runner, CI gate blocking prompt promotion on score regression > 2% | `feature/eval-harness` | AF-048 | 🟡 | ❌ |
 
-## Phase 4 — Frontend (Next.js 14) 🟢/🟡 (Owner: Raunak)
+## Phase 4 — Frontend (Next.js 14) 🟢/🟡 (Owner: Kaushlendra Kumar Gupta)
 
 > Founder Portal with all 7 pillar surfaces, real-time log streaming, HITL gate UI, admin dashboard. **Depends on: Phase 3 for integration — but every screen can be built on mock data now.**
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-051 | Raunak | Next.js 14 App Router — TypeScript strict, Tailwind, shadcn/ui, Supabase Auth (`@supabase/supabase-js` + `@supabase/ssr`), global error boundary + Sentry | `feature/nextjs-setup` | Phase 1 | 🟢 | ❌ |
-| AF-052 | Raunak | Typed API client (`lib/api-client.ts`) + Realtime hook (`lib/realtime-client.ts`) — `useRun()` merging React Query + Supabase Realtime, `useGate()` polling + mutation | `feature/api-client-hooks` | AF-030, AF-031 | 🔴 | ❌ |
-| AF-053 | Raunak | Zustand stores + React Query config — `runStore`, `gateStore`, `uiStore`; responsive layout shell with live cost ticker | `feature/state-management` | AF-051 | 🟢 | ❌ |
-| AF-054 | Raunak | Idea Intake surface — multi-modal form (text, PDF, voice, URL), locale selector, `POST /v1/ideas`, redirect to run page | `feature/idea-intake-ui` | AF-052 (real) | 🟡 | ❌ |
-| AF-055 | Raunak | Validation Studio (Pillar 1) — Lean Canvas viewer, viability gauge 0–100, ICP cards, pivot picker, approve/pivot HITL UI | `feature/validation-studio` | AF-037 (data) | 🟡 | ❌ |
-| AF-056 | Raunak | Architecture Studio (Pillar 2) — Mermaid ERD renderer, Swagger UI OpenAPI viewer, stack card, cost forecast, approve/reject HITL UI | `feature/architecture-studio` | AF-040 (data) | 🟡 | ❌ |
-| AF-057 | Raunak | Code Review Studio (Pillar 3–4) — Monaco diff viewer, Reviewer comments panel, self-heal cycle progress, security scan results table | `feature/code-review-studio` | AF-042 (data) | 🟡 | ❌ |
-| AF-058 | Raunak | Deploy Console (Pillar 5) — live deployment log stream, infra-spend HITL gate, smoke test card, live URL badge, 1-click rollback | `feature/deploy-console` | AF-043 (data) | 🟡 | ❌ |
-| AF-059 | Raunak | Launch Control Center (Pillar 6) — brand kit preview, landing page iframe, social post drafts edit-in-place, email sequence preview, approve/edit HITL; nothing publishes without founder sign-off | `feature/launch-control-center` | AF-044 (data) | 🟡 | ❌ |
-| AF-060 | Raunak | LLMOps Dashboard (Pillar 7) — cost by model/pillar/run, drift score time-series, eval score history, prompt version table with canary indicator | `feature/llmops-dashboard` | AF-045 (data) | 🟡 | ❌ |
-| AF-061 | Raunak | Run List / Dashboard — all runs with status, pillar, cost, created date; filter + search; skeleton loaders | `feature/run-dashboard` | AF-030 | 🟡 | ❌ |
-| AF-062 | Raunak | Admin Dashboard — tenant CRUD, model registry mgmt, prompt registry lifecycle, tool registry, audit log viewer, platform FinOps view ⚠️ *(large — flag if too much)* | `feature/admin-dashboard` | AF-030 | 🟡 | ❌ |
+| AF-051 | Kaushlendra Kumar Gupta | Next.js 14 App Router — TypeScript strict, Tailwind, shadcn/ui, Supabase Auth (`@supabase/supabase-js` + `@supabase/ssr`), global error boundary + Sentry | `feature/nextjs-setup` | Phase 1 | 🟢 | ❌ |
+| AF-052 | Kaushlendra Kumar Gupta | Typed API client (`lib/api-client.ts`) + Realtime hook (`lib/realtime-client.ts`) — `useRun()` merging React Query + Supabase Realtime, `useGate()` polling + mutation | `feature/api-client-hooks` | AF-030, AF-031 | 🔴 | ❌ |
+| AF-053 | Kaushlendra Kumar Gupta | Zustand stores + React Query config — `runStore`, `gateStore`, `uiStore`; responsive layout shell with live cost ticker | `feature/state-management` | AF-051 | 🟢 | ❌ |
+| AF-054 | Kaushlendra Kumar Gupta | Idea Intake surface — multi-modal form (text, PDF, voice, URL), locale selector, `POST /v1/ideas`, redirect to run page | `feature/idea-intake-ui` | AF-052 (real) | 🟡 | ❌ |
+| AF-055 | Kaushlendra Kumar Gupta | Validation Studio (Pillar 1) — Lean Canvas viewer, viability gauge 0–100, ICP cards, pivot picker, approve/pivot HITL UI | `feature/validation-studio` | AF-037 (data) | 🟡 | ❌ |
+| AF-056 | Kaushlendra Kumar Gupta | Architecture Studio (Pillar 2) — Mermaid ERD renderer, Swagger UI OpenAPI viewer, stack card, cost forecast, approve/reject HITL UI | `feature/architecture-studio` | AF-040 (data) | 🟡 | ❌ |
+| AF-057 | Kaushlendra Kumar Gupta | Code Review Studio (Pillar 3–4) — Monaco diff viewer, Reviewer comments panel, self-heal cycle progress, security scan results table | `feature/code-review-studio` | AF-042 (data) | 🟡 | ❌ |
+| AF-058 | Kaushlendra Kumar Gupta | Deploy Console (Pillar 5) — live deployment log stream, infra-spend HITL gate, smoke test card, live URL badge, 1-click rollback | `feature/deploy-console` | AF-043 (data) | 🟡 | ❌ |
+| AF-059 | Kaushlendra Kumar Gupta | Launch Control Center (Pillar 6) — brand kit preview, landing page iframe, social post drafts edit-in-place, email sequence preview, approve/edit HITL; nothing publishes without founder sign-off | `feature/launch-control-center` | AF-044 (data) | 🟡 | ❌ |
+| AF-060 | Kaushlendra Kumar Gupta | LLMOps Dashboard (Pillar 7) — cost by model/pillar/run, drift score time-series, eval score history, prompt version table with canary indicator | `feature/llmops-dashboard` | AF-045 (data) | 🟡 | ❌ |
+| AF-061 | Kaushlendra Kumar Gupta | Run List / Dashboard — all runs with status, pillar, cost, created date; filter + search; skeleton loaders | `feature/run-dashboard` | AF-030 | 🟡 | ❌ |
+| AF-062 | Kaushlendra Kumar Gupta | Admin Dashboard — tenant CRUD, model registry mgmt, prompt registry lifecycle, tool registry, audit log viewer, platform FinOps view ⚠️ *(large — flag if too much)* | `feature/admin-dashboard` | AF-030 | 🟡 | ❌ |
 
-## Phase 5 — Mobile (Expo React Native) 🟢/🟡 (Owner: Yogesh)
+## Phase 5 — Mobile (Expo React Native) 🟢/🟡 (Owner: Kaushlendra Kumar Gupta)
 
 > Founder-on-the-go: idea submission, run monitoring, live HITL gate approvals, push notifications. **Depends on: Phase 3 for integration — screens buildable on mock data now.**
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-063 | Yogesh | Expo Router scaffold — TS strict, Supabase Auth (`@supabase/supabase-js` + `ExpoSecureStoreAdapter`), secure token storage in `expo-secure-store`, shared API client from `packages/api-client` | `feature/expo-setup` | Phase 1 | 🟢 | ❌ |
-| AF-064 | Yogesh | Push notifications — Expo Push → SNS → realtime; deep-link on tap to gate or run screen | `feature/push-notifications` | AF-017 (SNS) | 🔴 | ❌ |
-| AF-065 | Yogesh | Idea Intake screen — text input, voice record (Expo AV), file attach; submit to `POST /v1/ideas` | `feature/mobile-idea-intake` | AF-030 | 🟡 | ❌ |
-| AF-066 | Yogesh | Run Dashboard screen — live run list with status badges + cost; pull-to-refresh; realtime updates | `feature/mobile-run-dashboard` | AF-030, AF-031 | 🟡 | ❌ |
-| AF-067 | Yogesh | Run Detail screen — current pillar progress, step log stream, active gate banner | `feature/mobile-run-detail` | AF-031 | 🟡 | ❌ |
-| AF-068 | Yogesh | HITL Gate Approval screens — gate-specific review UI (Lean Canvas, Architecture summary, Launch preview); approve/reject with note; offline queue + sync on reconnect | `feature/mobile-gate-approval` | AF-034 | 🟡 | ❌ |
-| AF-069 | Yogesh | Artifacts Viewer — browse outputs (canvas, ERD image, live URL, brand kit, social posts) | `feature/mobile-artifacts-viewer` | AF-030 | 🟡 | ❌ |
-| AF-070 | Yogesh | LLMOps Summary screen — cost card, eval score card, last drift check; dark/light mode following system | `feature/mobile-llmops-summary` | AF-045 (data) | 🟡 | ❌ |
-| AF-071 | Yogesh | EAS Build + release — `eas.json` profiles (development, preview, production); App Store + Google Play submit via `eas submit` | `feature/eas-build-pipeline` | AF-063 | 🟢 | ❌ |
+| AF-063 | Kaushlendra Kumar Gupta | Expo Router scaffold — TS strict, Supabase Auth (`@supabase/supabase-js` + `ExpoSecureStoreAdapter`), secure token storage in `expo-secure-store`, shared API client from `packages/api-client` | `feature/expo-setup` | Phase 1 | 🟢 | ❌ |
+| AF-064 | Kaushlendra Kumar Gupta | Push notifications — Expo Push → SNS → realtime; deep-link on tap to gate or run screen | `feature/push-notifications` | AF-017 (SNS) | 🔴 | ❌ |
+| AF-065 | Kaushlendra Kumar Gupta | Idea Intake screen — text input, voice record (Expo AV), file attach; submit to `POST /v1/ideas` | `feature/mobile-idea-intake` | AF-030 | 🟡 | ❌ |
+| AF-066 | Kaushlendra Kumar Gupta | Run Dashboard screen — live run list with status badges + cost; pull-to-refresh; realtime updates | `feature/mobile-run-dashboard` | AF-030, AF-031 | 🟡 | ❌ |
+| AF-067 | Kaushlendra Kumar Gupta | Run Detail screen — current pillar progress, step log stream, active gate banner | `feature/mobile-run-detail` | AF-031 | 🟡 | ❌ |
+| AF-068 | Kaushlendra Kumar Gupta | HITL Gate Approval screens — gate-specific review UI (Lean Canvas, Architecture summary, Launch preview); approve/reject with note; offline queue + sync on reconnect | `feature/mobile-gate-approval` | AF-034 | 🟡 | ❌ |
+| AF-069 | Kaushlendra Kumar Gupta | Artifacts Viewer — browse outputs (canvas, ERD image, live URL, brand kit, social posts) | `feature/mobile-artifacts-viewer` | AF-030 | 🟡 | ❌ |
+| AF-070 | Kaushlendra Kumar Gupta | LLMOps Summary screen — cost card, eval score card, last drift check; dark/light mode following system | `feature/mobile-llmops-summary` | AF-045 (data) | 🟡 | ❌ |
+| AF-071 | Kaushlendra Kumar Gupta | EAS Build + release — `eas.json` profiles (development, preview, production); App Store + Google Play submit via `eas submit` | `feature/eas-build-pipeline` | AF-063 | 🟢 | ❌ |
 
-## Phase 6 — VS Code Extension ✅ (Owner: Asit → built by Vishal — Depends on: Phase 3)
+## Phase 6 — VS Code Extension ✅ (Owner: Kaushlendra Kumar Gupta — Depends on: Phase 3)
 
 > In-editor AI co-founder: run monitoring, HITL gate approvals, code-gen commands. Planned owner: Asit (reassigned 2026-06-04 from unassigned); **delivered 2026-06-07 by Vishal** on `feature/vscode-extension` (7/7). Plan: `developer-plans/12-asit-vscode-extension-plan.md`. Built against the AF-030/031/034 contract with the plan's intended fallbacks where AF-031 Realtime / AF-041 Coder are still landing.
 
@@ -233,40 +225,40 @@ _Phase 2 — Infrastructure & Cloud_
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-012 | Asit→Vishal | Terraform module `networking` — VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints for S3/ECR/Secrets | `feature/terraform-networking` | Phase 1 | 🟢 | ✅ |
-| AF-013 | Asit→Vishal | Terraform module `ecs` — ECS Fargate cluster, task definitions per service, auto-scaling target-tracking policies | `feature/terraform-ecs` | AF-012 | 🟢 | ✅ |
-| AF-014 | Asit→Vishal | Supabase project setup — `supabase link`, RLS policies, pgvector extension, schema-per-tenant migrations (hosted; no RDS) | `feature/supabase-setup` | Phase 1 | 🟢 | ✅ |
-| AF-015 | Asit→Vishal | Terraform module `elasticache` — Redis 7 cluster (Multi-AZ), subnet groups, auth token | `feature/terraform-elasticache` | AF-012 | 🟢 | ✅ |
-| AF-016 | Asit→Vishal | Terraform module `s3` — artifacts bucket, RLHF data lake, prompt-templates bucket; S3 Object Lock on audit bucket (7 yr) | `feature/terraform-s3` | AF-012 | 🟢 | ✅ |
-| AF-017 | Asit→Vishal | Terraform module `messaging` — Confluent Kafka (primary bus + LLMOps telemetry), EventBridge bus + rules, per-pillar SQS queues + DLQs, SNS topic | `feature/terraform-messaging` | AF-012 | 🟢 | ✅* |
-| AF-018 | Asit→Vishal | Terraform module `alb` — Application Load Balancer (L7), HTTPS listener, target groups per ECS service; CloudFront + WAF + Shield | `feature/terraform-alb` | AF-013 | 🟡 | ✅* |
-| AF-019 | Asit→Vishal | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | AF-012 | 🟢 | ✅ |
-| AF-020 | Asit→Vishal | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ✅ |
-| AF-021 | Asit→Vishal | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ✅ |
-| AF-022 | Asit→Vishal | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ✅* |
-| AF-023 | Vishal (← Purnima support) | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ✅* |
-| AF-024 | Vishal (← Purnima support) | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ✅* |
+| AF-012 | Kaushlendra Kumar Gupta | Terraform module `networking` — VPC, public/private subnets (Multi-AZ), NAT gateways, VPC endpoints for S3/ECR/Secrets | `feature/terraform-networking` | Phase 1 | 🟢 | ✅ |
+| AF-013 | Kaushlendra Kumar Gupta | Terraform module `ecs` — ECS Fargate cluster, task definitions per service, auto-scaling target-tracking policies | `feature/terraform-ecs` | AF-012 | 🟢 | ✅ |
+| AF-014 | Kaushlendra Kumar Gupta | Supabase project setup — `supabase link`, RLS policies, pgvector extension, schema-per-tenant migrations (hosted; no RDS) | `feature/supabase-setup` | Phase 1 | 🟢 | ✅ |
+| AF-015 | Kaushlendra Kumar Gupta | Terraform module `elasticache` — Redis 7 cluster (Multi-AZ), subnet groups, auth token | `feature/terraform-elasticache` | AF-012 | 🟢 | ✅ |
+| AF-016 | Kaushlendra Kumar Gupta | Terraform module `s3` — artifacts bucket, RLHF data lake, prompt-templates bucket; S3 Object Lock on audit bucket (7 yr) | `feature/terraform-s3` | AF-012 | 🟢 | ✅ |
+| AF-017 | Kaushlendra Kumar Gupta | Terraform module `messaging` — Confluent Kafka (primary bus + LLMOps telemetry), EventBridge bus + rules, per-pillar SQS queues + DLQs, SNS topic | `feature/terraform-messaging` | AF-012 | 🟢 | ✅* |
+| AF-018 | Kaushlendra Kumar Gupta | Terraform module `alb` — Application Load Balancer (L7), HTTPS listener, target groups per ECS service; CloudFront + WAF + Shield | `feature/terraform-alb` | AF-013 | 🟡 | ✅* |
+| AF-019 | Kaushlendra Kumar Gupta | Terraform module `iam` — least-privilege task execution roles per ECS service, no wildcard `*:*` policies | `feature/terraform-iam` | AF-012 | 🟢 | ✅ |
+| AF-020 | Kaushlendra Kumar Gupta | Terraform module `secrets` — Secrets Manager entries + SSM Parameter Store hierarchy; KMS CMK for encryption at rest | `feature/terraform-secrets` | AF-012 | 🟢 | ✅ |
+| AF-021 | Kaushlendra Kumar Gupta | Terraform module `ecr` — one ECR repo per service, image scanning on push, lifecycle policies | `feature/terraform-ecr` | Phase 1 | 🟢 | ✅ |
+| AF-022 | Kaushlendra Kumar Gupta | GitHub Actions — `ci.yml` (lint, typecheck, unit, integration, security scans), `deploy-staging.yml`, `deploy-prod.yml` (canary ramp); ECR push + CodeDeploy blue/green | `feature/cicd-pipeline` | AF-021 | 🟡 | ✅* |
+| AF-023 | Kaushlendra Kumar Gupta | OpenTelemetry baseline — OTel SDK in backend (FastAPI), structured JSON logs (`trace_id · organization_id · run_id · agent_id · model · env`), Fluent Bit → CloudWatch | `feature/observability-baseline` | AF-028 | 🟡 | ✅* |
+| AF-024 | Kaushlendra Kumar Gupta | Prometheus + Grafana — metrics endpoint on all services, RED + USE dashboards, per-tenant cost panel; LangSmith project wired | `feature/metrics-dashboards` | AF-023 | 🟡 | ✅* |
 
 _Phase 3a — Core API & Data Layer_
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-025 | Somesh | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟡 | ✅ |
-| AF-026 | Somesh | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟡 | ✅ |
-| AF-027 | Somesh | **⭐ UDAL** — `backend/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ✅ |
-| AF-028 | Somesh | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ✅ |
-| AF-029 | Somesh | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🟢 | ✅ |
-| AF-030 | Somesh | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🟢 | ✅ |
-| AF-031 | Somesh | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ✅ |
-| AF-032 | Somesh | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🟢 | ✅ |
+| AF-025 | Kaushlendra Kumar Gupta | Alembic migrations — `platform` schema (tenants, model_registry, prompt_registry, tool_registry, audit_log) | `feature/db-migrations-platform` | AF-014 | 🟡 | ✅ |
+| AF-026 | Kaushlendra Kumar Gupta | Alembic migrations — per-tenant schema (runs, artifacts, gates, step_events, memory_episodes, cost_ledger) + orchestrator schema (checkpoints) | `feature/db-migrations-tenant` | AF-025 | 🟡 | ✅ |
+| AF-027 | Kaushlendra Kumar Gupta | **⭐ UDAL** — `backend/app/db/` client: `relational()`, `vector()`, `graph()`, `object()`; `contextvars` tenant propagation, cross-tenant guard (SEV-1 on breach), lineage audit emit | `feature/udal-core` | AF-026 | 🟡 | ✅ |
+| AF-028 | Kaushlendra Kumar Gupta | FastAPI app bootstrap — lifespan, DI, global exception handler (`{code, message, requestId}`), CORS | `feature/fastapi-app-setup` | AF-027 | 🟡 | ✅ |
+| AF-029 | Kaushlendra Kumar Gupta | Auth middleware — Supabase JWT validation (`SUPABASE_JWT_SECRET`), OPA policy sidecar, `OrgContext` via `contextvars`, mTLS service-to-service | `feature/auth-middleware` | AF-028 | 🟢 | ✅ |
+| AF-030 | Kaushlendra Kumar Gupta | **⭐ REST endpoints** — `POST /v1/ideas`, `GET /v1/runs/{id}`, `POST /v1/runs/{id}/gates/{gate_id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/feedback`, `GET /v1/llmops/cost`; OpenAPI 3.1 spec | `feature/rest-api-endpoints` | AF-028 | 🟢 | ✅ |
+| AF-031 | Kaushlendra Kumar Gupta | Supabase Realtime — subscribe to `step_events` changes (pg_notify); frontend uses `@supabase/supabase-js` channel; reconnect replay from `step_events` | `feature/realtime-integration` | AF-026 | 🟡 | ✅ |
+| AF-032 | Kaushlendra Kumar Gupta | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🟢 | ✅ |
 
 _Phase 3b — LangGraph Orchestration_
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-033 | Somesh | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🟢 | ✅ |
-| AF-034 | Somesh | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🟢 | ✅ |
-| AF-035 | Somesh | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🟢 | ✅ |
+| AF-033 | Kaushlendra Kumar Gupta | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🟢 | ✅ |
+| AF-034 | Kaushlendra Kumar Gupta | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🟢 | ✅ |
+| AF-035 | Kaushlendra Kumar Gupta | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🟢 | ✅ |
 
 _Agent foundation + Tool Registry shell + Guardrails_
 
@@ -293,13 +285,13 @@ Those turn **7 pillar owners from 🟡 to 🟢**.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-032 | Somesh | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🟢 | ✅ |
-| AF-033 | Somesh | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🟢 | ✅ |
-| AF-034 | Somesh | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🟢 | ✅ |
-| AF-035 | Somesh | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🟢 | ✅ |
-| AF-037 | Somesh | Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability 0–100, bias audit, 3 pivots; SLA < 30 min | `feature/strategy-agent` | AF-036, AF-048, AF-049 | 🟢 | ✅ |
-| AF-038 | Somesh | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb fan-out, synthesis, citation groundedness check | `feature/research-agent` | AF-036, AF-047 | 🟢 | ✅ |
-| AF-039 | Somesh | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | AF-037 | 🟢 | ✅ |
+| AF-032 | Kaushlendra Kumar Gupta | Redis integration — session cache, LangGraph plan checkpoints, semantic prompt cache (`llm:prompt_cache:{sha256}`), embedding cache, per-tenant cost accumulator | `feature/redis-integration` | AF-015, AF-028 | 🟢 | ✅ |
+| AF-033 | Kaushlendra Kumar Gupta | **⭐ `RunState` TypedDict + `StateGraph` factory** — nodes per pillar step, conditional edges, checkpointing to Postgres + Redis after every node | `feature/langgraph-graph` | AF-027, AF-032 | 🟢 | ✅ |
+| AF-034 | Kaushlendra Kumar Gupta | HITL gate state machine — `pending → approved / rejected / timed_out`; EventBridge `gate.required` emit; SQS consumer for gate decisions | `feature/hitl-gate-manager` | AF-033, AF-017 | 🟢 | ✅ |
+| AF-035 | Kaushlendra Kumar Gupta | SQS worker loop — poll per-pillar queues, deserialise step, dispatch to agent runner, exponential backoff + jitter, DLQ escalation | `feature/sqs-worker` | AF-017, AF-033 | 🟢 | ✅ |
+| AF-037 | Kaushlendra Kumar Gupta | Strategy & Ideation Agent (Pillar 1) — TAM/SAM/SOM, competitor discovery, persona gen, Lean Canvas, viability 0–100, bias audit, 3 pivots; SLA < 30 min | `feature/strategy-agent` | AF-036, AF-048, AF-049 | 🟢 | ✅ |
+| AF-038 | Kaushlendra Kumar Gupta | Research Agent (Pillar 1) — Tavily + SerpAPI + Crunchbase + G2 + SimilarWeb fan-out, synthesis, citation groundedness check | `feature/research-agent` | AF-036, AF-047 | 🟢 | ✅ |
+| AF-039 | Kaushlendra Kumar Gupta | Product Planner Agent (Pillar 1.5) — PRD generation, roadmap, user stories, requirements extraction from strategy output | `feature/product-planner-agent` | AF-037 | 🟢 | ✅ |
 
 **🟢 Do today (offline — no platform needed):**
 - Jinja2 **prompt templates**: market sizing (TAM/SAM/SOM), competitor discovery, persona generation, Lean Canvas, viability scoring, bias audit, pivot suggestions, PRD generation.
@@ -332,7 +324,7 @@ Those turn **7 pillar owners from 🟡 to 🟢**.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-041 | Kartik | Coder Agent (Pillar 3) — Frontend Specialist (Next.js 14 + Tailwind + shadcn/ui) ∥ Backend Specialist (FastAPI + SQLAlchemy + Supabase Auth + Stripe); Alembic migrations; zero lint errors; CI/CD scaffold | `feature/coder-agent` | AF-036, AF-040 | 🟡 | ❌ |
+| AF-041 | Kaushlendra Kumar Gupta | Coder Agent (Pillar 3) — Frontend Specialist (Next.js 14 + Tailwind + shadcn/ui) ∥ Backend Specialist (FastAPI + SQLAlchemy + Supabase Auth + Stripe); Alembic migrations; zero lint errors; CI/CD scaffold | `feature/coder-agent` | AF-036, AF-040 | 🟡 | ❌ |
 
 **🟢 Do today (offline):** Code-gen prompt templates (Next.js 14 + Tailwind + shadcn/ui; FastAPI + SQLAlchemy + Supabase Auth + Stripe); repo-scaffolding templates; GitHub + Stripe tool wrappers; output schemas; golden evals (compile-clean, lint-clean); mocked tests.
 
@@ -346,7 +338,7 @@ Those turn **7 pillar owners from 🟡 to 🟢**.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-042 | Vishal | Reviewer / Self-Healer Agent (Pillar 4) — static analysis, unit + integration test gen, security scans (Trivy/Semgrep/Snyk), sandbox execution, AST-aware patching, LLM-as-judge; max 5 cycles; coverage ≥ 80% | `feature/reviewer-agent` | AF-036, AF-041 | 🟢 | ✅ |
+| AF-042 | Kaushlendra Kumar Gupta | Reviewer / Self-Healer Agent (Pillar 4) — static analysis, unit + integration test gen, security scans (Trivy/Semgrep/Snyk), sandbox execution, AST-aware patching, LLM-as-judge; max 5 cycles; coverage ≥ 80% | `feature/reviewer-agent` | AF-036, AF-041 | 🟢 | ✅ |
 
 **✅ Delivered 2026-06-09 by Vishal** on `feature/reviewer-agent` — a 14-node LangGraph `ReviewerAgent` (subclasses `BaseAgent`): `ingest → ephemeral sandbox → 5 parallel gates → LLM-judge → deterministic triage → bounded self-heal loop (max 5) → teardown → report`, with a central `error_handler` sink. Gates: ESLint/Prettier · Ruff/Black · Jest · pytest · Playwright · Trivy/Semgrep/Bandit/Snyk/Gitleaks · SonarQube — each degrades to a non-fatal SKIP when its binary/token is absent.
 
@@ -365,7 +357,7 @@ Those turn **7 pillar owners from 🟡 to 🟢**.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-043 | Prasenjit | DevOps Agent (Pillar 5) — multi-stage Dockerfile, Terraform plan + apply, ECS provisioning, Route 53 + ACM, monitoring setup, smoke test; SLA < 10 min; infra-spend HITL gate | `feature/devops-agent` | AF-036, AF-042 | 🟡 | ❌ |
+| AF-043 | Kaushlendra Kumar Gupta | DevOps Agent (Pillar 5) — multi-stage Dockerfile, Terraform plan + apply, ECS provisioning, Route 53 + ACM, monitoring setup, smoke test; SLA < 10 min; infra-spend HITL gate | `feature/devops-agent` | AF-036, AF-042 | 🟡 | ❌ |
 
 **🟢 Do today (offline):** Multi-stage Dockerfile templates; Terraform plan/apply generation templates; ECS provisioning logic; Route 53 + ACM (DNS/SSL) flow; smoke-test runner; prompt templates; output schemas; golden evals; mocked tests.
 **🤝 Pair with Asit:** the Terraform you write for the *product* mirrors the Terraform Asit writes for the *platform* (AF-012–021) — share modules.
@@ -380,7 +372,7 @@ Those turn **7 pillar owners from 🟡 to 🟢**.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-044 | Pallavi | Marketing Agent (Pillar 6) — brand kit (DALL-E 3), landing page, SEO engine (10 blog drafts), email drip sequences, social posts; feature-list hallucination cross-ref; Launch Control Center HITL gate | `feature/marketing-agent` | AF-036, AF-040 | 🟡 | ❌ |
+| AF-044 | Kaushlendra Kumar Gupta | Marketing Agent (Pillar 6) — brand kit (DALL-E 3), landing page, SEO engine (10 blog drafts), email drip sequences, social posts; feature-list hallucination cross-ref; Launch Control Center HITL gate | `feature/marketing-agent` | AF-036, AF-040 | 🟡 | ❌ |
 
 **🟢 Do today (offline):** Prompt templates (brand kit, landing page, 10-blog SEO engine, email drip sequences, Product Hunt kit, X thread, HN post); DALL-E 3 + Resend + X/LinkedIn/ProductHunt tool wrappers; the **feature-claim cross-reference check** (anti-hallucination) as a standalone validator; output schemas; golden evals; mocked tests.
 
@@ -395,9 +387,9 @@ Those turn **7 pillar owners from 🟡 to 🟢**.
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
 | AF-048 | Purnima (shell) + all pillars (prompts) | Prompt Registry — versioned Jinja2 templates in `prompt_registry` table + S3; `get()` resolves active/canary; deterministic canary split; strict variable validation | `feature/prompt-registry` | AF-025 | 🟡 | ❌ |
-| AF-049 | Purnima | LiteLLM Model Router + RAG — task-class → model routing (Gemini 3.5 Flash; gemini-embedding-2 768-dim); hybrid BM25 + ANN on Supabase pgvector; Cohere reranking; context compression; citation check | `feature/model-router-rag` | AF-027, AF-014 | 🟡 | ❌ |
+| AF-049 | Kaushlendra Kumar Gupta | LiteLLM Model Router + RAG — task-class → model routing (Gemini 3.5 Flash; gemini-embedding-2 768-dim); hybrid BM25 + ANN on Supabase pgvector; Cohere reranking; context compression; citation check | `feature/model-router-rag` | AF-027, AF-014 | 🟡 | ❌ |
 | AF-050 | Purnima + pillar golden sets | Eval harness — Promptfoo golden sets per agent, LangSmith batch eval runner, CI gate blocking prompt promotion on score regression > 2% | `feature/eval-harness` | AF-048 | 🟡 | ❌ |
-| AF-045 | Purnima | LLMOps Agent (Pillar 7) — trace analysis, DSPy prompt optimisation, Promptfoo regression, LiteLLM routing updates, TruLens drift monitoring, A/B experiments, FinOps report; weekly Step Functions cycle | `feature/llmops-agent` | AF-036, all agents running | 🔴 | ❌ |
+| AF-045 | Kaushlendra Kumar Gupta | LLMOps Agent (Pillar 7) — trace analysis, DSPy prompt optimisation, Promptfoo regression, LiteLLM routing updates, TruLens drift monitoring, A/B experiments, FinOps report; weekly Step Functions cycle | `feature/llmops-agent` | AF-036, all agents running | 🔴 | ❌ |
 
 **🟢 Do today (high leverage — on everyone's critical path):**
 - **AF-050 Eval harness** + Promptfoo golden-set runner scaffold (pillar owners plug their sets in).
@@ -415,18 +407,18 @@ Those turn **7 pillar owners from 🟡 to 🟢**.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-051 | Raunak | Next.js 14 App Router — TypeScript strict, Tailwind, shadcn/ui, Supabase Auth (`@supabase/supabase-js` + `@supabase/ssr`), global error boundary + Sentry | `feature/nextjs-setup` | Phase 1 | 🟢 | ❌ |
-| AF-052 | Raunak | Typed API client (`lib/api-client.ts`) + Realtime hook (`lib/realtime-client.ts`) — `useRun()` merging React Query + Supabase Realtime, `useGate()` polling + mutation | `feature/api-client-hooks` | AF-030, AF-031 | 🔴 | ❌ |
-| AF-053 | Raunak | Zustand stores + React Query config — `runStore`, `gateStore`, `uiStore`; responsive layout shell with live cost ticker | `feature/state-management` | AF-051 | 🟢 | ❌ |
-| AF-054 | Raunak | Idea Intake surface — multi-modal form (text, PDF, voice, URL), locale selector, `POST /v1/ideas`, redirect to run page | `feature/idea-intake-ui` | AF-052 (real) | 🟡 | ❌ |
-| AF-055 | Raunak | Validation Studio (Pillar 1) — Lean Canvas viewer, viability gauge 0–100, ICP cards, pivot picker, approve/pivot HITL UI | `feature/validation-studio` | AF-037 (data) | 🟡 | ❌ |
-| AF-056 | Raunak | Architecture Studio (Pillar 2) — Mermaid ERD renderer, Swagger UI OpenAPI viewer, stack card, cost forecast, approve/reject HITL UI | `feature/architecture-studio` | AF-040 (data) | 🟡 | ❌ |
-| AF-057 | Raunak | Code Review Studio (Pillar 3–4) — Monaco diff viewer, Reviewer comments panel, self-heal cycle progress, security scan results table | `feature/code-review-studio` | AF-042 (data) | 🟡 | ❌ |
-| AF-058 | Raunak | Deploy Console (Pillar 5) — live deployment log stream, infra-spend HITL gate, smoke test card, live URL badge, 1-click rollback | `feature/deploy-console` | AF-043 (data) | 🟡 | ❌ |
-| AF-059 | Raunak | Launch Control Center (Pillar 6) — brand kit preview, landing page iframe, social post drafts edit-in-place, email sequence preview, approve/edit HITL; nothing publishes without founder sign-off | `feature/launch-control-center` | AF-044 (data) | 🟡 | ❌ |
-| AF-060 | Raunak | LLMOps Dashboard (Pillar 7) — cost by model/pillar/run, drift score time-series, eval score history, prompt version table with canary indicator | `feature/llmops-dashboard` | AF-045 (data) | 🟡 | ❌ |
-| AF-061 | Raunak | Run List / Dashboard — all runs with status, pillar, cost, created date; filter + search; skeleton loaders | `feature/run-dashboard` | AF-030 | 🟡 | ❌ |
-| AF-062 | Raunak | Admin Dashboard — tenant CRUD, model registry mgmt, prompt registry lifecycle, tool registry, audit log viewer, platform FinOps view ⚠️ *(large — flag if too much)* | `feature/admin-dashboard` | AF-030 | 🟡 | ❌ |
+| AF-051 | Kaushlendra Kumar Gupta | Next.js 14 App Router — TypeScript strict, Tailwind, shadcn/ui, Supabase Auth (`@supabase/supabase-js` + `@supabase/ssr`), global error boundary + Sentry | `feature/nextjs-setup` | Phase 1 | 🟢 | ❌ |
+| AF-052 | Kaushlendra Kumar Gupta | Typed API client (`lib/api-client.ts`) + Realtime hook (`lib/realtime-client.ts`) — `useRun()` merging React Query + Supabase Realtime, `useGate()` polling + mutation | `feature/api-client-hooks` | AF-030, AF-031 | 🔴 | ❌ |
+| AF-053 | Kaushlendra Kumar Gupta | Zustand stores + React Query config — `runStore`, `gateStore`, `uiStore`; responsive layout shell with live cost ticker | `feature/state-management` | AF-051 | 🟢 | ❌ |
+| AF-054 | Kaushlendra Kumar Gupta | Idea Intake surface — multi-modal form (text, PDF, voice, URL), locale selector, `POST /v1/ideas`, redirect to run page | `feature/idea-intake-ui` | AF-052 (real) | 🟡 | ❌ |
+| AF-055 | Kaushlendra Kumar Gupta | Validation Studio (Pillar 1) — Lean Canvas viewer, viability gauge 0–100, ICP cards, pivot picker, approve/pivot HITL UI | `feature/validation-studio` | AF-037 (data) | 🟡 | ❌ |
+| AF-056 | Kaushlendra Kumar Gupta | Architecture Studio (Pillar 2) — Mermaid ERD renderer, Swagger UI OpenAPI viewer, stack card, cost forecast, approve/reject HITL UI | `feature/architecture-studio` | AF-040 (data) | 🟡 | ❌ |
+| AF-057 | Kaushlendra Kumar Gupta | Code Review Studio (Pillar 3–4) — Monaco diff viewer, Reviewer comments panel, self-heal cycle progress, security scan results table | `feature/code-review-studio` | AF-042 (data) | 🟡 | ❌ |
+| AF-058 | Kaushlendra Kumar Gupta | Deploy Console (Pillar 5) — live deployment log stream, infra-spend HITL gate, smoke test card, live URL badge, 1-click rollback | `feature/deploy-console` | AF-043 (data) | 🟡 | ❌ |
+| AF-059 | Kaushlendra Kumar Gupta | Launch Control Center (Pillar 6) — brand kit preview, landing page iframe, social post drafts edit-in-place, email sequence preview, approve/edit HITL; nothing publishes without founder sign-off | `feature/launch-control-center` | AF-044 (data) | 🟡 | ❌ |
+| AF-060 | Kaushlendra Kumar Gupta | LLMOps Dashboard (Pillar 7) — cost by model/pillar/run, drift score time-series, eval score history, prompt version table with canary indicator | `feature/llmops-dashboard` | AF-045 (data) | 🟡 | ❌ |
+| AF-061 | Kaushlendra Kumar Gupta | Run List / Dashboard — all runs with status, pillar, cost, created date; filter + search; skeleton loaders | `feature/run-dashboard` | AF-030 | 🟡 | ❌ |
+| AF-062 | Kaushlendra Kumar Gupta | Admin Dashboard — tenant CRUD, model registry mgmt, prompt registry lifecycle, tool registry, audit log viewer, platform FinOps view ⚠️ *(large — flag if too much)* | `feature/admin-dashboard` | AF-030 | 🟡 | ❌ |
 
 **🟢 Do today (no backend needed):**
 - AF-051 Next.js 14 + Tailwind + shadcn/ui setup · AF-053 Zustand + React Query scaffolding.
@@ -444,15 +436,15 @@ Those turn **7 pillar owners from 🟡 to 🟢**.
 
 | ID | Owner | Task | Branch | Depends on | Start | Status |
 |----|-------|------|--------|------------|:----:|:----:|
-| AF-063 | Yogesh | Expo Router scaffold — TS strict, Supabase Auth (`@supabase/supabase-js` + `ExpoSecureStoreAdapter`), secure token storage in `expo-secure-store`, shared API client from `packages/api-client` | `feature/expo-setup` | Phase 1 | 🟢 | ❌ |
-| AF-064 | Yogesh | Push notifications — Expo Push → SNS → realtime; deep-link on tap to gate or run screen | `feature/push-notifications` | AF-017 (SNS) | 🔴 | ❌ |
-| AF-065 | Yogesh | Idea Intake screen — text input, voice record (Expo AV), file attach; submit to `POST /v1/ideas` | `feature/mobile-idea-intake` | AF-030 | 🟡 | ❌ |
-| AF-066 | Yogesh | Run Dashboard screen — live run list with status badges + cost; pull-to-refresh; realtime updates | `feature/mobile-run-dashboard` | AF-030, AF-031 | 🟡 | ❌ |
-| AF-067 | Yogesh | Run Detail screen — current pillar progress, step log stream, active gate banner | `feature/mobile-run-detail` | AF-031 | 🟡 | ❌ |
-| AF-068 | Yogesh | HITL Gate Approval screens — gate-specific review UI (Lean Canvas, Architecture summary, Launch preview); approve/reject with note; offline queue + sync on reconnect | `feature/mobile-gate-approval` | AF-034 | 🟡 | ❌ |
-| AF-069 | Yogesh | Artifacts Viewer — browse outputs (canvas, ERD image, live URL, brand kit, social posts) | `feature/mobile-artifacts-viewer` | AF-030 | 🟡 | ❌ |
-| AF-070 | Yogesh | LLMOps Summary screen — cost card, eval score card, last drift check; dark/light mode following system | `feature/mobile-llmops-summary` | AF-045 (data) | 🟡 | ❌ |
-| AF-071 | Yogesh | EAS Build + release — `eas.json` profiles (development, preview, production); App Store + Google Play submit via `eas submit` | `feature/eas-build-pipeline` | AF-063 | 🟢 | ❌ |
+| AF-063 | Kaushlendra Kumar Gupta | Expo Router scaffold — TS strict, Supabase Auth (`@supabase/supabase-js` + `ExpoSecureStoreAdapter`), secure token storage in `expo-secure-store`, shared API client from `packages/api-client` | `feature/expo-setup` | Phase 1 | 🟢 | ❌ |
+| AF-064 | Kaushlendra Kumar Gupta | Push notifications — Expo Push → SNS → realtime; deep-link on tap to gate or run screen | `feature/push-notifications` | AF-017 (SNS) | 🔴 | ❌ |
+| AF-065 | Kaushlendra Kumar Gupta | Idea Intake screen — text input, voice record (Expo AV), file attach; submit to `POST /v1/ideas` | `feature/mobile-idea-intake` | AF-030 | 🟡 | ❌ |
+| AF-066 | Kaushlendra Kumar Gupta | Run Dashboard screen — live run list with status badges + cost; pull-to-refresh; realtime updates | `feature/mobile-run-dashboard` | AF-030, AF-031 | 🟡 | ❌ |
+| AF-067 | Kaushlendra Kumar Gupta | Run Detail screen — current pillar progress, step log stream, active gate banner | `feature/mobile-run-detail` | AF-031 | 🟡 | ❌ |
+| AF-068 | Kaushlendra Kumar Gupta | HITL Gate Approval screens — gate-specific review UI (Lean Canvas, Architecture summary, Launch preview); approve/reject with note; offline queue + sync on reconnect | `feature/mobile-gate-approval` | AF-034 | 🟡 | ❌ |
+| AF-069 | Kaushlendra Kumar Gupta | Artifacts Viewer — browse outputs (canvas, ERD image, live URL, brand kit, social posts) | `feature/mobile-artifacts-viewer` | AF-030 | 🟡 | ❌ |
+| AF-070 | Kaushlendra Kumar Gupta | LLMOps Summary screen — cost card, eval score card, last drift check; dark/light mode following system | `feature/mobile-llmops-summary` | AF-045 (data) | 🟡 | ❌ |
+| AF-071 | Kaushlendra Kumar Gupta | EAS Build + release — `eas.json` profiles (development, preview, production); App Store + Google Play submit via `eas submit` | `feature/eas-build-pipeline` | AF-063 | 🟢 | ❌ |
 
 **🟢 Do today (no backend needed):** Expo Router scaffold (AF-063), navigation, secure-storage auth flow, all screens with mock data, design system, dark/light mode, EAS build profiles (AF-071).
 

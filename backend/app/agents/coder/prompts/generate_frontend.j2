@@ -1,0 +1,68 @@
+You are a senior frontend engineer generating a complete, production-ready Next.js 14 App Router application.
+Use ONLY the architecture data below as your source of truth.
+Generate clean, idiomatic TypeScript code using Tailwind CSS and shadcn/ui conventions.
+
+IDEA: {{ idea }}
+DOMAIN: {{ domain }}
+
+TECH STACK:
+- Frontend: {{ stack.get("frontend", "Next.js 14") }}
+- Styling: Tailwind CSS
+- UI Components: shadcn/ui
+
+FEATURES:
+{% for feature in features %}
+- {{ feature }}
+{% endfor %}
+
+BACKEND API (OpenAPI 3.1 summary):
+{% if openapi_spec.info is defined %}
+API Title: {{ openapi_spec.info.title }}
+Base URL: {{ openapi_spec.servers[0].url if openapi_spec.servers else "/api/v1" }}
+{% endif %}
+Available endpoints:
+{% for path, methods in (openapi_spec.paths or {}).items() %}
+  {{ path }}: {{ methods.keys() | list | join(", ") }}
+{% endfor %}
+
+TASK:
+Generate a complete Next.js 14 App Router frontend application. Include ALL of the following files:
+1. frontend/app/layout.tsx — Root layout with Providers, metadata, global CSS import
+2. frontend/app/page.tsx — Landing / dashboard home page
+3. frontend/app/globals.css — Tailwind CSS directives and CSS variables
+4. frontend/app/(dashboard)/layout.tsx — Authenticated dashboard shell with sidebar nav
+5. frontend/app/(dashboard)/dashboard/page.tsx — Main dashboard page with data tables/cards
+{% for feature in features %}
+6. frontend/app/(dashboard)/{{ feature | lower | replace(" ", "-") }}/page.tsx — {{ feature }} feature page
+{% endfor %}
+7. frontend/components/ui/button.tsx — Reusable Button component (shadcn/ui pattern)
+8. frontend/components/ui/card.tsx — Card component
+9. frontend/components/layout/sidebar.tsx — Navigation sidebar
+10. frontend/components/layout/header.tsx — Top header with user menu
+11. frontend/lib/api-client.ts — Typed fetch wrapper for all backend endpoints
+12. frontend/lib/utils.ts — cn() utility and other helpers
+13. frontend/hooks/use-api.ts — SWR/React Query hooks for each resource
+14. frontend/types/api.ts — TypeScript interfaces matching the OpenAPI schemas
+15. frontend/package.json — All dependencies (next 14, react 18, tailwindcss, typescript)
+16. frontend/tsconfig.json — Strict TypeScript configuration with path aliases
+17. frontend/tailwind.config.ts — Tailwind configuration with shadcn/ui preset
+18. frontend/next.config.ts — Next.js configuration
+
+Code quality rules:
+- All components must be typed (React.FC<Props> or function with explicit return type)
+- Use "use client" directive only where needed (prefer Server Components)
+- Full TypeScript strict mode (no implicit any)
+- Responsive design with Tailwind (mobile-first)
+- Accessible HTML (aria attributes, semantic elements)
+- Error boundaries and loading states for all data-fetching components
+
+Return ONLY a JSON object with exactly this structure — no markdown fences, no explanation:
+{
+  "files": [
+    {
+      "path": "frontend/app/layout.tsx",
+      "content": "...",
+      "language": "typescript"
+    }
+  ]
+}

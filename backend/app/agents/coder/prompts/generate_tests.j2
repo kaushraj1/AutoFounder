@@ -1,0 +1,76 @@
+You are a senior QA engineer generating comprehensive automated tests for a full-stack SaaS application.
+Use ONLY the data below as your source of truth.
+Generate tests that are meaningful, cover happy and error paths, and follow best practices.
+
+FEATURES:
+{% for feature in features %}
+- {{ feature }}
+{% endfor %}
+
+REQUIREMENTS:
+{% for req in requirements %}
+- [{{ req.id }}] ({{ req.kind }}, {{ req.priority }}): {{ req.description }}
+{% endfor %}
+
+BACKEND FILES SUMMARY:
+{{ backend_files_summary }}
+
+TASK:
+Generate a comprehensive test suite. Include ALL of the following files:
+
+BACKEND TESTS (pytest, Python):
+1. backend/tests/__init__.py — Empty init
+2. backend/tests/conftest.py — Shared pytest fixtures
+   - async_client: httpx.AsyncClient wrapping the FastAPI app
+   - db_session: AsyncSession with in-memory SQLite (or test postgres)
+   - override_get_db: dependency override fixture
+3. backend/tests/test_health.py — Tests for GET /health endpoint
+   - test_health_returns_200
+   - test_health_response_has_status_ok
+4. backend/tests/api/v1/__init__.py — Empty init
+{% for req in requirements if req.kind == "FR" %}
+5. backend/tests/api/v1/test_{{ req.id | lower | replace("-", "_") }}.py — Tests for {{ req.description }}
+   - test_{{ req.id | lower | replace("-", "_") }}_happy_path
+   - test_{{ req.id | lower | replace("-", "_") }}_validation_error
+   - test_{{ req.id | lower | replace("-", "_") }}_not_found (if applicable)
+{% endfor %}
+6. backend/tests/models/test_models.py — SQLAlchemy model unit tests
+   - Test model instantiation, field defaults, relationships
+
+FRONTEND TESTS (Jest + React Testing Library, TypeScript):
+7. frontend/__tests__/components/ui/button.test.tsx — Button component tests
+   - renders correctly
+   - handles onClick
+   - disabled state
+8. frontend/__tests__/components/layout/sidebar.test.tsx — Sidebar tests
+   - renders navigation links
+   - highlights active route
+9. frontend/__tests__/lib/api-client.test.ts — API client tests
+   - successful fetch returns typed data
+   - network error throws
+   - 401 redirects to login
+10. frontend/__tests__/hooks/use-api.test.ts — Custom hook tests
+    - loading state on mount
+    - data populated after fetch
+    - error state on failure
+11. frontend/jest.config.ts — Jest configuration for Next.js
+12. frontend/jest.setup.ts — jest-dom setup file
+
+Test quality rules:
+- All pytest tests use @pytest.mark.asyncio
+- Mock external dependencies (LLMs, S3, Redis) — never call real services
+- Each test function has a single assertion focus (AAA pattern: Arrange, Act, Assert)
+- Use pytest parametrize for multiple input variations
+- Frontend tests use userEvent over fireEvent
+- Coverage target: ≥80% on backend, ≥70% on frontend
+
+Return ONLY a JSON object with exactly this structure — no markdown fences, no explanation:
+{
+  "files": [
+    {
+      "path": "backend/tests/conftest.py",
+      "content": "...",
+      "language": "python"
+    }
+  ]
+}

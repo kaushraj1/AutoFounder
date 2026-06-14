@@ -1,0 +1,81 @@
+You are a DevOps engineer generating production-ready infrastructure and configuration files
+for a full-stack SaaS application.
+Use ONLY the data below as your source of truth.
+
+IDEA: {{ idea }}
+DOMAIN: {{ domain }}
+
+TECH STACK:
+- Frontend: {{ stack.get("frontend", "Next.js 14") }}
+- Backend: {{ stack.get("backend", "FastAPI") }}
+- Database: {{ stack.get("database", "PostgreSQL + pgvector") }}
+- Infrastructure: {{ stack.get("infra", "AWS ECS Fargate") }}
+
+FEATURES:
+{% for feature in features %}
+- {{ feature }}
+{% endfor %}
+
+TASK:
+Generate all configuration, containerisation, and CI/CD files. Include ALL of the following:
+
+1. backend/Dockerfile — Multi-stage production Dockerfile
+   - Stage 1 (builder): python:3.12-slim, install uv, sync dependencies
+   - Stage 2 (runtime): python:3.12-slim, copy venv from builder, run as non-root user
+   - EXPOSE 8000, CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+2. frontend/Dockerfile — Multi-stage Next.js Dockerfile
+   - Stage 1 (deps): node:20-alpine, install pnpm, install dependencies
+   - Stage 2 (builder): build Next.js with NEXT_TELEMETRY_DISABLED=1
+   - Stage 3 (runner): node:20-alpine, standalone output, non-root user
+   - EXPOSE 3000, CMD ["node", "server.js"]
+
+3. docker-compose.yml — Local development compose file
+   - Services: backend (port 8000), frontend (port 3000), postgres (port 5432), redis (port 6379)
+   - Health checks for each service
+   - Volumes for postgres data persistence
+   - Environment variables via .env file
+   - Networks: app-network bridge
+
+4. .env.example — Example environment variables file
+   - DATABASE_URL, REDIS_URL, SECRET_KEY, OPENAI_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY
+   - NEXT_PUBLIC_API_URL, NODE_ENV, ENVIRONMENT
+
+5. .github/workflows/ci.yml — GitHub Actions CI/CD pipeline
+   - Trigger: push to main, pull_request
+   - Jobs: lint-backend (ruff, mypy), test-backend (pytest with postgres service), lint-frontend (eslint, tsc), test-frontend (jest), build-docker (build images)
+   - Use actions/cache for pip/pnpm caches
+   - Matrix strategy for Python 3.12
+
+6. .github/workflows/deploy.yml — Deployment workflow
+   - Trigger: push to main after CI passes
+   - Build and push Docker images to ECR
+   - Deploy to ECS Fargate (update service)
+   - Requires AWS credentials from GitHub Secrets
+
+7. README.md — Project README
+   - Project name and description
+   - Architecture overview (backend: FastAPI, frontend: Next.js 14, DB: PostgreSQL)
+   - Prerequisites (Docker, Node 20+, Python 3.12+, pnpm)
+   - Quick start: git clone, cp .env.example .env, docker compose up -d
+   - Development: individual service commands
+   - Testing: pytest and jest commands
+   - Deployment instructions
+
+8. .gitignore — Comprehensive gitignore
+   - Python: __pycache__, .venv, *.pyc, .mypy_cache, .ruff_cache
+   - Node: node_modules, .next, dist, .pnpm-store
+   - Environment: .env, *.env.local
+   - Docker: .dockerignore patterns
+   - IDE: .vscode, .idea, *.swp
+
+Return ONLY a JSON object with exactly this structure — no markdown fences, no explanation:
+{
+  "files": [
+    {
+      "path": "docker-compose.yml",
+      "content": "...",
+      "language": "yaml"
+    }
+  ]
+}

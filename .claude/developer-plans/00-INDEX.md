@@ -1,70 +1,72 @@
-# AutoFounder AI — Per-Developer Technical Implementation Plans
+# AutoFounder AI — Implementation Plans Index
 
-> **Index** · Date: 2026-06-04 · Phase 1 (Validation Engine)
-> One technical implementation plan per developer, each mirroring the same 10-section + 3-appendix structure (modeled on Pallavi's Pillar 6 plan and grounded in `.claude/CLAUDE.md`, `.claude/task_assigned.md`, and each pillar's spec in `docs/architecture/Agents-Architecture/`).
+> **Index** · Updated: 2026-06-14
+> **Sole Developer:** Kaushlendra Kumar Gupta
+> All plans are now owned and executed by **Kaushlendra Kumar Gupta** as the sole developer on this project.
 
 ---
 
 ## The Plans
 
-| # | File | Developer | Area | AF-IDs | Branch |
-|---|---|---|---|---|---|
-| 01 | [01-asit-platform-foundation-plan.md](01-asit-platform-foundation-plan.md) | **Asit Piri** (Lead) | Platform Foundation (infra + UDAL + FastAPI + orchestrator + BaseAgent + Tool Registry) | AF-012 → AF-036, AF-047 | `feature/*` ✅ |
-| 02 | [02-somesh-pillar-1-strategy-research-plan.md](02-somesh-pillar-1-strategy-research-plan.md) | **Somesh Chitranshi** | Pillar 1 — Strategy + Research + Product Planner | AF-037, AF-038, AF-039 | `feature/strategy-agent` ✅ |
-| 03 | [03-kaushlendra-pillar-2-architecture-plan.md](03-kaushlendra-pillar-2-architecture-plan.md) | **Kaushlendra Kumar Gupta** | Pillar 2 — Architect Agent | AF-040 | `feature/architect-agent` |
-| 04 | [04-kartik-pillar-3-codegen-plan.md](04-kartik-pillar-3-codegen-plan.md) | **Kartik Mogalapalli** | Pillar 3 — Coder Agent | AF-041 | `feature/coder-agent` |
-| 05 | [05-vishal-pillar-4-testing-plan.md](05-vishal-pillar-4-testing-plan.md) | **Vishal Prasad** | Pillar 4 — Reviewer / Self-Healer | AF-042 | `feature/reviewer-agent` ✅ |
-| 06 | [06-prasenjit-pillar-5-deployment-plan.md](06-prasenjit-pillar-5-deployment-plan.md) | **Prasenjit Roy** | Pillar 5 — DevOps Agent | AF-043 | `feature/devops-agent` |
-| 07 | [07-pallavi-pillar-6-marketing-plan.md](07-pallavi-pillar-6-marketing-plan.md) | **Pallavi Anil Sindkar** | Pillar 6 — Marketing Agent | AF-044 | `feature/marketing-agent` |
-| 08 | [08-purnima-pillar-7-llmops-plan.md](08-purnima-pillar-7-llmops-plan.md) | **Purnima** | Pillar 7 — LLMOps + shared Prompt Registry / Router / Eval | AF-045, AF-048, AF-049, AF-050 | `feature/llmops-agent` |
-| 09 | [09-raunak-web-frontend-plan.md](09-raunak-web-frontend-plan.md) | **Raunak Ravi** | Web — Next.js 14 Founder Portal (12 surfaces) | AF-051 → AF-062 | `feature/nextjs-setup` |
-| 10 | [10-yogesh-mobile-plan.md](10-yogesh-mobile-plan.md) | **Yogesh Raut** | Mobile — Expo React Native (9 screens) | AF-063 → AF-071 | `feature/expo-setup` |
-| 11 | [11-asit-guardrails-pipeline-plan.md](11-asit-guardrails-pipeline-plan.md) | **Asit Piri** (Purnima co-owns Output+Monitoring) | Guardrails & Governance — 6-stage pipeline wrapping every agent call | AF-046 | `feat/platform/guardrails-tool-registry` ✅* |
-| 12 | [12-asit-vscode-extension-plan.md](12-asit-vscode-extension-plan.md) | **Asit Piri** (delivered by Vishal) | VS Code Extension — in-IDE co-founder (7 tasks) | AF-072 → AF-078 | `feature/vscode-extension` ✅ |
-| 13 | [13-asit-finance-ops-risk-plan.md](13-asit-finance-ops-risk-plan.md) | **Asit Piri** (Phase 4, deferred) | Finance Agent + Ops & Risk Agent (cross-cutting) | — (Phase 4) | `feature/finance-agent` |
-
-> **Previously unassigned — now all owned by Asit** (reassigned 2026-06-04, plans 11–13 above): Guardrails (AF-046), VS Code Extension (AF-072 → AF-078), Finance & Ops/Risk agents (Phase 4). ⚠️ This raises Asit to **~34 tasks (bus-factor 1)** — `task_assigned.md` Part B flags delegating the orchestrator (AF-033–035), BaseAgent (AF-036), or the VS Code Extension to an early-finishing pillar owner.
->
-> **✅ Update 2026-06-09 (Vishal exec for Asit):** Plan **11 (AF-046 Guardrails)** + the **AF-047 Tool Registry** half of plan **01** are delivered on `feat/platform/guardrails-tool-registry` (off `dev`), verified green (ruff + mypy 210 files + 369 pytest, +127 new). With infra (AF-012–024), BaseAgent (AF-036), and the VS Code Extension (AF-072–078) already done, **Asit's only remaining work is plan 13 (Finance + Ops/Risk, Phase-4 deferred).**
->
-> **✅ Plans delivered so far (per [TASKS.md](../TASKS.md) + [task_assigned.md](../task_assigned.md)):** **01** Asit platform foundation (AF-012→036 + AF-047) · **02** Somesh Pillar 1 (AF-037/038/039) · **05** Vishal Pillar 4 Reviewer (AF-042) · **11** Asit Guardrails (AF-046) · **12** VS Code Extension (AF-072→078, built by Vishal). **Still pending:** **03** Kaushlendra (AF-040) · **04** Kartik (AF-041) · **06** Prasenjit (AF-043) · **07** Pallavi (AF-044) · **08** Purnima (AF-045/048/049/050) · **09** Raunak (AF-051→062) · **10** Yogesh (AF-063→071) · **13** Asit Finance + Ops/Risk (Phase-4 deferred). _Status mirrors the trackers; per-task "scaffold vs real" nuance lives in [CURRENT-STATUS.md](../CURRENT-STATUS.md)._
+| # | File | Owner | Area | AF-IDs | Branch | Status |
+|---|---|---|---|---|---|---|
+| 01 | [01-asit-platform-foundation-plan.md](01-asit-platform-foundation-plan.md) | **Kaushlendra Kumar Gupta** | Platform Foundation (infra + UDAL + FastAPI + orchestrator + BaseAgent + Tool Registry) | AF-012 → AF-036, AF-047 | `feature/*` | ✅ Done |
+| 02 | [02-somesh-pillar-1-strategy-research-plan.md](02-somesh-pillar-1-strategy-research-plan.md) | **Kaushlendra Kumar Gupta** | Pillar 1 — Strategy + Research + Product Planner | AF-037, AF-038, AF-039 | `feature/strategy-agent` | ✅ Done |
+| 03 | [03-kaushlendra-pillar-2-architecture-plan.md](03-kaushlendra-pillar-2-architecture-plan.md) | **Kaushlendra Kumar Gupta** | Pillar 2 — Architect Agent | AF-040 | `kaushal-feat/agents/architect` | ❌ Pending |
+| 04 | [04-kartik-pillar-3-codegen-plan.md](04-kartik-pillar-3-codegen-plan.md) | **Kaushlendra Kumar Gupta** | Pillar 3 — Coder Agent | AF-041 | `kaushal-feat/agents/coder` | ❌ Pending |
+| 05 | [05-vishal-pillar-4-testing-plan.md](05-vishal-pillar-4-testing-plan.md) | **Kaushlendra Kumar Gupta** | Pillar 4 — Reviewer / Self-Healer | AF-042 | `feature/reviewer-agent` | ✅ Done |
+| 06 | [06-prasenjit-pillar-5-deployment-plan.md](06-prasenjit-pillar-5-deployment-plan.md) | **Kaushlendra Kumar Gupta** | Pillar 5 — DevOps Agent | AF-043 | `kaushal-feat/agents/devops` | ❌ Pending |
+| 07 | [07-pallavi-pillar-6-marketing-plan.md](07-pallavi-pillar-6-marketing-plan.md) | **Kaushlendra Kumar Gupta** | Pillar 6 — Marketing Agent | AF-044 | `kaushal-feat/agents/marketing` | ❌ Pending |
+| 08 | [08-purnima-pillar-7-llmops-plan.md](08-purnima-pillar-7-llmops-plan.md) | **Kaushlendra Kumar Gupta** | Pillar 7 — LLMOps + shared Prompt Registry / Router / Eval | AF-045, AF-048, AF-049, AF-050 | `kaushal-feat/llmops/*` | ❌ Pending |
+| 09 | [09-raunak-web-frontend-plan.md](09-raunak-web-frontend-plan.md) | **Kaushlendra Kumar Gupta** | Web — Next.js 14 Founder Portal (12 surfaces) | AF-051 → AF-062 | `kaushal-feat/frontend/*` | ❌ Pending |
+| 10 | [10-yogesh-mobile-plan.md](10-yogesh-mobile-plan.md) | **Kaushlendra Kumar Gupta** | Mobile — Expo React Native (9 screens) | AF-063 → AF-071 | `kaushal-feat/mobile/*` | ❌ Pending |
+| 11 | [11-asit-guardrails-pipeline-plan.md](11-asit-guardrails-pipeline-plan.md) | **Kaushlendra Kumar Gupta** | Guardrails & Governance — 6-stage pipeline wrapping every agent call | AF-046 | `feat/platform/guardrails-tool-registry` | ✅ Done |
+| 12 | [12-asit-vscode-extension-plan.md](12-asit-vscode-extension-plan.md) | **Kaushlendra Kumar Gupta** | VS Code Extension — in-IDE co-founder (7 tasks) | AF-072 → AF-078 | `feature/vscode-extension` | ✅ Done |
+| 13 | [13-asit-finance-ops-risk-plan.md](13-asit-finance-ops-risk-plan.md) | **Kaushlendra Kumar Gupta** | Finance Agent + Ops & Risk Agent (cross-cutting) | — (Phase 4) | `kaushal-feat/agents/finance` | ⏳ Phase 4 |
 
 ---
 
-## Pillar Hand-off Chain (who feeds whom)
+## Delivery Status
 
-```
-Somesh (P1)          Kaushlendra (P2)      Kartik (P3)        Vishal (P4)       Prasenjit (P5)     Pallavi (P6)
-idea -> canvas   ->  ERD + OpenAPI    ->   generated     ->  tested green  ->  live_url      ->   launch
-+ personas + PRD     + FEATURE LIST        repo               repo             + deploy           package
-                          |                                                        |
-                          +----------------- FEATURE LIST -------------------------+--> Pallavi (P6)
-                                            (hallucination ground truth)
+**✅ Done (49 tasks):** Plans 01, 02, 05, 11, 12 are fully delivered — platform foundation, all Pillar-1 agents (Strategy/Research/Product Planner), Reviewer agent, Guardrails, Tool Registry, VS Code Extension.
 
-ALL agents --> traces --> Purnima (P7 LLMOps) --> optimized prompts/models --> back into P1 / P3 / P6
-Asit (Platform) --> UDAL + BaseAgent + REST + Realtime + orchestrator --> EVERY pillar + Raunak (Web) + Yogesh (Mobile)
-```
+**❌ Pending (29 tasks):** Plans 03, 04, 06, 07, 08, 09, 10 — all to be built by Kaushlendra Kumar Gupta.
 
-## The One Rule That Explains Every Dependency
-
-Every agent (Pillars 1–7) needs the **shared backend foundation** first — `UDAL` (AF-027), `BaseAgent` (AF-036), the LLM Router + Prompt Registry (AF-048/049), and the Orchestrator (AF-033). Until those land (Asit + Purnima), agent owners build everything *around* their agent offline — prompts, tools, schemas, evals, mocked tests — but cannot ship a *running* one. Frontend (Raunak) and Mobile (Yogesh) build every screen on **mock data** now and swap in the real API client when AF-030 REST + AF-031 Realtime land.
-
-## What Each Plan Contains
-
-Each `*-plan.md` follows the same skeleton:
-
-1. **Objective** — what it achieves, outputs, inputs from upstream, outputs for downstream
-2. **Dependencies** — mandatory + soft + fallback matrix + dependency chain
-3. **Architecture** — design philosophy, main class/module, internal node/component diagram, responsibilities
-4. **Workflow Design** — end-to-end flow, Mermaid sequence, data passed between nodes
-5. **Sub-Agent / Sub-Component Recommendations** — node vs separate vs deferred
-6. **Tools & Integrations** — per-node tools, LLM/library requirements, rate limits, DB/storage
-7. **Data Models** — Pydantic / TypeScript schemas
-8. **Development Roadmap** — Phase 1/2/3 week-by-week
-9. **Testing Strategy** — mocks, fixtures, scenarios
-10. **Deliverables** — file tree, env vars, registries, metrics, events, output contract, **Start-Today items**
-- **Appendices** — A: Key Decisions · B: Risk Register · C: Coordination Checklist
+**Build Order** → see [`KAUSHLENDRA-SOLO-PLAN.md`](../KAUSHLENDRA-SOLO-PLAN.md) at the project root for the full prioritised sequence.
 
 ---
 
-*Auto-Founder AI — Developer Plans Index v1.0.0 | June 2026*
+## Pillar Pipeline (Solo Flow)
+
+```
+Kaushlendra builds and owns the entire pipeline:
+
+[DONE] Pillar 1: Strategy → Research → Product Planner → PRD + personas + canvas
+         |
+[NEXT]  Pillar 2: Architect Agent → ERD + OpenAPI + FEATURE LIST
+         |
+         v
+        Pillar 3: Coder Agent → generated repo (FastAPI + Next.js)
+         |
+         v
+[DONE] Pillar 4: Reviewer → tested green repo
+         |
+         v
+        Pillar 5: DevOps Agent → live_url + deployed infra
+        Pillar 6: Marketing Agent → launch package (uses FEATURE LIST from P2)
+         |
+         v
+        Pillar 7: LLMOps Agent → cost tracking, prompt optimisation, drift monitoring
+
+        Web Portal (12 surfaces) + Mobile App (9 screens) → consume all pillar outputs
+```
+
+---
+
+## The One Dependency Rule
+
+Every agent (Pillars 2–7) needs AF-048 (Prompt Registry) + AF-049 (LLM Router) before it can run end-to-end. Build those first, then tackle the pillar agents in pipeline order.
+
+---
+
+*AutoFounder AI · Developer Plans Index · Kaushlendra Kumar Gupta · 2026-06-14*

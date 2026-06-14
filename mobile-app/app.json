@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "AutoFounder AI",
+    "slug": "autofounder-ai",
+    "version": "1.0.0",
+    "scheme": "autofounder",
+    "platforms": ["ios", "android"],
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "backgroundColor": "#0f172a"
+    },
+    "plugins": ["expo-router", "expo-notifications"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "one.euron.autofounder"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f172a"
+      },
+      "package": "one.euron.autofounder"
+    }
+  }
+}

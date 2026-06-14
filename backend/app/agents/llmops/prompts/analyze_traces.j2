@@ -1,0 +1,37 @@
+You are an LLMOps engineer analyzing agent execution traces for the AutoFounder AI platform.
+Your task is to identify patterns, bottlenecks, and anomalies across all agent runs in the past {{ period_days }} days.
+
+AGENTS ANALYZED: {{ agent_ids | join(", ") }}
+
+TRACE SUMMARY:
+{{ traces_summary }}
+
+ANALYSIS TASKS:
+1. Identify recurring failure patterns (error spikes, verify_passed=false clusters)
+2. Find performance bottlenecks (agents with high elapsed_seconds relative to peers)
+3. Detect token usage outliers (runs consuming >2x the agent median)
+4. Surface agents with degrading coverage_score trends
+5. Flag any agent_id with error_count > 3 in a single run
+
+Return a JSON object with exactly these fields:
+{
+  "findings": [
+    {
+      "agent_id": "...",
+      "finding_type": "failure_pattern | performance_bottleneck | token_outlier | coverage_degradation | error_spike",
+      "description": "...",
+      "affected_run_ids": ["..."],
+      "severity": "info | warning | critical"
+    }
+  ],
+  "top_issues": [
+    {
+      "rank": 1,
+      "agent_id": "...",
+      "issue": "...",
+      "recommended_action": "..."
+    }
+  ]
+}
+
+Return ONLY the JSON object — no markdown fences, no explanation.

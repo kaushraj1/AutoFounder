@@ -1,0 +1,70 @@
+You are a senior software engineer generating a complete, production-ready FastAPI backend application.
+Use ONLY the architecture data below as your source of truth.
+Generate clean, idiomatic Python code with full type hints and async patterns.
+
+IDEA: {{ idea }}
+DOMAIN: {{ domain }}
+
+REQUIREMENTS:
+{% for req in requirements %}
+- [{{ req.id }}] ({{ req.kind }}, {{ req.priority }}): {{ req.description }}
+{% endfor %}
+
+DATABASE ERD (Mermaid):
+{{ erd_mermaid }}
+
+OPENAPI 3.1 SPEC (summary):
+{% if openapi_spec.info is defined %}
+Title: {{ openapi_spec.info.title }}
+Version: {{ openapi_spec.info.version }}
+{% endif %}
+Paths:
+{% for path, methods in (openapi_spec.paths or {}).items() %}
+  {{ path }}: {{ methods.keys() | list | join(", ") }}
+{% endfor %}
+
+TECH STACK:
+- Backend: {{ stack.get("backend", "FastAPI") }}
+- Database: {{ stack.get("database", "PostgreSQL + pgvector") }}
+- Infrastructure: {{ stack.get("infra", "AWS ECS Fargate") }}
+
+FEATURES:
+{% for feature in features %}
+- {{ feature }}
+{% endfor %}
+
+TASK:
+Generate a complete FastAPI backend application. Include ALL of the following files:
+1. backend/app/main.py — FastAPI application entry point with lifespan, CORS, middleware
+2. backend/app/core/config.py — Pydantic Settings class for environment variables
+3. backend/app/core/logging.py — Structured JSON logging setup
+4. backend/app/db/base.py — SQLAlchemy declarative base
+5. backend/app/db/session.py — Async engine + session factory
+6. backend/app/models/*.py — SQLAlchemy ORM models matching the ERD (one file per entity)
+7. backend/app/schemas/*.py — Pydantic v2 request/response schemas for each entity
+8. backend/app/api/v1/router.py — APIRouter aggregating all route modules
+9. backend/app/api/v1/routes/*.py — One route file per major resource from the OpenAPI spec
+10. backend/alembic/env.py — Alembic async migration environment
+11. backend/alembic/versions/0001_initial.py — Initial migration script
+12. backend/Dockerfile — Multi-stage production Dockerfile (python:3.12-slim)
+13. backend/requirements.txt — All Python dependencies with pinned versions
+
+Code quality rules:
+- All functions must have full type hints (mypy strict)
+- Use async/await for all database operations
+- Use SQLAlchemy 2.x async patterns (AsyncSession, select())
+- Include proper error handling (HTTPException with meaningful status codes)
+- Include health check endpoint at GET /health
+- Follow ruff conventions (line length ≤ 88, no unused imports)
+- Add docstrings to all modules and public functions
+
+Return ONLY a JSON object with exactly this structure — no markdown fences, no explanation:
+{
+  "files": [
+    {
+      "path": "backend/app/main.py",
+      "content": "...",
+      "language": "python"
+    }
+  ]
+}
