@@ -21,8 +21,6 @@ from app.agents.base import LLMRouterProtocol
 
 logger = logging.getLogger("app.agents.providers.gemini_router")
 
-_EURI_BASE_URL = "https://api.euron.one/api/v1/euri"
-
 #: Per-agent default models via Euri
 _TASK_MODEL_MAP: dict[str, str] = {
     "strategy": "gemini-2.5-flash",
@@ -123,7 +121,7 @@ class GeminiRouter(LLMRouterProtocol):
             use_json,
         )
 
-        client = AsyncOpenAI(api_key=api_key, base_url=_EURI_BASE_URL)
+        client = AsyncOpenAI(api_key=api_key, base_url=settings.euri_base_url)
         response = await client.chat.completions.create(**create_kwargs)
         return response.choices[0].message.content or ""
 

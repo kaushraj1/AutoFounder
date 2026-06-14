@@ -43,7 +43,6 @@ TASK_CLASS_MODEL_MAP: dict[str, str] = {
 }
 
 _DEFAULT_MODEL = "gemini-2.5-flash"
-_EURI_BASE_URL = "https://api.euron.one/api/v1/euri"
 
 
 class LLMRouter:
@@ -98,6 +97,7 @@ class LLMRouter:
             model=model,
             prompt=prompt,
             api_key=settings.euri_api_key,
+            base_url=settings.euri_base_url,
             **kw,
         )
 
@@ -117,6 +117,7 @@ class LLMRouter:
         model: str,
         prompt: str,
         api_key: str,
+        base_url: str,
         **kw: Any,
     ) -> str:
         """Call the Euri API using the OpenAI-compatible client.
@@ -135,7 +136,7 @@ class LLMRouter:
 
         client = AsyncOpenAI(
             api_key=api_key,
-            base_url=_EURI_BASE_URL,
+            base_url=base_url,
         )
 
         # Build messages list

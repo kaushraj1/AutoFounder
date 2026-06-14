@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # Application
     app_env: str = "development"
     log_level: str = "INFO"
-    secret_key: str = "change-me-in-dev"
+    secret_key: str = ""
     cors_origins: str = "http://localhost:3000,http://localhost:3001"
 
     # Data stores (async drivers)
@@ -32,9 +32,9 @@ class Settings(BaseSettings):
 
     # Supabase (Storage + Auth) — required by ObjectClient and AF-029 auth middleware
     supabase_url: str = "http://localhost:54321"
-    supabase_service_key: str = "dev-service-key-change-in-prod"      # set via SUPABASE_SERVICE_KEY
+    supabase_service_key: str = ""                                      # set via SUPABASE_SERVICE_KEY
     supabase_service_role_key: str = ""                                # alias: SUPABASE_SERVICE_ROLE_KEY
-    supabase_jwt_secret: str = "change-me-in-dev"
+    supabase_jwt_secret: str = ""
 
     @property
     def effective_supabase_service_key(self) -> str:
