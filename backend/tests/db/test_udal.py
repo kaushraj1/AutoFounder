@@ -123,8 +123,8 @@ async def test_relational_sets_search_path() -> None:
         sql_text_1 = str(calls[0][0][0])
         sql_text_2 = str(calls[1][0][0])
         assert "org_org_rel" in sql_text_1
-        assert "SET LOCAL search_path" in sql_text_1
-        assert "SET LOCAL app.organization_id" in sql_text_2
+        assert "SET search_path" in sql_text_1
+        assert "SET app.organization_id" in sql_text_2
 
 
 @pytest.mark.asyncio

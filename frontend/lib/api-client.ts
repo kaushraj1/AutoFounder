@@ -101,6 +101,16 @@ export async function cancelRun(runId: string): Promise<ResponseEnvelope<boolean
 // ---------------------------------------------------------------------------
 
 /**
+ * List pending HITL gates for a run.
+ * GET /v1/runs/:runId/gates
+ */
+export async function listGates(
+  runId: string
+): Promise<ResponseEnvelope<GateRead[]>> {
+  return apiFetch<ResponseEnvelope<GateRead[]>>(`/runs/${runId}/gates`)
+}
+
+/**
  * Approve or reject a HITL gate.
  * POST /v1/runs/:runId/gates/:gateId
  */

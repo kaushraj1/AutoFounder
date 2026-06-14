@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/runs/StatusBadge'
 import { PillarProgress } from '@/components/runs/PillarProgress'
-import { getRun } from '@/lib/api-client'
+import { ApprovalGate } from '@/components/hitl/ApprovalGate'
+import { getRun, listGates } from '@/lib/api-client'
 import { MOCK_RUNS } from '@/lib/mock-data'
 import { formatDate, pillarLabel } from '@/lib/utils'
 import type { Run } from '@/lib/types'
@@ -27,14 +28,26 @@ const PILLAR_TABS = [
 
 export default function RunDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
     queryKey: ['run', id],
     queryFn: () => getRun(id),
-    refetchInterval: 15_000, // poll every 15s while run is live
+    refetchInterval: 15_000,
   })
 
   const run: Run = data?.data ?? MOCK_RUNS.find((r) => r.id === id) ?? MOCK_RUNS[0]
+
+  const needsReview = run.status === 'paused' || run.status === 'awaiting_review'
+
+  const { data: gatesData } = useQuery({
+    queryKey: ['gates', id],
+    queryFn: () => listGates(id),
+    enabled: needsReview,
+    refetchInterval: needsReview ? 5_000 : false,
+  })
+
+  const pendingGate = gatesData?.data?.find((g) => g.state === 'pending')
 
   return (
     <div className="flex flex-col">
@@ -69,6 +82,45 @@ export default function RunDetailPage() {
         {/* Pillar progress bar */}
         {!isLoading && (
           <PillarProgress currentPillar={run.pillar} status={run.status} />
+        )}
+
+        {/* HITL Approval Gate — shown when run is awaiting human review */}
+        {needsReview && pendingGate && (
+          <ApprovalGate
+            runId={id}
+            gateId={pendingGate.id}
+            pillarName={
+              {
+                validation_approve: 'Strategy',
+                architecture_approve: 'Architecture',
+                infra_spend_approve: 'DevOps',
+                launch_approve: 'Marketing',
+              }[pendingGate.kind] ?? pillarLabel(run.pillar)
+            }
+            onDecision={() => {
+              queryClient.invalidateQueries({ queryKey: ['run', id] })
+              queryClient.invalidateQueries({ queryKey: ['gates', id] })
+            }}
+          />
+        )}
+
+        {/* Awaiting review but no gate record yet — dev mode fallback */}
+        {needsReview && !pendingGate && (
+          <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 text-orange-500 text-xl">⏳</span>
+              <div>
+                <p className="font-medium text-orange-900">Awaiting Review</p>
+                <p className="mt-0.5 text-sm text-orange-700">
+                  The <strong>{pillarLabel(run.pillar)}</strong> pillar output is being prepared for review.
+                  The approval gate will appear here once the pillar output is ready.
+                </p>
+                <p className="mt-2 text-xs text-orange-600">
+                  This page auto-refreshes every 5 seconds.
+                </p>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Navigation to sub-pages */}

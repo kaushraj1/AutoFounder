@@ -34,8 +34,8 @@ class RelationalClient:
 
     async def __aenter__(self) -> Self:
         schema = f'"org_{self._org_id}"'
-        await self._session.execute(text(f"SET LOCAL search_path TO {schema}, platform, public;"))
-        await self._session.execute(text(f"SET LOCAL app.organization_id = '{self._org_id}';"))
+        await self._session.execute(text(f"SET search_path TO {schema}, platform, public;"))
+        await self._session.execute(text(f"SET app.organization_id = '{self._org_id}';"  ))
         return self
 
     async def __aexit__(

@@ -58,6 +58,7 @@ export type GateState = 'pending' | 'approved' | 'rejected'
 export interface Gate {
   id: string
   run_id: string
+  kind: string
   state: GateState
   pillar: string
   decided_by?: string

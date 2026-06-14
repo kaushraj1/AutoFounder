@@ -248,5 +248,30 @@ class SQSRunCreatedConsumer:
             idea_meta={},
         )
         config = self.engine._config(run_id)
-        await self.engine._get_graph().ainvoke(initial, config)
+        graph = self.engine._get_graph()
+        await graph.ainvoke(initial, config)
+
+        # Create HITL gate record if graph paused at an interrupt node (AF-034)
+        if self.engine._session_factory is not None:
+            from sqlalchemy import text
+
+            from app.orchestrator.hitl.gate_manager import check_and_create_gate
+
+            async with self.engine._session_factory() as session:
+                await session.execute(
+                    text(f'SET search_path TO "org_{organization_id}", platform, public;')
+                )
+                await session.execute(
+                    text(f"SET app.organization_id = '{organization_id}';")
+                )
+                snapshot = await graph.aget_state(config)
+                await check_and_create_gate(
+                    run_id=str(run_id),
+                    org_id=str(organization_id),
+                    snapshot=snapshot,
+                    db_session=session,
+                    graph=graph,
+                    config=config,
+                )
+
         await self.engine._sync_status_from_graph(run_id, organization_id)

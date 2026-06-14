@@ -6,7 +6,6 @@ import { ArrowLeft, Layers, Code2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ApprovalGate } from '@/components/hitl/ApprovalGate'
 import { Header } from '@/components/layout/Header'
 import { MOCK_ARCHITECTURE } from '@/lib/mock-data'
 
@@ -24,14 +23,6 @@ export default function ArchitecturePage() {
           </Button>
           <h2 className="text-base font-semibold">System Architecture</h2>
         </div>
-
-        {/* HITL Gate */}
-        <ApprovalGate
-          runId={id}
-          gateId="gate-architecture-001"
-          pillarName="Architecture"
-          onDecision={(d) => console.log('Architecture gate:', d)}
-        />
 
         {/* Mermaid diagram (rendered as pre for now; can add mermaid.js in client component) */}
         <Card>

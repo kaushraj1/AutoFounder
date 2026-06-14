@@ -125,11 +125,9 @@ class EventBridgeProducer:
         else:
             logger.info("Mock event published: %s", json.dumps(entry, indent=2))
             if event_type == "run.created":
-                import asyncio
-
                 from app.orchestrator.events.consumer import get_mock_run_created_queue
 
-                asyncio.create_task(get_mock_run_created_queue().put(detail))
+                await get_mock_run_created_queue().put(detail)
 
 
 # Global producer singleton

@@ -19,6 +19,25 @@ from app.schemas.gate import GateDecision, GateRead, GateState
 router = APIRouter(prefix="/runs/{run_id}/gates", tags=["gates"])
 
 
+@router.get(
+    "",
+    response_model=ResponseEnvelope[list[GateRead]],
+    summary="List gates for a run",
+)
+async def list_gates(
+    run_id: uuid.UUID,
+    udal: Annotated[UDAL, Depends(get_udal)],
+    meta: Annotated[Meta, Depends(get_meta)],
+) -> ResponseEnvelope[list[GateRead]]:
+    """List all HITL gates for a run (pending first)."""
+    async with udal.relational() as db:
+        result = await db.session.execute(
+            select(Gate).where(Gate.run_id == run_id).order_by(Gate.created_at.asc())
+        )
+        gates = result.scalars().all()
+        return ResponseEnvelope(data=[GateRead.model_validate(g) for g in gates], meta=meta)
+
+
 @router.post(
     "/{gate_id}",
     response_model=ResponseEnvelope[GateRead],

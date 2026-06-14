@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { ApprovalGate } from '@/components/hitl/ApprovalGate'
 import { Header } from '@/components/layout/Header'
 import { MOCK_REVIEW } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
@@ -72,14 +71,6 @@ export default function ReviewPage() {
             {review.overall === 'APPROVED' ? '✓ APPROVED' : '⚠ ESCALATE'}
           </Badge>
         </div>
-
-        {/* HITL Gate */}
-        <ApprovalGate
-          runId={id}
-          gateId="gate-review-001"
-          pillarName="QA Review"
-          onDecision={(d) => console.log('Review gate:', d)}
-        />
 
         {/* Summary cards */}
         <div className="grid gap-4 sm:grid-cols-4">

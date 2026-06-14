@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.gate import Gate
@@ -42,6 +42,14 @@ NODE_TO_PILLAR = {
     "launch_gate": 6,
 }
 
+# Map gate nodes to the current_pillar string stored in runs table
+NODE_TO_PILLAR_NAME = {
+    "validation_gate": "strategy",
+    "architecture_gate": "architecture",
+    "infra_spend_gate": "devops",
+    "launch_gate": "marketing",
+}
+
 
 async def check_and_create_gate(
     run_id: str,
@@ -62,6 +70,7 @@ async def check_and_create_gate(
 
     gate_kind = NODE_TO_GATE_KIND[gate_node]
     pillar = NODE_TO_PILLAR.get(gate_node, 1)
+    pillar_name = NODE_TO_PILLAR_NAME.get(gate_node, "strategy")
 
     # Check if a pending gate of this kind already exists for the run
     result = await db_session.execute(
@@ -123,6 +132,13 @@ async def check_and_create_gate(
     )
     if hasattr(db_session, "add"):
         db_session.add(gate)
+
+    # Update current_pillar on the run so the UI shows the correct stage
+    await db_session.execute(
+        text("UPDATE runs SET current_pillar = :pillar WHERE id = CAST(:run_id AS UUID)"),
+        {"pillar": pillar_name, "run_id": run_id},
+    )
+
     if hasattr(db_session, "commit"):
         await db_session.commit()
 

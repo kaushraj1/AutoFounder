@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { ApprovalGate } from '@/components/hitl/ApprovalGate'
 import { Header } from '@/components/layout/Header'
 import { MOCK_STRATEGY } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
@@ -45,14 +44,6 @@ export default function StrategyPage() {
           </Button>
           <h2 className="text-base font-semibold">Strategy &amp; Viability Analysis</h2>
         </div>
-
-        {/* HITL Gate */}
-        <ApprovalGate
-          runId={id}
-          gateId="gate-strategy-001"
-          pillarName="Strategy"
-          onDecision={(decision) => console.log('Gate decision:', decision)}
-        />
 
         {/* Viability Score */}
         <Card>
